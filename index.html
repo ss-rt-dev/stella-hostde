@@ -350,3 +350,239 @@
     <button class="btn primary" id="close-modal-btn">Schließen</button>
   </div>
 </div>
+<script>
+/* ===================== CONFIGURATIONS DATA ===================== */
+const servicesData = {
+  mc: { title: "Minecraft Server", basePrice: 4.50, options: [
+    { id: "ram", type: "box", sub:"Wähle deinen RAM Speicher", choices: [{lab:"4 GB RAM", delta:0}, {lab:"6 GB RAM", delta:3}, {lab:"8 GB RAM", delta:6}, {lab:"16 GB RAM", delta:18}] },
+    { id: "cpu", type: "box", sub:"Ressourcen-Kernfokus", choices: [{lab:"Standard Core", delta:0}, {lab:"High-Priority", delta:2.5}, {lab:"Dedicated Core", delta:7}] },
+    { id: "backup", type: "check", label: "Automatisches Backup-System", price: 1.50 }
+  ]},
+  fivem: { title: "FiveM Gameserver", basePrice: 9.90, options: [
+    { id: "slots", type: "box", sub:"Spieler-Slots Node-Zuweisung", choices: [{lab:"Bis 32 Slots", delta:0}, {lab:"Bis 64 Slots", delta:5}, {lab:"Bis 128 Slots", delta:12}, {lab:"Unbegrenzt", delta:22}] },
+    { id: "db", type: "check", label: "Dedizierte MariaDB Datenbank", price: 0.00 },
+    { id: "proxy", type: "check", label: "DDoS-Game-Proxy Adresse", price: 3.50 }
+  ]},
+  vps: { title: "VPS / KVM Rootserver", basePrice: 6.90, options: [
+    { id: "cores", type: "box", sub:"AMD Ryzen vCores", choices: [{lab:"2 vCores", delta:0}, {lab:"4 vCores", delta:4.5}, {lab:"6 vCores", delta:9.5}, {lab:"8 vCores", delta:16}] },
+    { id: "storage", type: "box", sub:"NVMe SSD Speicher", choices: [{lab:"40 GB NVMe", delta:0}, {lab:"80 GB NVMe", delta:3}, {lab:"160 GB NVMe", delta:8}] },
+    { id: "ip", type: "check", label: "1x zusätzliche dedizierte IPv4", price: 2.00 }
+  ]},
+  editor: { title: "Editor- & Webspace-Server", basePrice: 1.99, options: [
+    { id: "space", type: "box", sub:"Dateispeicherplatz", choices: [{lab:"10 GB Space", delta:0}, {lab:"25 GB Space", delta:2}, {lab:"50 GB Space", delta:4.5}] },
+    { id: "ssl", type: "check", label: "Wildcard SSL-Zertifikate", price: 0.00 },
+    { id: "node", type: "check", label: "Node.js/Python Runtime Support", price: 1.00 }
+  ]}
+};
+
+let currentServiceId = null;
+let selections = {};
+
+function initApp() {
+  const grid = document.getElementById("service-grid");
+  Object.keys(servicesData).forEach((key, idx) => {
+    const s = servicesData[key];
+    const card = document.createElement("div");
+    card.className = "service-card";
+    card.innerHTML = `
+      <div class="service-index">0${idx+1} // HOSTING</div>
+      <h3>${s.title}</h3>
+      <div class="service-foot"><span class="service-price">Ab ${s.basePrice.toFixed(2)} €</span><div class="service-arrow">→</div></div>
+    `;
+    card.addEventListener("click", () => openConfigurator(key));
+    grid.appendChild(card);
+  });
+
+  document.querySelectorAll(".navlink").forEach(link => {
+    link.addEventListener("click", () => switchView(link.getAttribute("data-view")));
+  });
+
+  document.getElementById("back-to-services").addEventListener("click", () => switchView("services"));
+  document.getElementById("order-btn").addEventListener("click", generateAndShowId);
+  document.getElementById("close-modal-btn").addEventListener("click", () => document.getElementById("order-modal").classList.remove("active"));
+  document.getElementById("search-id-btn").addEventListener("click", performLookup);
+}
+
+function switchView(viewId) {
+  document.querySelectorAll(".view, .configurator").forEach(v => v.classList.remove("active"));
+  document.querySelectorAll("nav .navlink").forEach(l => l.classList.remove("active"));
+  
+  const target = document.getElementById(`view-${viewId}`);
+  if(target) target.classList.add("active");
+  const navBtn = document.querySelector(`nav .navlink[data-view="${viewId}"]`);
+  if(navBtn) navBtn.classList.add("active");
+  window.scrollTo({top: 0});
+}
+
+function openConfigurator(serviceId) {
+  currentServiceId = serviceId;
+  const s = servicesData[serviceId];
+  selections = {};
+  
+  const container = document.getElementById("config-options");
+  container.innerHTML = `<h2 style="font-family:var(--font-display); margin-bottom:20px;">${s.title} anpassen</h2>`;
+  
+  s.options.forEach(opt => {
+    const group = document.createElement("div");
+    group.className = "option-group";
+    group.innerHTML = `<h4>${opt.id.toUpperCase()}</h4><div class="group-sub">${opt.sub || ''}</div>`;
+    
+    if(opt.type === "box") {
+      selections[opt.id] = 0;
+      const boxGrid = document.createElement("div");
+      boxGrid.className = "box-grid";
+      opt.choices.forEach((c, idx) => {
+        const box = document.createElement("div");
+        box.className = "opt-box" + (idx === 0 ? " selected" : "");
+        box.innerHTML = `<div class="lab">${c.lab}</div><div class="delta">+${c.delta.toFixed(2)} €</div>`;
+        box.addEventListener("click", () => {
+          boxGrid.querySelectorAll(".opt-box").forEach(b => b.classList.remove("selected"));
+          box.classList.add("selected");
+          selections[opt.id] = idx;
+          updateSummary();
+        });
+        boxGrid.appendChild(box);
+      });
+      group.appendChild(boxGrid);
+    } else {
+      selections[opt.id] = 0;
+      const check = document.createElement("div");
+      check.className = "check-box";
+      check.innerHTML = `<div class="checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="#060607" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div><div style="flex:1; margin-left:12px; font-size:0.85rem;">${opt.label}</div><div style="font-size:0.8rem; color:var(--dim);">+${opt.price.toFixed(2)} €</div>`;
+      check.addEventListener("click", () => {
+        check.classList.toggle("selected");
+        selections[opt.id] = check.classList.contains("selected") ? 1 : 0;
+        updateSummary();
+      });
+      group.appendChild(check);
+    }
+    container.appendChild(group);
+  });
+  switchView("configurator");
+  updateSummary();
+}
+
+function updateSummary() {
+  const s = servicesData[currentServiceId];
+  const lines = document.getElementById("summary-lines");
+  lines.innerHTML = "";
+  let total = s.basePrice;
+
+  s.options.forEach(opt => {
+    const val = selections[opt.id];
+    if(opt.type === "box") {
+      const choice = opt.choices[val];
+      total += choice.delta;
+      lines.innerHTML += `<div class="summary-line"><span class="k">${choice.lab}</span><span>+${choice.delta.toFixed(2)} €</span></div>`;
+    } else if(opt.type === "check" && val === 1) {
+      total += opt.price;
+      lines.innerHTML += `<div class="summary-line"><span class="k">${opt.label}</span><span>+${opt.price.toFixed(2)} €</span></div>`;
+    }
+  });
+  document.getElementById("summary-total").textContent = `${total.toFixed(2)} €`;
+}
+
+function generateAndShowId() {
+  const s = servicesData[currentServiceId];
+  let code = `ST-${currentServiceId.toUpperCase()}-`;
+  s.options.forEach(opt => { code += selections[opt.id]; });
+  const salt = Math.random().toString(36).substring(2, 4).toUpperCase();
+  code += `-${salt}`;
+
+  document.getElementById("modal-config-id").textContent = code;
+  document.getElementById("order-modal").classList.add("active");
+}
+
+function performLookup() {
+  const input = document.getElementById("search-id-input").value.trim().toUpperCase();
+  const resultsBox = document.getElementById("search-results");
+  const linesContainer = document.getElementById("result-lines");
+  
+  if(!input.startsWith("ST-")) { alert("Ungültiges ID-Format! Muss mit 'ST-' beginnen."); return; }
+  const parts = input.split("-");
+  if(parts.length < 3) { alert("ID unvollständig."); return; }
+
+  const serviceKey = parts[1].toLowerCase();
+  const configString = parts[2];
+  const s = servicesData[serviceKey];
+  
+  if(!s) { alert("Service-Typ aus ID nicht erkannt oder ungültig."); return; }
+
+  document.getElementById("result-service-name").textContent = s.title;
+  linesContainer.innerHTML = `<div class="summary-line"><span class="k">Basispreis</span><span>${s.basePrice.toFixed(2)} €</span></div>`;
+  let total = s.basePrice;
+
+  s.options.forEach((opt, idx) => {
+    const valueChar = configString.charAt(idx);
+    if(valueChar === "") return;
+    const val = parseInt(valueChar);
+
+    if(opt.type === "box") {
+      const choice = opt.choices[val];
+      if(choice) {
+        total += choice.delta;
+        linesContainer.innerHTML += `<div class="summary-line"><span class="k">${choice.lab}</span><span>+${choice.delta.toFixed(2)} €</span></div>`;
+      }
+    } else if(opt.type === "check" && val === 1) {
+      total += opt.price;
+      linesContainer.innerHTML += `<div class="summary-line"><span class="k">${opt.label}</span><span>+${opt.price.toFixed(2)} €</span></div>`;
+    }
+  });
+
+  document.getElementById("result-total-price").textContent = `${total.toFixed(2)} €`;
+  resultsBox.classList.add("active");
+}
+
+/* ===================== VISUAL BACKGROUND EFFECTS ===================== */
+(function(){
+  const canvas = document.getElementById('starfield');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+
+  function resize(){
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    stars = Array.from({length: 80}, () => ({
+      x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+      r: Math.random() * 1.2 + 0.2, phase: Math.random() * Math.PI * 2
+    }));
+  }
+  function draw(t){
+    ctx.clearRect(0,0,canvas.width, canvas.height);
+    ctx.fillStyle = '#060607'; ctx.fillRect(0,0,canvas.width, canvas.height);
+    for(const s of stars){
+      const twinkle = 0.4 + 0.6 * Math.abs(Math.sin(s.phase + t * 0.001));
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(245,245,243,${twinkle * 0.7})`; ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize', resize); resize(); requestAnimationFrame(draw);
+})();
+
+(function(){
+  function countUp(el){
+    const target = parseFloat(el.dataset.target);
+    const prefix = el.dataset.prefix || ''; const suffix = el.dataset.suffix || '';
+    let cur = 0;
+    const interval = setInterval(() => {
+      cur += target / 20;
+      if(cur >= target) { cur = target; clearInterval(interval); }
+      el.textContent = prefix + (target % 1 === 0 ? Math.round(cur) : cur.toFixed(1)) + suffix;
+    }, 30);
+  }
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if(e.isIntersecting){
+        document.getElementById('typing-indicator').classList.add('hidden');
+        document.getElementById('cv2-wrap').classList.add('shown');
+        document.querySelectorAll('.num').forEach(countUp);
+      }
+    });
+  }, {threshold: 0.3});
+  observer.observe(document.getElementById('embed-anchor'));
+})();
+
+window.addEventListener("DOMContentLoaded", initApp);
+</script>
+</body>
+</html>
