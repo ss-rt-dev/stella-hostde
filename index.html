@@ -363,13 +363,6 @@
   .check-box .label{ font-size:0.85rem; color:#d8d8d5; }
   .check-box .price{ font-size:0.78rem; color:var(--dim); font-family:var(--font-display); }
 
-  /* ---------- CONFIG ID INPUT ---------- */
-  .config-id-wrap { margin-top:16px; padding:12px 0 4px 0; border-top:1px dashed var(--border); }
-  .config-id-wrap label { font-size:0.68rem; text-transform:uppercase; color:var(--dim); letter-spacing:0.05em; display:block; margin-bottom:6px; }
-  .config-id-field { display:flex; gap:8px; }
-  .config-id-input { background:var(--black); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 14px; font-family:var(--font-mono); font-size:0.78rem; color:var(--white); flex:1; outline:none; transition:border-color .15s ease; }
-  .config-id-input:focus { border-color:var(--border-strong); }
-
   /* ---------- SUMMARY ---------- */
   .summary{
     position:sticky; top:100px;
@@ -389,6 +382,29 @@
   .summary-total .v span{ font-size:0.9rem; color:var(--dim); font-weight:400; font-family:var(--font-mono); }
   .summary .btn{ width:100%; justify-content:center; margin-top:22px; }
   .summary-note{ font-size:0.68rem; color:var(--faint); margin-top:14px; line-height:1.5; text-align:center; }
+
+  /* ---------- MODERN POPUP (MODAL) ---------- */
+  .modal-overlay {
+    position:fixed; inset:0; background:rgba(6,6,7,0.85); backdrop-filter:blur(10px);
+    display:flex; align-items:center; justify-content:center; z-index:100;
+    opacity:0; pointer-events:none; transition:opacity 0.3s ease;
+  }
+  .modal-overlay.active { opacity:1; pointer-events:auto; }
+  .modal-box {
+    background:var(--panel-2); border:1px solid var(--border-strong); border-radius:var(--radius-lg);
+    padding:40px; max-width:480px; width:90%; text-align:center; box-shadow:0 30px 70px rgba(0,0,0,0.8);
+    transform:translateY(20px); transition:transform 0.3s ease;
+  }
+  .modal-overlay.active .modal-box { transform:translateY(0); }
+  .modal-icon { width:56px; height:56px; background:rgba(255,255,255,0.06); border:1px solid var(--border-strong); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px auto; }
+  .modal-box h3 { font-family:var(--font-display); font-size:1.5rem; font-weight:700; margin-bottom:12px; }
+  .modal-box p { color:var(--dim); font-size:0.84rem; line-height:1.6; margin-bottom:24px; }
+  .modal-id-display {
+    background:var(--black); border:1px dashed var(--border-strong); border-radius:var(--radius-sm);
+    padding:16px; font-family:var(--font-mono); font-size:1.15rem; font-weight:600; color:var(--white);
+    letter-spacing:0.05em; display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:26px;
+  }
+  .modal-box .btn { width:100%; justify-content:center; }
 
   @media (max-width:980px){
     .hero{ grid-template-columns:1fr; }
@@ -608,13 +624,6 @@
         <h3 id="summary-title">—</h3>
         <div id="summary-lines"></div>
 
-        <div class="config-id-wrap">
-          <label for="config-id-input">Konfigurations-ID / Gutschein</label>
-          <div class="config-id-field">
-            <input type="text" id="config-id-input" class="config-id-input" placeholder="Z.B. ST-BEXA82">
-          </div>
-        </div>
-
         <div class="summary-total">
           <span class="k">Gesamt / Monat</span>
           <span class="v" id="summary-total">0,00 €<span>/Mon.</span></span>
@@ -627,34 +636,86 @@
 
 </div>
 
+<div class="modal-overlay" id="order-modal">
+  <div class="modal-box">
+    <div class="modal-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f6f6f4" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
+    </div>
+    <h3>Konfiguration gespeichert!</h3>
+    <p>Deine Server-Zusammenstellung wurde erfolgreich registriert. Nutze diese ID, um die Bestellung abzuschließen oder für Support-Anfragen.</p>
+    <div class="modal-id-display" id="modal-config-id">ST-XXXX-XXXX</div>
+    <button class="btn primary" id="close-modal-btn">Schließen & zurück</button>
+  </div>
+</div>
+
 <script>
-/* ===================== SERVICES DATA & LOGIC ===================== */
+/* ===================== EXTENDED CONFIGURATIONS DATA ===================== */
 const servicesData = {
   minecraft: {
     title: "Minecraft Server",
     desc: "Optimiertes Minecraft Hosting auf Ryzen-Prozessoren & extrem schnellen NVMe Speichern.",
     basePrice: 4.50,
     options: [
-      { id: "ram", type: "box", title: "Arbeitsspeicher (RAM)", sub: "Empfohlen: 4GB - 8GB für Modpacks", choices: [
-        { lab: "4 GB", delta: 0 },
-        { lab: "6 GB", delta: 3.00 },
-        { lab: "8 GB", delta: 6.00 },
-        { lab: "12 GB", delta: 12.00 }
+      { id: "ram", type: "box", title: "Arbeitsspeicher (RAM)", sub: "Empfohlen: 6-8GB für mittlere Modpacks", choices: [
+        { lab: "4 GB RAM", delta: 0 },
+        { lab: "6 GB RAM", delta: 3.00 },
+        { lab: "8 GB RAM", delta: 6.00 },
+        { lab: "16 GB RAM", delta: 18.00 }
       ]},
-      { id: "backup", type: "check", title: "Zusätzliche Backups", sub: "Schütze deine Welten vor Datenverlust", label: "Premium Tägliche Backups (+30 Tage)", price: 1.50 }
+      { id: "slots", type: "box", title: "CPU & Performance Kernfokus", sub: "Ressourcen-Zuweisung für deinen Server", choices: [
+        { lab: "Standard Core", delta: 0 },
+        { lab: "High-Priority", delta: 2.50 },
+        { lab: "Dedicated Core", delta: 7.00 }
+      ]},
+      { id: "backup", type: "check", title: "Sicherheits-Optionen", sub: "Schütze deine Welten vor Fehlern", label: "Automatisches tägliches Backup-System", price: 1.50 }
+    ]
+  },
+  fivem: {
+    title: "FiveM Gameserver",
+    desc: "High-Performance Gameserver für deinen GTA V Roleplay- oder Server-Cluster.",
+    basePrice: 9.90,
+    options: [
+      { id: "slots", type: "box", title: "Spieler-Slots (Zusatz-Ressourcen)", sub: "Erweiterte Node-Priorisierung je nach Spielerzahl", choices: [
+        { lab: "Bis 32 Slots", delta: 0 },
+        { lab: "Bis 64 Slots", delta: 5.00 },
+        { lab: "Bis 128 Slots", delta: 12.00 },
+        { lab: "Unbegrenzt", delta: 22.00 }
+      ]},
+      { id: "database", type: "check", title: "Datenbank & Scripting", sub: "Benötigt für TxAdmin & ESX/QBCore Frameworks", label: "Dedizierte MariaDB / MySQL Datenbank", price: 0.00 },
+      { id: "proxy", type: "check", title: "Erweiterte Erreichbarkeit", sub: "Schutz der Node-Haupt-IP", label: "DDoS-Game-Proxy-Schutzadresse", price: 3.50 }
     ]
   },
   vps: {
-    title: "VPS/KVM Rootserver",
-    desc: "Voller Root-Zugriff, dedizierte Ressourcen und freie Betriebssystem-Wahl.",
+    title: "VPS / KVM Rootserver",
+    desc: "Voller Root-Zugriff, dedizierte Hardwareressourcen und freie Linux/Windows OS-Wahl.",
     basePrice: 6.90,
     options: [
-      { id: "cores", type: "box", title: "CPU Kerne", sub: "Echte, dedizierte AMD vCores", choices: [
-        { lab: "2 Cores", delta: 0 },
-        { lab: "4 Cores", delta: 4.50 },
-        { lab: "6 Cores", delta: 9.00 }
+      { id: "cores", type: "box", title: "AMD Ryzen vCores", sub: "Dedizierte Rechenkerne für Virtualisierung", choices: [
+        { lab: "2 vCores", delta: 0 },
+        { lab: "4 vCores", delta: 4.50 },
+        { lab: "6 vCores", delta: 9.50 },
+        { lab: "8 vCores", delta: 16.00 }
       ]},
-      { id: "ip", type: "check", title: "IP-Adressen", sub: "Zusätzliche IPv4 Konfigurationen", label: "Zusätzliche IPv4 Adresse", price: 2.00 }
+      { id: "storage", type: "box", title: "NVMe SSD Speicher", sub: "Echter PCIe NVMe Gen4 Storage", choices: [
+        { lab: "40 GB NVMe", delta: 0 },
+        { lab: "80 GB NVMe", delta: 3.00 },
+        { lab: "160 GB NVMe", delta: 8.00 }
+      ]},
+      { id: "ip", type: "check", title: "Netzwerk-Optionen", sub: "Zusätzliche IP-Adressierung", label: "1x zusätzliche dedizierte IPv4 Adresse", price: 2.00 }
+    ]
+  },
+  editor: {
+    title: "Editor- & Webspace-Server",
+    desc: "Schneller Webspace und Entwicklungsumgebungen für Devs, Webseiten & Bots.",
+    basePrice: 1.99,
+    options: [
+      { id: "space", type: "box", title: "Speicherplatz", sub: "Für Web-Dateien, Assets und Quellcodes", choices: [
+        { lab: "10 GB Space", delta: 0 },
+        { lab: "25 GB Space", delta: 2.00 },
+        { lab: "50 GB Space", delta: 4.50 }
+      ]},
+      { id: "ssl", type: "check", title: "Sicherheit", sub: "Verschlüsselung für alle Domains", label: "Wildcard Let's Encrypt SSL-Zertifikate", price: 0.00 },
+      { id: "node", type: "check", title: "App-Hosting", sub: "Unterstützung für Discord-Bots / Backends", label: "Node.js / Python Runtime Support", price: 1.00 }
     ]
   }
 };
@@ -684,7 +745,7 @@ function initApp() {
   });
 
   document.querySelectorAll(".navlink").forEach(link => {
-    link.addEventListener("click", (e) => {
+    link.addEventListener("click", () => {
       const view = link.getAttribute("data-view");
       if(view) switchView(view);
     });
@@ -692,7 +753,10 @@ function initApp() {
 
   document.getElementById("back-to-services").addEventListener("click", () => switchView("services"));
   
-  // Custom Reveal Animation Init
+  // Modal Event Listeners
+  document.getElementById("order-btn").addEventListener("click", triggerOrder);
+  document.getElementById("close-modal-btn").addEventListener("click", closeModal);
+
   document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
 }
 
@@ -792,7 +856,7 @@ function updateSummary() {
       if(sel.delta > 0) {
         const line = document.createElement("div");
         line.className = "summary-line";
-        line.innerHTML = `<span class="k">${opt.title} (${sel.lab})</span><span class="v">+${sel.delta.toFixed(2)} €</span>`;
+        line.innerHTML = `<span class="k">${sel.lab}</span><span class="v">+${sel.delta.toFixed(2)} €</span>`;
         linesContainer.appendChild(line);
       }
     } else if(opt.type === "check" && sel) {
@@ -807,19 +871,28 @@ function updateSummary() {
   document.getElementById("summary-total").innerHTML = `${total.toFixed(2)} €<span>/Mon.</span>`;
 }
 
-// Order Button Action
-document.getElementById("order-btn").addEventListener("click", () => {
-  const configIdValue = document.getElementById("config-id-input").value.trim();
-  let msg = `Vielen Dank für deine Bestellung unseres ${servicesData[currentServiceId].title}s!`;
-  if(configIdValue) {
-    msg += `\nÜbermittelte Konfigurations-ID: ${configIdValue}`;
-  }
-  alert(msg);
-});
+/* ===================== POPUP LOGIC ===================== */
+function generateConfigId() {
+  const chars = 'ABCDEF0123456789';
+  autoGen = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  return `ST-${autoGen(4)}-${autoGen(4)}`;
+}
+
+function triggerOrder() {
+  const modal = document.getElementById("order-modal");
+  const idDisplay = document.getElementById("modal-config-id");
+  
+  idDisplay.textContent = generateConfigId();
+  modal.classList.add("active");
+}
+
+function closeModal() {
+  document.getElementById("order-modal").classList.remove("active");
+}
 
 window.addEventListener("DOMContentLoaded", initApp);
 
-/* ===================== STARFIELD ===================== */
+/* ===================== STARFIELD & INTERSECTION OBSERVER ===================== */
 (function(){
   const canvas = document.getElementById('starfield');
   const ctx = canvas.getContext('2d');
@@ -859,16 +932,12 @@ window.addEventListener("DOMContentLoaded", initApp);
   if(reduceMotion) draw(0);
 })();
 
-/* ===================== DISCORD MESSAGE ANIMATION ===================== */
 (function(){
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
   const timeEl = document.getElementById('msg-time');
   if(timeEl){
     const now = new Date();
-    const hh = String(now.getHours()).padStart(2,'0');
-    const mm = String(now.getMinutes()).padStart(2,'0');
-    timeEl.textContent = `Heute um ${hh}:${mm}`;
+    timeEl.textContent = `Heute um ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   }
 
   function countUp(el){
@@ -893,26 +962,15 @@ window.addEventListener("DOMContentLoaded", initApp);
     const typing = document.getElementById('typing-indicator');
     const cv2 = document.getElementById('cv2-wrap');
     if(!typing || !cv2) return;
-
     typing.classList.remove('hidden');
     cv2.classList.remove('shown');
     cv2.querySelectorAll('.num').forEach(n => n.textContent = '0');
 
-    const typingTime = reduceMotion ? 0 : 1600;
-
     setTimeout(() => {
       typing.classList.add('hidden');
       cv2.classList.add('shown');
-      cv2.querySelectorAll('.num').forEach(n => {
-        if(reduceMotion){
-          const target = parseFloat(n.dataset.target);
-          const isDecimal = String(target).includes('.');
-          n.textContent = (n.dataset.prefix||'') + (isDecimal ? target.toFixed(1) : target) + (n.dataset.suffix||'');
-        } else {
-          countUp(n);
-        }
-      });
-    }, typingTime);
+      cv2.querySelectorAll('.num').forEach(n => { reduceMotion ? n.textContent = (n.dataset.prefix||'') + n.dataset.target + (n.dataset.suffix||'') : countUp(n); });
+    }, reduceMotion ? 0 : 1600);
   }
 
   const target = document.getElementById('embed-anchor');
