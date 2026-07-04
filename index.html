@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stella Host — Hosting, das trägt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --black: #060607;
+    --panel: #111113;
+    --panel-2: #17171a;
+    --panel-3: #1e1e21;
+    --border: rgba(255,255,255,0.09);
+    --border-strong: rgba(255,255,255,0.22);
+    --white: #f6f6f4;
+    --dim: #9c9c98;
+    --faint: #59595a;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --radius-lg: 26px;
+    --radius-md: 18px;
+    --radius-sm: 12px;
+  }
+
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+
+  body{
+    background:var(--black);
+    color:var(--white);
+    font-family:var(--font-mono);
+    min-height:100vh;
+    overflow-x:hidden;
+    position:relative;
+  }
+
+  #starfield{ position:fixed; inset:0; z-index:0; pointer-events:none; }
+
+  .glow-a, .glow-b{
+    position:fixed;
+    border-radius:50%;
+    filter:blur(120px);
+    pointer-events:none;
+    z-index:0;
+  }
+  .glow-a{ width:520px; height:520px; top:-180px; left:-160px; background:radial-gradient(circle, rgba(255,255,255,0.06), transparent 70%); will-change:transform; }
+  .glow-b{ width:600px; height:600px; bottom:-220px; right:-200px; background:radial-gradient(circle, rgba(255,255,255,0.045), transparent 70%); will-change:transform; }
+
+  [data-parallax]{ will-change:transform; transition:transform .1s linear; }
+
+  .reveal{ opacity:0; transform:translateY(28px); transition:opacity .7s ease, transform .7s ease; }
+  .reveal.visible{ opacity:1; transform:translateY(0); }
+
+  @media (prefers-reduced-motion: reduce){
+    [data-parallax]{ transform:none !important; transition:none; }
+    .reveal{ opacity:1; transform:none; transition:none; }
+  }
+
+  .app{ position:relative; z-index:1; }
+
+  a{ color:inherit; text-decoration:none; }
+  button{ font-family:inherit; cursor:pointer; }
+
+  /* ---------- NAV ---------- */
+  header{
+    position:sticky; top:0; z-index:50;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:20px 5vw;
+    background:rgba(6,6,7,0.7);
+    backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--border);
+  }
+  .logo{ display:flex; align-items:center; gap:10px; font-family:var(--font-display); font-weight:700; font-size:1.1rem; letter-spacing:0.3px; }
+  .logo svg{ width:19px; height:19px; }
+  nav.mainnav{ display:flex; gap:6px; align-items:center; padding:5px; border:1px solid var(--border); border-radius:999px; background:var(--panel); }
+  .navlink{
+    font-family:var(--font-mono); font-size:0.76rem; letter-spacing:0.06em; text-transform:uppercase;
+    padding:9px 18px; border-radius:999px; color:var(--dim); transition:all .2s ease;
+  }
+  .navlink:hover{ color:var(--white); }
+  .navlink.active{ color:var(--black); background:var(--white); }
+
+  .view{ display:none; }
+  .view.active{ display:block; }
+  section{ padding:0 5vw; }
+
+  /* ---------- HERO ---------- */
+  .hero{ padding-top:8vh; padding-bottom:9vh; display:grid; grid-template-columns:1.02fr 0.98fr; gap:64px; align-items:center; }
+  .eyebrow{ font-size:0.7rem; letter-spacing:0.22em; text-transform:uppercase; color:var(--dim); display:flex; align-items:center; gap:10px; margin-bottom:24px; }
+  .eyebrow::before{ content:""; width:24px; height:1px; background:var(--faint); display:inline-block; }
+  h1{ font-family:var(--font-display); font-weight:700; font-size:clamp(2.3rem, 4.6vw, 3.9rem); line-height:1.05; letter-spacing:-0.02em; }
+  h1 em{ font-style:normal; color:transparent; -webkit-text-stroke:1px var(--dim); }
+  .hero p.lead{ margin-top:24px; color:var(--dim); font-size:0.98rem; line-height:1.75; max-width:46ch; }
+  .hero-ctas{ margin-top:36px; display:flex; gap:14px; flex-wrap:wrap; }
+
+  .btn{ font-family:var(--font-mono); font-size:0.8rem; letter-spacing:0.03em; padding:14px 28px; border-radius:999px; border:1px solid var(--white); transition:all .2s ease; display:inline-flex; align-items:center; gap:8px; }
+  .btn.primary{ background:var(--white); color:var(--black); }
+  .btn.primary:hover{ background:transparent; color:var(--white); transform:translateY(-1px); }
+  .btn.ghost{ background:transparent; color:var(--white); border-color:var(--border-strong); }
+  .btn.ghost:hover{ border-color:var(--white); transform:translateY(-1px); }
+
+  /* ---------- AUTHENTIC DISCORD MESSAGE ---------- */
+  .discord-window{
+    background:#313338;
+    border-radius:var(--radius-lg);
+    overflow:hidden;
+    box-shadow:0 50px 100px -30px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.05);
+    font-family:'Inter', 'gg sans', -apple-system, sans-serif;
+  }
+  .dc-topbar{
+    display:flex; align-items:center; gap:8px;
+    padding:14px 18px;
+    background:#2b2d31;
+    border-bottom:1px solid rgba(0,0,0,0.24);
+  }
+  .dc-hash{ color:#80848e; font-size:1.15rem; font-weight:600; }
+  .dc-channel{ color:#f2f3f5; font-weight:600; font-size:0.92rem; }
+  .dc-topbar-icons{ margin-left:auto; display:flex; gap:14px; opacity:0.55; }
+  .dc-topbar-icons svg{ width:17px; height:17px; }
+
+  .dc-messages{ padding:20px 18px 24px 18px; min-height:300px; }
+
+  .dc-msg{ display:flex; gap:14px; padding:2px 8px; border-radius:8px; transition:background .15s ease; }
+  .dc-msg:hover{ background:rgba(255,255,255,0.02); }
+
+  .dc-avatar{
+    width:40px; height:40px; border-radius:50%;
+    background:#000000;
+    border:1px solid rgba(255,255,255,0.12);
+    flex-shrink:0; display:flex; align-items:center; justify-content:center; margin-top:2px;
+  }
+  .dc-avatar svg{ width:20px; height:20px; }
+
+  .dc-body{ flex:1; min-width:0; }
+  .dc-headline{ display:flex; align-items:center; gap:7px; margin-bottom:3px; }
+  .dc-author{ font-weight:600; font-size:0.95rem; color:#ffffff; }
+  .dc-apptag{
+    display:flex; align-items:center; gap:2px;
+    background:#5865f2; color:#ffffff; font-size:0.6rem; font-weight:700;
+    padding:1px 4px 1px 3px; border-radius:3px; letter-spacing:0.02em;
+  }
+  .dc-apptag svg{ width:9px; height:9px; }
+  .dc-time{ font-size:0.68rem; color:#949ba4; }
+
+  .dc-typing{
+    display:flex; align-items:center; gap:8px; color:#949ba4; font-size:0.86rem;
+    height:22px; transition:opacity .3s ease;
+  }
+  .dc-dots{ display:flex; gap:3px; }
+  .dc-dots span{ width:5px; height:5px; border-radius:50%; background:#949ba4; animation:dcBounce 1.1s infinite ease-in-out; }
+  .dc-dots span:nth-child(2){ animation-delay:0.15s; }
+  .dc-dots span:nth-child(3){ animation-delay:0.3s; }
+  @keyframes dcBounce{ 0%,60%,100%{ transform:translateY(0); opacity:0.5; } 30%{ transform:translateY(-4px); opacity:1; } }
+  .dc-typing.hidden{ opacity:0; height:0; overflow:hidden; }
+
+  .dc-embed-wrap{ opacity:0; transform:translateY(8px); transition:opacity .5s ease, transform .5s ease; }
+  .dc-embed-wrap.shown{ opacity:1; transform:translateY(0); }
+
+  .dc-embed{
+    display:flex; max-width:440px; margin-top:3px;
+    background:#2b2d31; border-radius:8px; overflow:hidden;
+  }
+  .dc-embed-accent{ width:4px; flex-shrink:0; background:linear-gradient(180deg,#ffffff,#8a8a8a); }
+  .dc-embed-body{ flex:1; padding:12px 16px 14px 12px; }
+
+  .dc-embed-top{ display:flex; justify-content:space-between; gap:12px; }
+  .dc-embed-title{ font-weight:600; font-size:0.95rem; color:#ffffff; margin-bottom:5px; }
+  .dc-embed-desc{ font-size:0.83rem; color:#dbdee1; line-height:1.5; max-width:32ch; }
+  .dc-embed-thumb{
+    width:48px; height:48px; border-radius:6px; flex-shrink:0;
+    background:#1e1f22; border:1px solid rgba(255,255,255,0.08);
+    display:flex; align-items:center; justify-content:center;
+  }
+
+  .dc-sep{ height:1px; background:rgba(255,255,255,0.06); margin:12px 0; }
+
+  .dc-stats{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .dc-stat{ background:#1e1f22; border-radius:6px; padding:9px 6px; text-align:center; }
+  .dc-stat .num{ font-family:'Space Grotesk',sans-serif; font-size:1.15rem; font-weight:700; color:#ffffff; font-variant-numeric:tabular-nums; }
+  .dc-stat .lbl{ font-size:0.58rem; letter-spacing:0.06em; text-transform:uppercase; color:#949ba4; margin-top:2px; }
+
+  .dc-actions{ display:flex; gap:8px; margin-top:13px; }
+  .dc-btn{
+    flex:1; text-align:center; padding:8px 0; font-size:0.8rem; font-weight:500;
+    border-radius:6px; transition:filter .15s ease, transform .15s ease;
+  }
+  .dc-btn.primary{ background:#5865f2; color:#ffffff; }
+  .dc-btn.secondary{ background:#4e5058; color:#ffffff; }
+  .dc-btn:hover{ filter:brightness(1.12); transform:translateY(-1px); }
+
+  .dc-embed-footer{ display:flex; align-items:center; gap:6px; margin-top:11px; font-size:0.68rem; color:#949ba4; }
+  .dc-embed-footer .fdot{ width:5px; height:5px; border-radius:50%; background:#23a55a; box-shadow:0 0 6px 1px rgba(35,165,90,0.6); animation:pulseDot 2s infinite ease-in-out; }
+  @keyframes pulseDot{ 0%,100%{ opacity:1; } 50%{ opacity:0.3; } }
+
+  @media (prefers-reduced-motion: reduce){
+    .dc-dots span, .dc-embed-footer .fdot{ animation:none; }
+    .dc-embed-wrap{ transition:none; }
+  }
+
+  /* ---------- FEATURES ---------- */
+  .features{ padding-top:5vh; padding-bottom:11vh; }
+  .section-head{ display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:36px; flex-wrap:wrap; gap:16px; }
+  .section-head h2{ font-family:var(--font-display); font-size:clamp(1.6rem,3vw,2.2rem); font-weight:600; letter-spacing:-0.01em; }
+  .section-head p{ color:var(--dim); font-size:0.85rem; max-width:40ch; }
+
+  .feature-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:18px; }
+  .feature-card{
+    padding:28px 24px; border:1px solid var(--border); border-radius:var(--radius-md);
+    background:linear-gradient(180deg, var(--panel), var(--black));
+    transition:transform .2s ease, border-color .2s ease;
+  }
+  .feature-card:hover{ transform:translateY(-4px); border-color:var(--border-strong); }
+  .feature-icon{
+    width:44px; height:44px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--panel-2); border:1px solid var(--border);
+    margin-bottom:18px;
+  }
+  .feature-card h3{ font-family:var(--font-display); font-size:1rem; font-weight:600; margin-bottom:8px; }
+  .feature-card p{ font-size:0.78rem; color:var(--dim); line-height:1.6; }
+
+  /* ---------- BAND ---------- */
+  .band{
+    margin:0 5vw 11vh 5vw; border:1px solid var(--border); border-radius:var(--radius-lg);
+    padding:52px 5vw; display:flex; align-items:center; justify-content:space-between; gap:30px; flex-wrap:wrap;
+    background:radial-gradient(120% 160% at 0% 0%, var(--panel-2), var(--black) 65%);
+  }
+  .band h2{ font-family:var(--font-display); font-size:clamp(1.5rem,3vw,2.1rem); font-weight:600; max-width:16ch; }
+  .band p{ color:var(--dim); font-size:0.85rem; margin-top:10px; max-width:38ch; }
+
+  footer{
+    padding:28px 5vw 50px 5vw; display:flex; justify-content:space-between; align-items:center;
+    border-top:1px solid var(--border); color:var(--faint); font-size:0.72rem; flex-wrap:wrap; gap:10px;
+  }
+
+  /* ---------- SERVICES ---------- */
+  .services-hero{ padding-top:7vh; padding-bottom:2vh; }
+  .services-hero h1{ font-family:var(--font-display); font-size:clamp(2rem,4vw,3rem); font-weight:700; }
+  .services-hero p{ color:var(--dim); margin-top:16px; max-width:52ch; font-size:0.9rem; line-height:1.7; }
+
+  .service-grid-wrap{ position:relative; padding:6vh 5vw 10vh 5vw; }
+  .service-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:22px; position:relative; z-index:1; }
+
+  .hub{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:54px; height:54px; z-index:2; pointer-events:none;
+  }
+  .hub svg{ width:100%; height:100%; }
+  .hub .ring{ animation:hubPulse 2.6s infinite ease-in-out; transform-origin:center; }
+  @keyframes hubPulse{ 0%,100%{ opacity:0.35; transform:scale(0.9);} 50%{ opacity:0.9; transform:scale(1.08);} }
+
+  .service-card{
+    background:linear-gradient(180deg, var(--panel), var(--black));
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    padding:42px 38px;
+    text-align:left; display:flex; flex-direction:column; min-height:220px;
+    transition:transform .22s ease, border-color .22s ease, box-shadow .22s ease;
+  }
+  .service-card:hover{
+    transform:translateY(-5px);
+    border-color:var(--border-strong);
+    box-shadow:0 30px 60px -30px rgba(0,0,0,0.7);
+  }
+  .service-index{ font-size:0.7rem; color:var(--faint); letter-spacing:0.1em; }
+  .service-card h3{ font-family:var(--font-display); font-size:1.45rem; font-weight:700; margin-top:18px; }
+  .service-card p{ color:var(--dim); font-size:0.82rem; margin-top:12px; line-height:1.6; max-width:42ch; flex:1; }
+  .service-foot{ display:flex; justify-content:space-between; align-items:center; margin-top:22px; font-size:0.76rem; }
+  .service-price{ font-family:var(--font-display); font-weight:600; color:var(--white); }
+  .service-arrow{
+    width:36px; height:36px; border:1px solid var(--border); border-radius:50%;
+    display:flex; align-items:center; justify-content:center; transition:all .2s ease;
+  }
+  .service-card:hover .service-arrow{ border-color:var(--white); transform:translateX(4px); }
+
+  @media (max-width:980px){ .hub{ display:none; } }
+
+  /* ---------- CONFIGURATOR ---------- */
+  .configurator{ padding:5vh 5vw 10vh 5vw; display:none; }
+  .configurator.active{ display:block; }
+
+  .back-link{ display:inline-flex; align-items:center; gap:8px; font-size:0.78rem; color:var(--dim); margin-bottom:28px; letter-spacing:0.02em; }
+  .back-link:hover{ color:var(--white); }
+
+  .config-head h1{ font-family:var(--font-display); font-size:clamp(1.7rem,3.4vw,2.6rem); font-weight:700; }
+  .config-head p{ color:var(--dim); margin-top:12px; max-width:56ch; font-size:0.85rem; line-height:1.6; }
+
+  .config-layout{ display:grid; grid-template-columns:1.5fr 1fr; gap:50px; margin-top:46px; align-items:start; }
+
+  .option-group{
+    border:1px solid var(--border);
+    border-radius:var(--radius-md);
+    padding:24px;
+    margin-bottom:22px;
+    background:linear-gradient(180deg, var(--panel), transparent);
+  }
+  .option-group h4{ font-family:var(--font-display); font-size:0.98rem; font-weight:600; margin-bottom:5px; }
+  .option-group .group-sub{ font-size:0.74rem; color:var(--faint); margin-bottom:18px; }
+
+  /* rounded selectable boxes */
+  .box-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(110px, 1fr)); gap:12px; }
+  .opt-box{
+    border:1px solid var(--border);
+    border-radius:var(--radius-sm);
+    padding:16px 10px;
+    text-align:center;
+    background:var(--panel-2);
+    transition:transform .15s ease, border-color .15s ease, background .15s ease, box-shadow .15s ease;
+  }
+  .opt-box .lab{ font-size:0.82rem; color:var(--white); font-weight:500; }
+  .opt-box .delta{ font-size:0.66rem; color:var(--faint); margin-top:5px; }
+  .opt-box:hover{ transform:translateY(-2px); border-color:var(--border-strong); }
+  .opt-box.selected{
+    background:var(--white); border-color:var(--white);
+    box-shadow:0 12px 26px -12px rgba(255,255,255,0.25);
+  }
+  .opt-box.selected .lab{ color:var(--black); }
+  .opt-box.selected .delta{ color:#4a4a4a; }
+
+  .check-box{
+    display:flex; align-items:center; justify-content:space-between;
+    border:1px solid var(--border); border-radius:var(--radius-sm);
+    padding:16px 20px; background:var(--panel-2);
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .check-box:hover{ border-color:var(--border-strong); }
+  .check-box.selected{ border-color:var(--white); background:var(--panel-3); }
+  .check-box .label-line{ display:flex; align-items:center; gap:12px; }
+  .checkmark{
+    width:20px; height:20px; border-radius:7px; border:1px solid var(--border-strong);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .check-box.selected .checkmark{ background:var(--white); border-color:var(--white); }
+  .check-box.selected .checkmark svg{ display:block; }
+  .checkmark svg{ display:none; width:12px; height:12px; }
+  .check-box .label{ font-size:0.85rem; color:var(--white-dim, #d8d8d5); }
+  .check-box .price{ font-size:0.78rem; color:var(--dim); font-family:var(--font-display); }
+
+  /* ---------- SUMMARY ---------- */
+  .summary{
+    position:sticky; top:100px;
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    background:linear-gradient(180deg, var(--panel-2), var(--black));
+    padding:30px;
+  }
+  .summary-eyebrow{ font-size:0.66rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--faint); margin-bottom:6px; }
+  .summary h3{ font-family:var(--font-display); font-size:1.3rem; font-weight:700; margin-bottom:20px; }
+  .summary-line{ display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--border); font-size:0.8rem; }
+  .summary-line .k{ color:var(--dim); }
+  .summary-line .v{ color:var(--white); font-family:var(--font-display); font-weight:500; }
+  .summary-total{ display:flex; justify-content:space-between; align-items:baseline; margin-top:20px; padding-top:18px; border-top:1px solid var(--border); }
+  .summary-total .k{ font-size:0.82rem; color:var(--dim); }
+  .summary-total .v{ font-family:var(--font-display); font-size:2rem; font-weight:700; }
+  .summary-total .v span{ font-size:0.9rem; color:var(--dim); font-weight:400; font-family:var(--font-mono); }
+  .summary .btn{ width:100%; justify-content:center; margin-top:22px; }
+  .summary-note{ font-size:0.68rem; color:var(--faint); margin-top:14px; line-height:1.5; text-align:center; }
+
+  @media (max-width:980px){
+    .hero{ grid-template-columns:1fr; }
+    .feature-grid{ grid-template-columns:repeat(2,1fr); }
+    .service-grid{ grid-template-columns:1fr; }
+    .config-layout{ grid-template-columns:1fr; }
+    .summary{ position:relative; top:0; }
+    nav.mainnav{ display:none; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="starfield"></canvas>
+<div class="glow-a"></div>
+<div class="glow-b"></div>
+
+<div class="app">
+
+  <header>
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 1L14.5 9H23L16.5 13.8L19 22L12 17L5 22L7.5 13.8L1 9H9.5L12 1Z" fill="#f5f5f3"/></svg>
+      STELLA HOST
+    </div>
+    <nav class="mainnav">
+      <a href="#home" class="navlink" data-view="home">Home</a>
+      <a href="#services" class="navlink" data-view="services">Services</a>
+    </nav>
+  </header>
+
+  <!-- ============ HOME ============ -->
+  <div class="view" id="view-home">
+
+    <section class="hero">
+      <div data-parallax="0.03">
+        <div class="eyebrow">Hosting-Infrastruktur</div>
+        <h1>Server, die halten,<br>was <em>Stella</em> verspricht.</h1>
+        <p class="lead">Stella Host betreibt Minecraft-, FiveM-, VPS/KVM- und Editor-Server auf NVMe-Hardware. Kein Overselling, kein Warten — nur Leistung, die ankommt, sobald du sie brauchst.</p>
+        <div class="hero-ctas">
+          <a href="#services" class="btn primary navlink" data-view="services">Services ansehen →</a>
+          <a href="#home" class="btn ghost" onclick="document.getElementById('embed-anchor').scrollIntoView({behavior:'smooth'})">Live-Status</a>
+        </div>
+      </div>
+
+      <div id="embed-anchor" data-parallax="-0.09">
+        <div class="discord-window">
+          <div class="dc-topbar">
+            <span class="dc-hash">#</span><span class="dc-channel">server-status</span>
+            <div class="dc-topbar-icons">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#dbdee1" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="#dbdee1" stroke-width="1.6"><path d="M4 4h16v16H4z"/></svg>
+            </div>
+          </div>
+
+          <div class="dc-messages">
+            <div class="dc-msg">
+              <div class="dc-avatar">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 1L14.5 9H23L16.5 13.8L19 22L12 17L5 22L7.5 13.8L1 9H9.5L12 1Z" fill="#f5f5f3"/></svg>
+              </div>
+              <div class="dc-body">
+                <div class="dc-headline">
+                  <span class="dc-author">Stella Host</span>
+                  <span class="dc-apptag">
+                    <svg viewBox="0 0 24 24" fill="#ffffff"><path d="M12 2l2 4 4 .5-3 3 1 4-4-2-4 2 1-4-3-3 4-.5z"/></svg>
+                    APP
+                  </span>
+                  <span class="dc-time" id="msg-time">Heute um 14:32</span>
+                </div>
+
+                <div class="dc-typing" id="typing-indicator">
+                  <span class="dc-dots"><span></span><span></span><span></span></span>
+                  schreibt Statusbericht …
+                </div>
+
+                <div class="dc-embed-wrap" id="cv2-wrap">
+                  <div class="dc-embed">
+                    <div class="dc-embed-accent"></div>
+                    <div class="dc-embed-body">
+                      <div class="dc-embed-top">
+                        <div>
+                          <div class="dc-embed-title">Node „Vega-3" ist online</div>
+                          <div class="dc-embed-desc">Alle Systeme laufen stabil. NVMe-Cluster, DDoS-Schutz und automatische Backups sind aktiv.</div>
+                        </div>
+                        <div class="dc-embed-thumb">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f5f5f3" stroke-width="1.4"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg>
+                        </div>
+                      </div>
+
+                      <div class="dc-sep"></div>
+
+                      <div class="dc-stats">
+                        <div class="dc-stat"><div class="num" data-target="99.9" data-suffix="%">0</div><div class="lbl">Uptime</div></div>
+                        <div class="dc-stat"><div class="num" data-target="5" data-prefix="&lt;" data-suffix="ms">0</div><div class="lbl">Ping</div></div>
+                        <div class="dc-stat"><div class="num" data-target="7" data-suffix="s">0</div><div class="lbl">Setup</div></div>
+                      </div>
+
+                      <div class="dc-actions">
+                        <a href="#services" class="dc-btn primary navlink" data-view="services">Server konfigurieren</a>
+                        <a href="#home" class="dc-btn secondary" onclick="document.getElementById('features-anchor').scrollIntoView({behavior:'smooth'})">Mehr erfahren</a>
+                      </div>
+
+                      <div class="dc-embed-footer"><span class="fdot"></span> Stella Host Infrastruktur</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="features" id="features-anchor">
+      <div class="section-head reveal">
+        <h2>Warum Stella Host</h2>
+        <p>Vier Gründe, warum unsere Server nicht wie jeder andere Anbieter klingen.</p>
+      </div>
+      <div class="feature-grid">
+        <div class="feature-card reveal" data-parallax="0.025">
+          <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f5f5f3" stroke-width="1.5"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg></div>
+          <h3>NVMe-Performance</h3>
+          <p>Reine NVMe-SSD-Speicher auf jedem Node — spürbar schnellere Ladezeiten und Weltgenerierung.</p>
+        </div>
+        <div class="feature-card reveal" data-parallax="0.045">
+          <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f5f5f3" stroke-width="1.5"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/></svg></div>
+          <h3>DDoS-Schutz inklusive</h3>
+          <p>Mehrschichtiger Schutz gegen Angriffe ist bei jedem Paket automatisch aktiv — ohne Aufpreis.</p>
+        </div>
+        <div class="feature-card reveal" data-parallax="0.025">
+          <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f5f5f3" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+          <h3>Setup in Sekunden</h3>
+          <p>Server werden automatisch provisioniert — kein manuelles Warten auf die Aktivierung.</p>
+        </div>
+        <div class="feature-card reveal" data-parallax="0.045">
+          <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f5f5f3" stroke-width="1.5"><path d="M4 4h16v12H8l-4 4V4z"/></svg></div>
+          <h3>Echter 24/7 Support</h3>
+          <p>Ein Team, das antwortet — per Ticket oder Discord, auch nachts und am Wochenende.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="band reveal">
+      <div>
+        <h2>Bereit für deinen eigenen Server?</h2>
+        <p>Wähle deinen Service, stelle ihn zusammen und sieh den Preis live, bevor du bestellst.</p>
+      </div>
+      <a href="#services" class="btn primary navlink" data-view="services">Jetzt konfigurieren →</a>
+    </div>
+
+    <footer>
+      <span>© 2026 Stella Host — Hosting-Infrastruktur</span>
+      <span>Made for gamers, developers & communities</span>
+    </footer>
+  </div>
+
+  <!-- ============ SERVICES ============ -->
+  <div class="view" id="view-services">
+    <section class="services-hero reveal">
+      <div class="eyebrow">Alle Services</div>
+      <h1>Was möchtest du hosten?</h1>
+      <p>Wähle einen Service aus, um ihn genau nach deinen Anforderungen zu konfigurieren. Den Preis siehst du live, sobald du eine Auswahl triffst.</p>
+    </section>
+
+    <div class="service-grid-wrap">
+      <div class="hub" data-parallax="0.05">
+        <svg viewBox="0 0 54 54">
+          <circle class="ring" cx="27" cy="27" r="7" fill="none" stroke="#f5f5f3" stroke-width="1"/>
+          <circle cx="27" cy="27" r="2.2" fill="#f5f5f3"/>
+        </svg>
+      </div>
+      <div class="service-grid" id="service-grid"></div>
+    </div>
+
+    <footer class="reveal">
+      <span>© 2026 Stella Host — Hosting-Infrastruktur</span>
+      <span>Preise inkl. MwSt., monatlich kündbar</span>
+    </footer>
+  </div>
+
+  <!-- ============ CONFIGURATOR ============ -->
+  <div class="configurator" id="view-configurator">
+    <a class="back-link" id="back-to-services">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Zurück zu allen Services
+    </a>
+
+    <div class="config-head reveal">
+      <h1 id="config-title">Service konfigurieren</h1>
+      <p id="config-desc"></p>
+    </div>
+
+    <div class="config-layout">
+      <div id="config-options"></div>
+
+      <div class="summary" data-parallax="0.02">
+        <div class="summary-eyebrow">Deine Konfiguration</div>
+        <h3 id="summary-title">—</h3>
+        <div id="summary-lines"></div>
+        <div class="summary-total">
+          <span class="k">Gesamt / Monat</span>
+          <span class="v" id="summary-total">0,00 €<span>/Mon.</span></span>
+        </div>
+        <button class="btn primary" id="order-btn" style="border:1px solid #f5f5f3;">Jetzt bestellen →</button>
+        <div class="summary-note">Monatlich kündbar. Sofortige Bereitstellung nach Zahlungseingang.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ===================== STARFIELD ===================== */
+(function(){
+  const canvas = document.getElementById('starfield');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function resize(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const count = Math.floor((canvas.width * canvas.height) / 9000);
+    stars = Array.from({length: count}, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 1.2 + 0.2,
+      phase: Math.random() * Math.PI * 2,
+      speed: 0.005 + Math.random() * 0.015
+    }));
+  }
+
+  function draw(t){
+    ctx.clearRect(0,0,canvas.width, canvas.height);
+    ctx.fillStyle = '#060607';
+    ctx.fillRect(0,0,canvas.width, canvas.height);
+    for(const s of stars){
+      const twinkle = reduceMotion ? 0.6 : (0.4 + 0.6 * Math.abs(Math.sin(s.phase + t * s.speed)));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(245,245,243,${twinkle * 0.8})`;
+      ctx.fill();
+    }
+    if(!reduceMotion) requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(draw);
+  if(reduceMotion) draw(0);
+})();
+
+/* ===================== DISCORD MESSAGE ANIMATION ===================== */
+(function(){
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const timeEl = document.getElementById('msg-time');
+  if(timeEl){
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mm = String(now.getMinutes()).padStart(2,'0');
+    timeEl.textContent = `Heute um ${hh}:${mm}`;
+  }
+
+  function countUp(el){
+    const target = parseFloat(el.dataset.target);
+    const prefix = el.dataset.prefix || '';
+    const suffix = el.dataset.suffix || '';
+    const isDecimal = String(target).includes('.');
+    const duration = 900;
+    const start = performance.now();
+    function frame(now){
+      const p = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      const val = target * eased;
+      el.textContent = prefix + (isDecimal ? val.toFixed(1) : Math.round(val)) + suffix;
+      if(p < 1) requestAnimationFrame(frame);
+      else el.textContent = prefix + (isDecimal ? target.toFixed(1) : target) + suffix;
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function playSequence(){
+    const typing = document.getElementById('typing-indicator');
+    const cv2 = document.getElementById('cv2-wrap');
+    if(!typing || !cv2) return;
+
+    typing.classList.remove('hidden');
+    cv2.classList.remove('shown');
+    cv2.querySelectorAll('.num').forEach(n => n.textContent = '0');
+
+    const typingTime = reduceMotion ? 0 : 1600;
+
+    setTimeout(() => {
+      typing.classList.add('hidden');
+      cv2.classList.add('shown');
+      cv2.querySelectorAll('.num').forEach(n => {
+        if(reduceMotion){
+          const target = parseFloat(n.dataset.target);
+          const isDecimal = String(target).includes('.');
+          n.textContent = (n.dataset.prefix||'') + (isDecimal ? target.toFixed(1) : target) + (n.dataset.suffix||'');
+        } else {
+          countUp(n);
+        }
+      });
+    }, typingTime);
+  }
+
+  const target = document.getElementById('embed-anchor');
+  let played = false;
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if(entry.isIntersecting && !played){
+        played = true;
+        playSequence();
+        if(!reduceMotion) setInterval(playSequence, 12000);
+      }
+    });
+  }, {threshold: 0.4});
+  if(target) observer.observe(target);
+})();
+
+/* ===================== PARALLAX & SCROLL REVEAL ===================== */
+const StellaMotion = (function(){
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const parallaxEls = Array.from(document.querySelectorAll('[data-parallax]'));
+  let ticking = false;
+
+  function updateParallax(){
+    if(reduceMotion) return;
+    const vh = window.innerHeight;
+    parallaxEls.forEach(el => {
+      const speed = parseFloat(el.dataset.parallax);
+      const rect = el.getBoundingClientRect();
+      const distFromCenter = (rect.top + rect.height / 2) - vh / 2;
+      el.style.transform = `translateY(${distFromCenter * speed}px)`;
+    });
+    ticking = false;
+  }
+
+  function onScroll(){
+    if(!ticking){
+      requestAnimationFrame(updateParallax);
+      ticking = true;
+    }
+  }
+
+  if(!reduceMotion){
+    window.addEventListener('scroll', onScroll, {passive:true});
+    window.addEventListener('resize', onScroll);
+    updateParallax();
+  }
+
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if(entry.isIntersecting){
+        entry.target.classList.add('visible');
+        revealObserver.unobserve(entry.target);
+      }
+    });
+  }, {threshold:0.15, rootMargin:'0px 0px -60px 0px'});
+
+  document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+  return {
+    registerParallax(el){
+      if(reduceMotion) return;
+      parallaxEls.push(el);
+      updateParallax();
+    },
+    registerReveal(el){
+      revealObserver.observe(el);
+    },
+    refresh(){ updateParallax(); }
+  };
+})();
+
+/* ===================== ROUTING ===================== */
+function showView(view){
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-configurator').classList.remove('active');
+  if(view === 'configurator'){
+    document.getElementById('view-configurator').classList.add('active');
+  } else {
+    document.getElementById('view-' + view).classList.add('active');
+  }
+  document.querySelectorAll('.navlink').forEach(l => {
+    l.classList.toggle('active', l.dataset.view === view);
+  });
+  window.scrollTo({top:0, behavior:'auto'});
+  window.dispatchEvent(new Event('resize'));
+}
+
+document.addEventListener('click', (e) => {
+  const link = e.target.closest('.navlink');
+  if(link && link.dataset.view){
+    e.preventDefault();
+    showView(link.dataset.view);
+  }
+});
+
+document.getElementById('back-to-services').addEventListener('click', () => showView('services'));
+
+/* ===================== SERVICE DATA ===================== */
+const SERVICES = {
+  minecraft: {
+    name: 'Minecraft Server',
+    tagline: 'Vanilla, Spigot, Paper oder Modded — jede Art von Minecraft-Server, sofort spielbereit.',
+    desc: 'Stelle deinen Minecraft-Server nach deinen Wünschen zusammen: Arbeitsspeicher, Server-Typ, Spieleranzahl und Zusatzoptionen.',
+    basePrice: 2.49,
+    groups: [
+      { key:'ram', label:'Arbeitsspeicher (RAM)', sub:'Mehr RAM = mehr Mods, Plugins und Spieler gleichzeitig.', type:'box',
+        options:[{id:'2gb',label:'2 GB',delta:0},{id:'4gb',label:'4 GB',delta:3},{id:'8gb',label:'8 GB',delta:7},{id:'16gb',label:'16 GB',delta:14},{id:'32gb',label:'32 GB',delta:28}], default:'2gb' },
+      { key:'typ', label:'Server-Typ', sub:'Bestimmt, welche Software auf deinem Server läuft.', type:'box',
+        options:[{id:'vanilla',label:'Vanilla',delta:0},{id:'spigot',label:'Spigot/Paper',delta:0.5},{id:'modded',label:'Modded/Forge',delta:1.5}], default:'vanilla' },
+      { key:'slots', label:'Spieleranzahl', sub:'Maximale Anzahl gleichzeitiger Spieler.', type:'box',
+        options:[{id:'10',label:'10 Slots',delta:0},{id:'20',label:'20 Slots',delta:1},{id:'50',label:'50 Slots',delta:2.5},{id:'unlimited',label:'Unbegrenzt',delta:4}], default:'10' },
+      { key:'addons', label:'Zusatzoptionen', sub:'Optionale Erweiterungen für deinen Server.', type:'check',
+        options:[{id:'backup',label:'Tägliche automatische Backups',delta:1}] }
+    ]
+  },
+  fivem: {
+    name: 'FiveM Server',
+    tagline: 'GTA-Roleplay-Server mit stabiler Performance und geringer Latenz.',
+    desc: 'Konfiguriere deinen FiveM-Server für dein RP-Projekt — RAM, Slots und Serverstandort frei wählbar.',
+    basePrice: 7.99,
+    groups: [
+      { key:'ram', label:'Arbeitsspeicher (RAM)', sub:'Wichtig für Skript-Last und Ressourcen.', type:'box',
+        options:[{id:'4gb',label:'4 GB',delta:0},{id:'8gb',label:'8 GB',delta:4},{id:'16gb',label:'16 GB',delta:9},{id:'32gb',label:'32 GB',delta:18}], default:'4gb' },
+      { key:'slots', label:'Spieler-Slots', sub:'Maximale gleichzeitige Spieleranzahl.', type:'box',
+        options:[{id:'32',label:'32 Slots',delta:0},{id:'48',label:'48 Slots',delta:2},{id:'64',label:'64 Slots',delta:4},{id:'128',label:'128 Slots',delta:9}], default:'32' },
+      { key:'standort', label:'Serverstandort', sub:'Beeinflusst die Latenz deiner Spieler.', type:'box',
+        options:[{id:'de',label:'Deutschland',delta:0},{id:'fr',label:'Frankreich',delta:0},{id:'us',label:'USA',delta:2.5}], default:'de' },
+      { key:'addons', label:'Zusatzoptionen', sub:'Optionale Erweiterungen für dein RP-Projekt.', type:'check',
+        options:[{id:'priority',label:'Priority Support',delta:1.5}] }
+    ]
+  },
+  vps: {
+    name: 'KVM / VPS Server',
+    tagline: 'Volle Root-Kontrolle mit dedizierten CPU-Kernen und NVMe-Storage.',
+    desc: 'Baue deinen eigenen virtuellen Server — frei konfigurierbar für Webprojekte, Bots, Datenbanken oder eigene Systeme.',
+    basePrice: 4.99,
+    groups: [
+      { key:'cpu', label:'CPU-Kerne', sub:'Dedizierte Kerne für konstante Rechenleistung.', type:'box',
+        options:[{id:'1',label:'1 Kern',delta:0},{id:'2',label:'2 Kerne',delta:3},{id:'4',label:'4 Kerne',delta:7},{id:'8',label:'8 Kerne',delta:15}], default:'1' },
+      { key:'ram', label:'Arbeitsspeicher (RAM)', sub:'Für Anwendungen, Datenbanken und Dienste.', type:'box',
+        options:[{id:'2gb',label:'2 GB',delta:0},{id:'4gb',label:'4 GB',delta:3},{id:'8gb',label:'8 GB',delta:7},{id:'16gb',label:'16 GB',delta:14},{id:'32gb',label:'32 GB',delta:28},{id:'64gb',label:'64 GB',delta:55}], default:'2gb' },
+      { key:'storage', label:'NVMe-Speicher', sub:'Schneller SSD-Speicherplatz für dein System.', type:'box',
+        options:[{id:'20gb',label:'20 GB',delta:0},{id:'50gb',label:'50 GB',delta:3},{id:'100gb',label:'100 GB',delta:6},{id:'250gb',label:'250 GB',delta:14},{id:'500gb',label:'500 GB',delta:27}], default:'20gb' },
+      { key:'os', label:'Betriebssystem', sub:'Wähle dein bevorzugtes System.', type:'box',
+        options:[{id:'linux',label:'Linux',delta:0},{id:'windows',label:'Windows Server',delta:6}], default:'linux' }
+    ]
+  },
+  editor: {
+    name: 'Editor / Language Server',
+    tagline: 'Cloud-Entwicklungsumgebung mit Language-Server-Support — direkt im Browser.',
+    desc: 'Richte deinen persönlichen Code-Server ein: Ressourcen und Laufzeitumgebung frei wählbar.',
+    basePrice: 3.49,
+    groups: [
+      { key:'ram', label:'Arbeitsspeicher (RAM)', sub:'Relevant für große Projekte und mehrere Language-Server.', type:'box',
+        options:[{id:'2gb',label:'2 GB',delta:0},{id:'4gb',label:'4 GB',delta:2.5},{id:'8gb',label:'8 GB',delta:6},{id:'16gb',label:'16 GB',delta:12}], default:'2gb' },
+      { key:'cpu', label:'CPU-Kerne', sub:'Für schnelleres Kompilieren und Autovervollständigung.', type:'box',
+        options:[{id:'1',label:'1 Kern',delta:0},{id:'2',label:'2 Kerne',delta:2},{id:'4',label:'4 Kerne',delta:5},{id:'8',label:'8 Kerne',delta:10}], default:'1' },
+      { key:'storage', label:'Speicherplatz', sub:'Platz für Projekte, Dependencies und Caches.', type:'box',
+        options:[{id:'10gb',label:'10 GB',delta:0},{id:'25gb',label:'25 GB',delta:1.5},{id:'50gb',label:'50 GB',delta:3},{id:'100gb',label:'100 GB',delta:6}], default:'10gb' },
+      { key:'runtime', label:'Laufzeitumgebung', sub:'Vorinstallierter Language Server.', type:'box',
+        options:[{id:'node',label:'Node.js',delta:0},{id:'python',label:'Python',delta:0},{id:'java',label:'Java',delta:0.5},{id:'multi',label:'Multi-Runtime',delta:1.5}], default:'node' }
+    ]
+  }
+};
+
+const SERVICE_ORDER = ['minecraft','fivem','vps','editor'];
+
+function fmt(n){ return n.toLocaleString('de-DE', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+/* ===================== RENDER SERVICE GRID ===================== */
+const grid = document.getElementById('service-grid');
+SERVICE_ORDER.forEach((key, i) => {
+  const s = SERVICES[key];
+  const card = document.createElement('button');
+  card.className = 'service-card';
+  card.style.border = '1px solid var(--border)';
+  card.style.color = 'inherit';
+  card.innerHTML = `
+    <div class="service-index">0${i+1}</div>
+    <h3>${s.name}</h3>
+    <p>${s.tagline}</p>
+    <div class="service-foot">
+      <span>ab <span class="service-price">${fmt(s.basePrice)} € / Mon.</span></span>
+      <span class="service-arrow">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </span>
+    </div>
+  `;
+  card.addEventListener('click', () => openConfigurator(key));
+  grid.appendChild(card);
+});
+
+/* ===================== CONFIGURATOR LOGIC ===================== */
+let currentServiceKey = null;
+let currentSelection = {};
+
+function openConfigurator(key){
+  currentServiceKey = key;
+  const s = SERVICES[key];
+  currentSelection = {};
+
+  s.groups.forEach(g => {
+    if(g.type === 'box') currentSelection[g.key] = g.default;
+    else if(g.type === 'check') currentSelection[g.key] = {};
+  });
+
+  document.getElementById('config-title').textContent = s.name + ' konfigurieren';
+  document.getElementById('config-desc').textContent = s.desc;
+
+  const optionsWrap = document.getElementById('config-options');
+  optionsWrap.innerHTML = '';
+
+  s.groups.forEach(g => {
+    const groupEl = document.createElement('div');
+    groupEl.className = 'option-group';
+    groupEl.innerHTML = `<h4>${g.label}</h4><div class="group-sub">${g.sub}</div>`;
+
+    if(g.type === 'box'){
+      const row = document.createElement('div');
+      row.className = 'box-grid';
+      g.options.forEach(opt => {
+        const box = document.createElement('button');
+        box.className = 'opt-box' + (opt.id === g.default ? ' selected' : '');
+        box.innerHTML = `<div class="lab">${opt.label}</div><div class="delta">${opt.delta > 0 ? '+' + fmt(opt.delta) + ' €' : 'inklusive'}</div>`;
+        box.addEventListener('click', () => {
+          currentSelection[g.key] = opt.id;
+          row.querySelectorAll('.opt-box').forEach(p => p.classList.remove('selected'));
+          box.classList.add('selected');
+          updateSummary();
+        });
+        row.appendChild(box);
+      });
+      groupEl.appendChild(row);
+    } else if(g.type === 'check'){
+      g.options.forEach(opt => {
+        const row = document.createElement('div');
+        row.className = 'check-box';
+        row.innerHTML = `
+          <span class="label-line">
+            <span class="checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="3"><path d="M5 12l5 5L20 6"/></svg></span>
+            <span class="label">${opt.label}</span>
+          </span>
+          <span class="price">+${fmt(opt.delta)} €</span>
+        `;
+        row.addEventListener('click', () => {
+          currentSelection[g.key][opt.id] = !currentSelection[g.key][opt.id];
+          row.classList.toggle('selected', currentSelection[g.key][opt.id]);
+          updateSummary();
+        });
+        groupEl.appendChild(row);
+      });
+    }
+
+    optionsWrap.appendChild(groupEl);
+  });
+
+  document.getElementById('summary-title').textContent = s.name;
+  updateSummary();
+  showView('configurator');
+}
+
+function updateSummary(){
+  const s = SERVICES[currentServiceKey];
+  let total = s.basePrice;
+  const lines = [];
+
+  s.groups.forEach(g => {
+    if(g.type === 'box'){
+      const selId = currentSelection[g.key];
+      const opt = g.options.find(o => o.id === selId);
+      total += opt.delta;
+      lines.push({k: g.label, v: opt.label});
+    } else if(g.type === 'check'){
+      g.options.forEach(opt => {
+        if(currentSelection[g.key][opt.id]){
+          total += opt.delta;
+          lines.push({k: opt.label, v: '+' + fmt(opt.delta) + ' €'});
+        }
+      });
+    }
+  });
+
+  const linesWrap = document.getElementById('summary-lines');
+  linesWrap.innerHTML = lines.map(l => `<div class="summary-line"><span class="k">${l.k}</span><span class="v">${l.v}</span></div>`).join('');
+  document.getElementById('summary-total').innerHTML = `${fmt(total)} €<span>/Mon.</span>`;
+}
+
+document.getElementById('order-btn').addEventListener('click', () => {
+  document.getElementById('order-btn').textContent = 'Anfrage notiert ✓';
+  setTimeout(() => { document.getElementById('order-btn').textContent = 'Jetzt bestellen →'; }, 2200);
+});
+
+/* ===================== INIT ===================== */
+showView('home');
+</script>
+
+</body>
+</html>
