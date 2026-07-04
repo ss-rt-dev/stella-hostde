@@ -8,17 +8,10 @@
 <meta property="og:title" content="Stella Host — Hosting, das trägt">
 <meta property="og:description" content="Minecraft-, FiveM-, VPS/KVM- und Editor-Server auf echter NVMe-Hardware. Kein Overselling, DDoS-Schutz inklusive & Setup in Sekunden.">
 <meta property="og:url" content="https://stella-host.de">
-
 <meta property="og:image" content="https://cdn3.emoji.gg/emojis/50738-globe.png">
 <meta property="og:image:width" content="128">
 <meta property="og:image:height" content="128">
-
 <meta name="theme-color" content="#060607">
-
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Stella Host — Hosting, das trägt">
-<meta name="twitter:description" content="Minecraft-, FiveM-, VPS/KVM- und Editor-Server auf echter NVMe-Hardware.">
-<meta name="twitter:image" content="https://cdn3.emoji.gg/emojis/50738-globe.png">
 
 <title>Stella Host — Hosting, das trägt</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -98,6 +91,10 @@
   }
   .navlink:hover{ color:var(--white); }
   .navlink.active{ color:var(--black); background:var(--white); }
+  
+  .navlink.staff-btn { border:1px dashed var(--border-strong); color:#ff9800; }
+  .navlink.staff-btn:hover { border-color:#ff9800; color:#fff; }
+  .navlink.staff-btn.active { background:#ff9800; color:var(--black); border-color:#ff9800; }
 
   .view{ display:none; }
   .view.active{ display:block; }
@@ -120,298 +117,112 @@
 
   /* ---------- DISCORD WINDOW ---------- */
   .discord-window{
-    background:#313338;
-    border-radius:var(--radius-lg);
-    overflow:hidden;
+    background:#313338; border-radius:var(--radius-lg); overflow:hidden;
     box-shadow:0 50px 100px -30px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.05);
-    font-family:'Inter', 'gg sans', -apple-system, sans-serif;
+    font-family:'Inter', sans-serif;
   }
-  .dc-topbar{
-    display:flex; align-items:center; gap:8px;
-    padding:14px 18px;
-    background:#2b2d31;
-    border-bottom:1px solid rgba(0,0,0,0.24);
-  }
+  .dc-topbar{ display:flex; align-items:center; gap:8px; padding:14px 18px; background:#2b2d31; border-bottom:1px solid rgba(0,0,0,0.24); }
   .dc-hash{ color:#80848e; font-size:1.15rem; font-weight:600; }
   .dc-channel{ color:#f2f3f5; font-weight:600; font-size:0.92rem; }
   .dc-topbar-icons{ margin-left:auto; display:flex; gap:14px; opacity:0.55; }
   .dc-topbar-icons svg{ width:17px; height:17px; }
-
   .dc-messages{ padding:20px 18px 24px 18px; min-height:300px; }
-  .dc-msg{ display:flex; gap:14px; padding:2px 8px; border-radius:8px; transition:background .15s ease; }
-  .dc-msg:hover{ background:rgba(255,255,255,0.02); }
-
-  .dc-avatar{
-    width:40px; height:40px; border-radius:50%;
-    background:#000000;
-    border:1px solid rgba(255,255,255,0.12);
-    flex-shrink:0; display:flex; align-items:center; justify-content:center; margin-top:2px;
-  }
+  .dc-msg{ display:flex; gap:14px; padding:2px 8px; border-radius:8px; }
+  .dc-avatar{ width:40px; height:40px; border-radius:50%; background:#000000; border:1px solid rgba(255,255,255,0.12); flex-shrink:0; display:flex; align-items:center; justify-content:center; margin-top:2px; }
   .dc-avatar svg{ width:20px; height:20px; }
-
   .dc-body{ flex:1; min-width:0; }
   .dc-headline{ display:flex; align-items:center; gap:7px; margin-bottom:3px; }
   .dc-author{ font-weight:600; font-size:0.95rem; color:#ffffff; }
-  .dc-apptag{
-    display:flex; align-items:center; gap:2px;
-    background:#5865f2; color:#ffffff; font-size:0.6rem; font-weight:700;
-    padding:1px 4px 1px 3px; border-radius:3px; letter-spacing:0.02em;
-  }
-  .dc-apptag svg{ width:9px; height:9px; }
+  .dc-apptag{ display:flex; align-items:center; gap:2px; background:#5865f2; color:#ffffff; font-size:0.6rem; font-weight:700; padding:1px 4px 1px 3px; border-radius:3px; }
   .dc-time{ font-size:0.68rem; color:#949ba4; }
-
-  .dc-typing{
-    display:flex; align-items:center; gap:8px; color:#949ba4; font-size:0.86rem;
-    height:22px; transition:opacity .3s ease;
-  }
+  .dc-typing{ display:flex; align-items:center; gap:8px; color:#949ba4; font-size:0.86rem; height:22px; transition:opacity .3s ease; }
   .dc-dots{ display:flex; gap:3px; }
   .dc-dots span{ width:5px; height:5px; border-radius:50%; background:#949ba4; animation:dcBounce 1.1s infinite ease-in-out; }
   .dc-dots span:nth-child(2){ animation-delay:0.15s; }
   .dc-dots span:nth-child(3){ animation-delay:0.3s; }
   @keyframes dcBounce{ 0%,60%,100%{ transform:translateY(0); opacity:0.5; } 30%{ transform:translateY(-4px); opacity:1; } }
   .dc-typing.hidden{ opacity:0; height:0; overflow:hidden; }
-
   .dc-embed-wrap{ opacity:0; transform:translateY(8px); transition:opacity .5s ease, transform .5s ease; }
   .dc-embed-wrap.shown{ opacity:1; transform:translateY(0); }
-
-  .dc-embed{
-    display:flex; max-width:440px; margin-top:3px;
-    background:#2b2d31; border-radius:8px; overflow:hidden;
-  }
+  .dc-embed{ display:flex; max-width:440px; margin-top:3px; background:#2b2d31; border-radius:8px; overflow:hidden; }
   .dc-embed-accent{ width:4px; flex-shrink:0; background:linear-gradient(180deg,#ffffff,#8a8a8a); }
   .dc-embed-body{ flex:1; padding:12px 16px 14px 12px; }
-
-  .dc-embed-top{ display:flex; justify-content:space-between; gap:12px; }
   .dc-embed-title{ font-weight:600; font-size:0.95rem; color:#ffffff; margin-bottom:5px; }
-  .dc-embed-desc{ font-size:0.83rem; color:#dbdee1; line-height:1.5; max-width:32ch; }
-  .dc-embed-thumb{
-    width:48px; height:48px; border-radius:6px; flex-shrink:0;
-    background:#1e1f22; border:1px solid rgba(255,255,255,0.08);
-    display:flex; align-items:center; justify-content:center;
-  }
-
+  .dc-embed-desc{ font-size:0.83rem; color:#dbdee1; line-height:1.5; }
   .dc-sep{ height:1px; background:rgba(255,255,255,0.06); margin:12px 0; }
-
   .dc-stats{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
   .dc-stat{ background:#1e1f22; border-radius:6px; padding:9px 6px; text-align:center; }
-  .dc-stat .num{ font-family:'Space Grotesk',sans-serif; font-size:1.15rem; font-weight:700; color:#ffffff; font-variant-numeric:tabular-nums; }
+  .dc-stat .num{ font-family:'Space Grotesk',sans-serif; font-size:1.15rem; font-weight:700; color:#ffffff; }
   .dc-stat .lbl{ font-size:0.58rem; letter-spacing:0.06em; text-transform:uppercase; color:#949ba4; margin-top:2px; }
-
   .dc-actions{ display:flex; gap:8px; margin-top:13px; }
-  .dc-btn{
-    flex:1; text-align:center; padding:8px 0; font-size:0.8rem; font-weight:500;
-    border-radius:6px; transition:filter .15s ease, transform .15s ease;
-  }
+  .dc-btn{ flex:1; text-align:center; padding:8px 0; font-size:0.8rem; font-weight:500; border-radius:6px; transition:all .15s ease; }
   .dc-btn.primary{ background:#5865f2; color:#ffffff; }
   .dc-btn.secondary{ background:#4e5058; color:#ffffff; }
-  .dc-btn:hover{ filter:brightness(1.12); transform:translateY(-1px); }
-
   .dc-embed-footer{ display:flex; align-items:center; gap:6px; margin-top:11px; font-size:0.68rem; color:#949ba4; }
-  .dc-embed-footer .fdot{ width:5px; height:5px; border-radius:50%; background:#23a55a; box-shadow:0 0 6px 1px rgba(35,165,90,0.6); animation:pulseDot 2s infinite ease-in-out; }
-  @keyframes pulseDot{ 0%,100%{ opacity:1; } 50%{ opacity:0.3; } }
-
-  /* ---------- FEATURES ---------- */
-  .features{ padding-top:5vh; padding-bottom:8vh; }
-  .section-head{ display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:36px; flex-wrap:wrap; gap:16px; }
-  .section-head h2{ font-family:var(--font-display); font-size:clamp(1.6rem,3vw,2.2rem); font-weight:600; letter-spacing:-0.01em; }
-  .section-head p{ color:var(--dim); font-size:0.85rem; max-width:40ch; }
-
-  .feature-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:18px; }
-  .feature-card{
-    padding:28px 24px; border:1px solid var(--border); border-radius:var(--radius-md);
-    background:linear-gradient(180deg, var(--panel), var(--black));
-    transition:transform .2s ease, border-color .2s ease;
-  }
-  .feature-card:hover{ transform:translateY(-4px); border-color:var(--border-strong); }
-  .feature-icon{
-    width:44px; height:44px; border-radius:50%;
-    display:flex; align-items:center; justify-content:center;
-    background:var(--panel-2); border:1px solid var(--border);
-    margin-bottom:18px;
-  }
-  .feature-card h3{ font-family:var(--font-display); font-size:1rem; font-weight:600; margin-bottom:8px; }
-  .feature-card p{ font-size:0.78rem; color:var(--dim); line-height:1.6; }
-
-  /* ---------- STAFF SECTION ---------- */
-  .staff-section { padding-bottom:10vh; }
-  .staff-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:20px; margin-top:30px; }
-  .staff-card {
-    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-md); padding:24px; text-align:center;
-    transition:transform .2s ease, border-color .2s ease;
-  }
-  .staff-card:hover { transform:translateY(-3px); border-color:var(--border-strong); }
-  .staff-avatar { width:64px; height:64px; border-radius:50%; background:var(--panel-2); margin:0 auto 16px auto; display:flex; align-items:center; justify-content:center; border:1px solid var(--border-strong); color:var(--white); font-weight:bold; font-size:1.2rem; }
-  .staff-name { font-family:var(--font-display); font-weight:600; font-size:1.05rem; }
-  .staff-role { font-size:0.72rem; color:var(--dim); text-transform:uppercase; letter-spacing:0.05em; margin-top:4px; }
-
-  /* ---------- BAND ---------- */
-  .band{
-    margin:0 5vw 11vh 5vw; border:1px solid var(--border); border-radius:var(--radius-lg);
-    padding:52px 5vw; display:flex; align-items:center; justify-content:space-between; gap:30px; flex-wrap:wrap;
-    background:radial-gradient(120% 160% at 0% 0%, var(--panel-2), var(--black) 65%);
-  }
-  .band h2{ font-family:var(--font-display); font-size:clamp(1.5rem,3vw,2.1rem); font-weight:600; max-width:16ch; }
-  .band p{ color:var(--dim); font-size:0.85rem; margin-top:10px; max-width:38ch; }
-
-  footer{
-    padding:28px 5vw 50px 5vw; display:flex; justify-content:space-between; align-items:center;
-    border-top:1px solid var(--border); color:var(--faint); font-size:0.72rem; flex-wrap:wrap; gap:10px;
-  }
+  .fdot{ width:5px; height:5px; border-radius:50%; background:#23a55a; box-shadow:0 0 6px 1px rgba(35,165,90,0.6); }
 
   /* ---------- SERVICES ---------- */
   .services-hero{ padding-top:7vh; padding-bottom:2vh; }
   .services-hero h1{ font-family:var(--font-display); font-size:clamp(2rem,4vw,3rem); font-weight:700; }
-  .services-hero p{ color:var(--dim); margin-top:16px; max-width:52ch; font-size:0.9rem; line-height:1.7; }
-
+  .services-hero p{ color:var(--dim); margin-top:16px; max-width:52ch; font-size:0.9rem; }
   .service-grid-wrap{ position:relative; padding:6vh 5vw 10vh 5vw; }
-  .service-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:22px; position:relative; z-index:1; }
-
-  .hub{
-    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-    width:54px; height:54px; z-index:2; pointer-events:none;
-  }
-  .hub svg{ width:100%; height:100%; }
-  .hub .ring{ animation:hubPulse 2.6s infinite ease-in-out; transform-origin:center; }
-  @keyframes hubPulse{ 0%,100%{ opacity:0.35; transform:scale(0.9);} 50%{ opacity:0.9; transform:scale(1.08);} }
-
-  .service-card{
-    background:linear-gradient(180deg, var(--panel), var(--black));
-    border:1px solid var(--border);
-    border-radius:var(--radius-lg);
-    padding:42px 38px;
-    text-align:left; display:flex; flex-direction:column; min-height:220px;
-    transition:transform .22s ease, border-color .22s ease, box-shadow .22s ease;
-    cursor:pointer;
-  }
-  .service-card:hover{
-    transform:translateY(-5px);
-    border-color:var(--border-strong);
-    box-shadow:0 30px 60px -30px rgba(0,0,0,0.7);
-  }
-  .service-index{ font-size:0.7rem; color:var(--faint); letter-spacing:0.1em; }
-  .service-card h3{ font-family:var(--font-display); font-size:1.45rem; font-weight:700; margin-top:18px; }
-  .service-card p{ color:var(--dim); font-size:0.82rem; margin-top:12px; line-height:1.6; max-width:42ch; flex:1; }
-  .service-foot{ display:flex; justify-content:space-between; align-items:center; margin-top:22px; font-size:0.76rem; }
-  .service-price{ font-family:var(--font-display); font-weight:600; color:var(--white); }
-  .service-arrow{
-    width:36px; height:36px; border:1px solid var(--border); border-radius:50%;
-    display:flex; align-items:center; justify-content:center; transition:all .2s ease;
-  }
-  .service-card:hover .service-arrow{ border-color:var(--white); transform:translateX(4px); }
-
-  @media (max-width:980px){ .hub{ display:none; } }
+  .service-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:22px; }
+  .service-card{ background:linear-gradient(180deg, var(--panel), var(--black)); border:1px solid var(--border); border-radius:var(--radius-lg); padding:42px 38px; transition:all .22s ease; cursor:pointer; }
+  .service-card:hover{ transform:translateY(-5px); border-color:var(--border-strong); }
+  .service-index{ font-size:0.7rem; color:var(--faint); }
+  .service-card h3{ font-family:var(--font-display); font-size:1.45rem; margin-top:18px; }
+  .service-card p{ color:var(--dim); font-size:0.82rem; margin-top:12px; line-height:1.6; }
+  .service-foot{ display:flex; justify-content:space-between; align-items:center; margin-top:22px; }
+  .service-price{ font-family:var(--font-display); font-weight:600; }
+  .service-arrow{ width:36px; height:36px; border:1px solid var(--border); border-radius:50%; display:flex; align-items:center; justify-content:center; }
 
   /* ---------- CONFIGURATOR ---------- */
   .configurator{ padding:5vh 5vw 10vh 5vw; display:none; }
   .configurator.active{ display:block; }
-
-  .back-link{ display:inline-flex; align-items:center; gap:8px; font-size:0.78rem; color:var(--dim); margin-bottom:28px; letter-spacing:0.02em; cursor:pointer; }
-  .back-link:hover{ color:var(--white); }
-
-  .config-head h1{ font-family:var(--font-display); font-size:clamp(1.7rem,3.4vw,2.6rem); font-weight:700; }
-  .config-head p{ color:var(--dim); margin-top:12px; max-width:56ch; font-size:0.85rem; line-height:1.6; }
-
-  .config-layout{ display:grid; grid-template-columns:1.5fr 1fr; gap:50px; margin-top:46px; align-items:start; }
-
-  .option-group{
-    border:1px solid var(--border);
-    border-radius:var(--radius-md);
-    padding:24px;
-    margin-bottom:22px;
-    background:linear-gradient(180deg, var(--panel), transparent);
-  }
-  .option-group h4{ font-family:var(--font-display); font-size:0.98rem; font-weight:600; margin-bottom:5px; }
+  .back-link{ display:inline-flex; align-items:center; gap:8px; font-size:0.78rem; color:var(--dim); margin-bottom:28px; cursor:pointer; }
+  .config-layout{ display:grid; grid-template-columns:1.5fr 1fr; gap:50px; margin-top:46px; }
+  .option-group{ border:1px solid var(--border); border-radius:var(--radius-md); padding:24px; margin-bottom:22px; background:linear-gradient(180deg, var(--panel), transparent); }
+  .option-group h4{ font-family:var(--font-display); font-size:0.98rem; margin-bottom:5px; }
   .option-group .group-sub{ font-size:0.74rem; color:var(--faint); margin-bottom:18px; }
-
   .box-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(110px, 1fr)); gap:12px; }
-  .opt-box{
-    border:1px solid var(--border);
-    border-radius:var(--radius-sm);
-    padding:16px 10px;
-    text-align:center;
-    background:var(--panel-2);
-    transition:transform .15s ease, border-color .15s ease, background .15s ease, box-shadow .15s ease;
-    cursor:pointer;
-  }
-  .opt-box .lab{ font-size:0.82rem; color:var(--white); font-weight:500; }
-  .opt-box .delta{ font-size:0.66rem; color:var(--faint); margin-top:5px; }
-  .opt-box:hover{ transform:translateY(-2px); border-color:var(--border-strong); }
-  .opt-box.selected{
-    background:var(--white); border-color:var(--white);
-    box-shadow:0 12px 26px -12px rgba(255,255,255,0.25);
-  }
+  .opt-box{ border:1px solid var(--border); border-radius:var(--radius-sm); padding:16px 10px; text-align:center; background:var(--panel-2); cursor:pointer; }
+  .opt-box.selected{ background:var(--white); border-color:var(--white); }
   .opt-box.selected .lab{ color:var(--black); }
   .opt-box.selected .delta{ color:#4a4a4a; }
-
-  .check-box{
-    display:flex; align-items:center; justify-content:space-between;
-    border:1px solid var(--border); border-radius:var(--radius-sm);
-    padding:16px 20px; background:var(--panel-2);
-    transition:border-color .15s ease, background .15s ease;
-    cursor:pointer;
-  }
-  .check-box:hover{ border-color:var(--border-strong); }
+  .check-box{ display:flex; align-items:center; justify-content:space-between; border:1px solid var(--border); border-radius:var(--radius-sm); padding:16px 20px; background:var(--panel-2); cursor:pointer; }
   .check-box.selected{ border-color:var(--white); background:var(--panel-3); }
-  .check-box .label-line{ display:flex; align-items:center; gap:12px; }
-  .checkmark{
-    width:20px; height:20px; border-radius:7px; border:1px solid var(--border-strong);
-    display:flex; align-items:center; justify-content:center; flex-shrink:0;
-  }
+  .checkmark{ width:20px; height:20px; border-radius:7px; border:1px solid var(--border-strong); display:flex; align-items:center; justify-content:center; }
   .check-box.selected .checkmark{ background:var(--white); border-color:var(--white); }
-  .check-box.selected .checkmark svg{ display:block; }
   .checkmark svg{ display:none; width:12px; height:12px; }
-  .check-box .label{ font-size:0.85rem; color:#d8d8d5; }
-  .check-box .price{ font-size:0.78rem; color:var(--dim); font-family:var(--font-display); }
+  .check-box.selected .checkmark svg{ display:block; }
 
-  /* ---------- SUMMARY ---------- */
-  .summary{
-    position:sticky; top:100px;
-    border:1px solid var(--border);
-    border-radius:var(--radius-lg);
-    background:linear-gradient(180deg, var(--panel-2), var(--black));
-    padding:30px;
-  }
-  .summary-eyebrow{ font-size:0.66rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--faint); margin-bottom:6px; }
-  .summary h3{ font-family:var(--font-display); font-size:1.3rem; font-weight:700; margin-bottom:20px; }
+  /* ---------- SUMMARY & STAFF LOOKUP ---------- */
+  .summary{ position:sticky; top:100px; border:1px solid var(--border); border-radius:var(--radius-lg); background:linear-gradient(180deg, var(--panel-2), var(--black)); padding:30px; }
   .summary-line{ display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--border); font-size:0.8rem; }
   .summary-line .k{ color:var(--dim); }
-  .summary-line .v{ color:var(--white); font-family:var(--font-display); font-weight:500; }
   .summary-total{ display:flex; justify-content:space-between; align-items:baseline; margin-top:20px; padding-top:18px; border-top:1px solid var(--border); }
-  .summary-total .k{ font-size:0.82rem; color:var(--dim); }
   .summary-total .v{ font-family:var(--font-display); font-size:2rem; font-weight:700; }
-  .summary-total .v span{ font-size:0.9rem; color:var(--dim); font-weight:400; font-family:var(--font-mono); }
-  .summary .btn{ width:100%; justify-content:center; margin-top:22px; }
-  .summary-note{ font-size:0.68rem; color:var(--faint); margin-top:14px; line-height:1.5; text-align:center; }
 
-  /* ---------- MODERN POPUP (MODAL) ---------- */
-  .modal-overlay {
-    position:fixed; inset:0; background:rgba(6,6,7,0.85); backdrop-filter:blur(10px);
-    display:flex; align-items:center; justify-content:center; z-index:100;
-    opacity:0; pointer-events:none; transition:opacity 0.3s ease;
-  }
+  /* ---------- STAFF DASHBOARD VIEW ---------- */
+  .staff-lookup-panel { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-lg); padding:40px; max-width:680px; margin:40px auto; }
+  .search-input-group { display:flex; gap:12px; margin-top:20px; margin-bottom:30px; }
+  .search-input { flex:1; background:var(--black); border:1px solid var(--border-strong); border-radius:var(--radius-sm); padding:14px 20px; color:#fff; font-family:var(--font-mono); font-size:1.1rem; }
+  .search-input:focus { border-color:#ff9800; outline:none; }
+  .results-box { background:var(--panel-2); border:1px solid var(--border); border-radius:var(--radius-md); padding:24px; display:none; }
+  .results-box.active { display:block; }
+  .status-badge { display:inline-block; padding:4px 10px; background:rgba(255, 152, 0, 0.15); color:#ff9800; border-radius:4px; font-size:0.7rem; font-weight:bold; margin-bottom:15px; }
+
+  /* ---------- POPUP MODAL ---------- */
+  .modal-overlay { position:fixed; inset:0; background:rgba(6,6,7,0.85); backdrop-filter:blur(10px); display:flex; align-items:center; justify-content:center; z-index:100; opacity:0; pointer-events:none; transition:opacity 0.3s ease; }
   .modal-overlay.active { opacity:1; pointer-events:auto; }
-  .modal-box {
-    background:var(--panel-2); border:1px solid var(--border-strong); border-radius:var(--radius-lg);
-    padding:40px; max-width:480px; width:90%; text-align:center; box-shadow:0 30px 70px rgba(0,0,0,0.8);
-    transform:translateY(20px); transition:transform 0.3s ease;
-  }
-  .modal-overlay.active .modal-box { transform:translateY(0); }
-  .modal-icon { width:56px; height:56px; background:rgba(255,255,255,0.06); border:1px solid var(--border-strong); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px auto; }
-  .modal-box h3 { font-family:var(--font-display); font-size:1.5rem; font-weight:700; margin-bottom:12px; }
-  .modal-box p { color:var(--dim); font-size:0.84rem; line-height:1.6; margin-bottom:24px; }
-  .modal-id-display {
-    background:var(--black); border:1px dashed var(--border-strong); border-radius:var(--radius-sm);
-    padding:16px; font-family:var(--font-mono); font-size:1.15rem; font-weight:600; color:var(--white);
-    letter-spacing:0.05em; display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:26px;
-  }
-  .modal-box .btn { width:100%; justify-content:center; }
+  .modal-box { background:var(--panel-2); border:1px solid var(--border-strong); border-radius:var(--radius-lg); padding:40px; max-width:480px; width:90%; text-align:center; }
+  .modal-icon { width:56px; height:56px; background:rgba(255,255,255,0.06); border:1px solid var(--border-strong); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px auto; color:#ff9800; font-size:1.8rem; }
+  .modal-id-display { background:var(--black); border:1px dashed var(--border-strong); border-radius:var(--radius-sm); padding:16px; font-family:var(--font-mono); font-size:1.15rem; font-weight:600; color:#ff9800; display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:26px; }
+
+  footer{ padding:28px 5vw 50px 5vw; display:flex; justify-content:space-between; color:var(--faint); font-size:0.72rem; border-top:1px solid var(--border); margin-top:60px; }
 
   @media (max-width:980px){
-    .hero{ grid-template-columns:1fr; }
-    .feature-grid{ grid-template-columns:repeat(2,1fr); }
-    .service-grid{ grid-template-columns:1fr; }
-    .config-layout{ grid-template-columns:1fr; }
-    .summary{ position:relative; top:0; }
+    .hero, .service-grid, .config-layout { grid-template-columns:1fr; }
     nav.mainnav{ display:none; }
   }
 </style>
@@ -423,7 +234,6 @@
 <div class="glow-b"></div>
 
 <div class="app">
-
   <header>
     <div class="logo">
       <svg viewBox="0 0 24 24" fill="none"><path d="M12 1L14.5 9H23L16.5 13.8L19 22L12 17L5 22L7.5 13.8L1 9H9.5L12 1Z" fill="#f5f5f3"/></svg>
@@ -432,79 +242,41 @@
     <nav class="mainnav">
       <div class="navlink active" data-view="home">Home</div>
       <div class="navlink" data-view="services">Services</div>
+      <div class="navlink staff-btn" data-view="staff-dashboard">⚡ Staff Panel</div>
     </nav>
   </header>
 
   <div class="view active" id="view-home">
     <section class="hero">
-      <div data-parallax="0.03">
+      <div>
         <div class="eyebrow">Hosting-Infrastruktur</div>
         <h1>Server, die halten,<br>was <em>Stella</em> verspricht.</h1>
-        <p class="lead">Stella Host betreibt Minecraft-, FiveM-, VPS/KVM- und Editor-Server auf NVMe-Hardware. Kein Overselling, kein Warten — nur Leistung, die ankommt, sobald du sie brauchst.</p>
+        <p class="lead">Minecraft-, FiveM-, VPS- und Webspace-Hosting auf echter NVMe-Hardware. Ohne Overselling, sofort einsatzbereit im Live-DDoS-Schutzverbund.</p>
         <div class="hero-ctas">
           <button class="btn primary navlink" data-view="services">Services ansehen →</button>
-          <button class="btn ghost" onclick="document.getElementById('embed-anchor').scrollIntoView({behavior:'smooth'})">Live-Status</button>
         </div>
       </div>
-
-      <div id="embed-anchor" data-parallax="-0.09">
-        <div class="discord-window">
-          <div class="dc-topbar">
-            <span class="dc-hash">#</span><span class="dc-channel">server-status</span>
-            <div class="dc-topbar-icons">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#dbdee1" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-              <svg viewBox="0 0 24 24" fill="none" stroke="#dbdee1" stroke-width="1.6"><path d="M4 4h16v16H4z"/></svg>
-            </div>
-          </div>
-
+      <div>
+        <div class="discord-window" id="embed-anchor">
+          <div class="dc-topbar"><span class="dc-hash">#</span><span class="dc-channel">live-status</span></div>
           <div class="dc-messages">
             <div class="dc-msg">
-              <div class="dc-avatar">
-                <svg viewBox="0 0 24 24" fill="none"><path d="M12 1L14.5 9H23L16.5 13.8L19 22L12 17L5 22L7.5 13.8L1 9H9.5L12 1Z" fill="#f5f5f3"/></svg>
-              </div>
+              <div class="dc-avatar"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 1L14.5 9H23L16.5 13.8L19 22L12 17L5 22L7.5 13.8L1 9H9.5L12 1Z"/></svg></div>
               <div class="dc-body">
-                <div class="dc-headline">
-                  <span class="dc-author">Stella Host</span>
-                  <span class="dc-apptag">
-                    <svg viewBox="0 0 24 24" fill="#ffffff"><path d="M12 2l2 4 4 .5-3 3 1 4-4-2-4 2 1-4-3-3 4-.5z"/></svg>
-                    APP
-                  </span>
-                  <span class="dc-time" id="msg-time">Heute um 14:32</span>
-                </div>
-
-                <div class="dc-typing" id="typing-indicator">
-                  <span class="dc-dots"><span></span><span></span><span></span></span>
-                  schreibt Statusbericht …
-                </div>
-
+                <div class="dc-headline"><span class="dc-author">Stella-System</span><span class="dc-apptag">APP</span><span class="dc-time" id="msg-time">Gerade eben</span></div>
+                <div class="dc-typing" id="typing-indicator"><span></span><span></span><span></span></div>
                 <div class="dc-embed-wrap" id="cv2-wrap">
                   <div class="dc-embed">
                     <div class="dc-embed-accent"></div>
                     <div class="dc-embed-body">
-                      <div class="dc-embed-top">
-                        <div>
-                          <div class="dc-embed-title">Node „Vega-3" ist online</div>
-                          <div class="dc-embed-desc">Alle Systeme laufen stabil. NVMe-Cluster, DDoS-Schutz und automatische Backups sind aktiv.</div>
-                        </div>
-                        <div class="dc-embed-thumb">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f5f5f3" stroke-width="1.4"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg>
-                        </div>
-                      </div>
-
+                      <div class="dc-embed-title">Alle Nodes stabil online</div>
+                      <div class="dc-embed-desc">NVMe Cluster Uptime beträgt aktuell 99.98%. All System Ready.</div>
                       <div class="dc-sep"></div>
-
                       <div class="dc-stats">
-                        <div class="dc-stat"><div class="num" data-target="99.9" data-suffix="%">0</div><div class="lbl">Uptime</div></div>
-                        <div class="dc-stat"><div class="num" data-target="5" data-prefix="&lt;" data-suffix="ms">0</div><div class="lbl">Ping</div></div>
-                        <div class="dc-stat"><div class="num" data-target="7" data-suffix="s">0</div><div class="lbl">Setup</div></div>
+                        <div class="dc-stat"><div class="num" data-target="99.9">0</div><div class="lbl">Uptime</div></div>
+                        <div class="dc-stat"><div class="num" data-target="4" data-prefix="&lt;" data-suffix="ms">0</div><div class="lbl">Ping</div></div>
+                        <div class="dc-stat"><div class="num" data-target="6" data-suffix="s">0</div><div class="lbl">Setup</div></div>
                       </div>
-
-                      <div class="dc-actions">
-                        <button class="dc-btn primary navlink" data-view="services" style="border:none; width:100%;">Server konfigurieren</button>
-                        <button class="dc-btn secondary" onclick="document.getElementById('features-anchor').scrollIntoView({behavior:'smooth'})" style="border:none; width:100%;">Mehr erfahren</button>
-                      </div>
-
-                      <div class="dc-embed-footer"><span class="fdot"></span> Stella Host Infrastruktur</div>
                     </div>
                   </div>
                 </div>
@@ -514,478 +286,67 @@
         </div>
       </div>
     </section>
-
-    <section class="features" id="features-anchor">
-      <div class="section-head reveal">
-        <h2>Warum Stella Host</h2>
-        <p>Vier Gründe, warum unsere Server nicht wie jeder andere Anbieter klingen.</p>
-      </div>
-      <div class="feature-grid">
-        <div class="feature-card reveal" data-parallax="0.025">
-          <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f5f5f3" stroke-width="1.5"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg></div>
-          <h3>NVMe-Performance</h3>
-          <p>Reine NVMe-SSD-Speicher auf jedem Node — spürbar schnellere Ladezeiten und Weltgenerierung.</p>
-        </div>
-        <div class="feature-card reveal" data-parallax="0.045">
-          <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f5f5f3" stroke-width="1.5"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/></svg></div>
-          <h3>DDoS-Schutz inklusive</h3>
-          <p>Mehrschichtiger Schutz gegen Angriffe ist bei jedem Paket automatisch aktiv — ohne Aufpreis.</p>
-        </div>
-        <div class="feature-card reveal" data-parallax="0.025">
-          <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f5f5f3" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
-          <h3>Setup in Sekunden</h3>
-          <p>Server werden automatisch provisioniert — kein manuelles Warten auf die Aktivierung.</p>
-        </div>
-        <div class="feature-card reveal" data-parallax="0.045">
-          <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f5f5f3" stroke-width="1.5"><path d="M4 4h16v12H8l-4 4V4z"/></svg></div>
-          <h3>Echter 24/7 Support</h3>
-          <p>Ein Team, das antwortet — per Ticket oder Discord, auch nachts und am Wochenende.</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="staff-section reveal">
-      <div class="section-head">
-        <h2>Unser Staff Team</h2>
-        <p>Hinter den Kulissen sorgen Experten für reibungslose Performance und 24/7 Hilfe.</p>
-      </div>
-      <div class="staff-grid">
-        <div class="staff-card">
-          <div class="staff-avatar">S</div>
-          <div class="staff-name">Stella_CEO</div>
-          <div class="staff-role">Gründer & Management</div>
-        </div>
-        <div class="staff-card">
-          <div class="staff-avatar">N</div>
-          <div class="staff-name">NexusDev</div>
-          <div class="staff-role">Infrastruktur & Dev</div>
-        </div>
-        <div class="staff-card">
-          <div class="staff-avatar">M</div>
-          <div class="staff-name">Mika</div>
-          <div class="staff-role">Support Leitung</div>
-        </div>
-      </div>
-    </section>
-
-    <div class="band reveal">
-      <div>
-        <h2>Bereit für deinen eigenen Server?</h2>
-        <p>Wähle deinen Service, stelle ihn zusammen und sieh den Preis live, bevor du bestellst.</p>
-      </div>
-      <button class="btn primary navlink" data-view="services">Jetzt konfigurieren →</button>
-    </div>
-
-    <footer>
-      <span>© 2026 Stella Host — Hosting-Infrastruktur</span>
-      <span>Made for gamers, developers & communities</span>
-    </footer>
+    <footer><span>© 2026 Stella Host</span><span>Made for communities</span></footer>
   </div>
 
   <div class="view" id="view-services">
-    <section class="services-hero reveal">
-      <div class="eyebrow">Alle Services</div>
+    <section class="services-hero">
       <h1>Was möchtest du hosten?</h1>
-      <p>Wähle einen Service aus, um ihn genau nach deinen Anforderungen zu konfigurieren. Den Preis siehst du live, sobald du eine Auswahl triffst.</p>
+      <p>Wähle einen Basis-Service, um die Konfiguration zu starten.</p>
     </section>
-
-    <div class="service-grid-wrap">
-      <div class="hub" data-parallax="0.05">
-        <svg viewBox="0 0 54 54">
-          <circle class="ring" cx="27" cy="27" r="7" fill="none" stroke="#f5f5f3" stroke-width="1"/>
-          <circle cx="27" cy="27" r="2.2" fill="#f5f5f3"/>
-        </svg>
-      </div>
+    <section class="service-grid-wrap">
       <div class="service-grid" id="service-grid"></div>
-    </div>
-
-    <footer class="reveal">
-      <span>© 2026 Stella Host — Hosting-Infrastruktur</span>
-      <span>Preise inkl. MwSt., monatlich kündbar</span>
-    </footer>
+    </section>
   </div>
 
   <div class="configurator" id="view-configurator">
-    <div class="back-link" id="back-to-services">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-      Zurück zu allen Services
-    </div>
-
-    <div class="config-head reveal">
-      <h1 id="config-title">Service konfigurieren</h1>
-      <p id="config-desc"></p>
-    </div>
-
+    <div class="back-link" id="back-to-services">← Zurück zu den Services</div>
     <div class="config-layout">
       <div id="config-options"></div>
-
-      <div class="summary" data-parallax="0.02">
-        <div class="summary-eyebrow">Deine Konfiguration</div>
-        <h3 id="summary-title">—</h3>
+      <div class="summary">
+        <h3>Zusammenfassung</h3>
         <div id="summary-lines"></div>
-
         <div class="summary-total">
-          <span class="k">Gesamt / Monat</span>
-          <span class="v" id="summary-total">0,00 €<span>/Mon.</span></span>
+          <span>Gesamt</span>
+          <span id="summary-total">0.00 €</span>
         </div>
-        <button class="btn primary" id="order-btn" style="border:1px solid #f5f5f3;">Jetzt bestellen →</button>
-        <div class="summary-note">Monatlich kündbar. Sofortige Bereitstellung nach Zahlungseingang.</div>
+        <button class="btn primary" id="order-btn">Jetzt bestellen →</button>
       </div>
     </div>
+  </div>
+
+  <div class="view" id="view-staff-dashboard">
+    <section>
+      <div class="staff-lookup-panel">
+        <h2 style="font-family:var(--font-display);">Konfigurations-Verfolgung (Staff)</h2>
+        <p style="color:var(--dim); font-size:0.85rem; margin-top:5px;">Gib hier die ID ein, die der Kunde im Ticket gepostet hat, um die exakten Details einzusehen.</p>
+        
+        <div class="search-input-group">
+          <input type="text" class="search-input" id="search-id-input" placeholder="z.B. ST-MC-211-AZ" autocomplete="off">
+          <button class="btn primary" id="search-id-btn" style="border-radius:var(--radius-sm); border-color:#ff9800; color:#ff9800;">Suchen</button>
+        </div>
+
+        <div class="results-box" id="search-results">
+          <div class="status-badge">Eintrag Entschlüsselt</div>
+          <h3 id="result-service-name" style="font-family:var(--font-display); font-size:1.3rem;">Minecraft Server</h3>
+          <div style="margin:20px 0;" id="result-lines"></div>
+          <div class="summary-total" style="border-top:1px solid var(--border); padding-top:15px;">
+            <span style="color:var(--dim);">Berechneter Preis:</span>
+            <span id="result-total-price" style="font-size:1.6rem; font-weight:bold; color:#ff9800;">0.00 €</span>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 
 </div>
 
 <div class="modal-overlay" id="order-modal">
   <div class="modal-box">
-    <div class="modal-icon">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f6f6f4" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
-    </div>
+    <div class="modal-icon">✔</div>
     <h3>Konfiguration gespeichert!</h3>
-    <p>Deine Server-Zusammenstellung wurde erfolgreich registriert. Nutze diese ID, um die Bestellung abzuschließen oder für Support-Anfragen.</p>
-    <div class="modal-id-display" id="modal-config-id">ST-XXXX-XXXX</div>
-    <button class="btn primary" id="close-modal-btn">Schließen & zurück</button>
+    <p>Übermittle diese ID im Support-Ticket oder Discord, damit unser Team die Bereitstellung abschließen kann.</p>
+    <div class="modal-id-display" id="modal-config-id">ST-XXXX</div>
+    <button class="btn primary" id="close-modal-btn">Schließen</button>
   </div>
 </div>
-
-<script>
-/* ===================== EXTENDED CONFIGURATIONS DATA ===================== */
-const servicesData = {
-  minecraft: {
-    title: "Minecraft Server",
-    desc: "Optimiertes Minecraft Hosting auf Ryzen-Prozessoren & extrem schnellen NVMe Speichern.",
-    basePrice: 4.50,
-    options: [
-      { id: "ram", type: "box", title: "Arbeitsspeicher (RAM)", sub: "Empfohlen: 6-8GB für mittlere Modpacks", choices: [
-        { lab: "4 GB RAM", delta: 0 },
-        { lab: "6 GB RAM", delta: 3.00 },
-        { lab: "8 GB RAM", delta: 6.00 },
-        { lab: "16 GB RAM", delta: 18.00 }
-      ]},
-      { id: "slots", type: "box", title: "CPU & Performance Kernfokus", sub: "Ressourcen-Zuweisung für deinen Server", choices: [
-        { lab: "Standard Core", delta: 0 },
-        { lab: "High-Priority", delta: 2.50 },
-        { lab: "Dedicated Core", delta: 7.00 }
-      ]},
-      { id: "backup", type: "check", title: "Sicherheits-Optionen", sub: "Schütze deine Welten vor Fehlern", label: "Automatisches tägliches Backup-System", price: 1.50 }
-    ]
-  },
-  fivem: {
-    title: "FiveM Gameserver",
-    desc: "High-Performance Gameserver für deinen GTA V Roleplay- oder Server-Cluster.",
-    basePrice: 9.90,
-    options: [
-      { id: "slots", type: "box", title: "Spieler-Slots (Zusatz-Ressourcen)", sub: "Erweiterte Node-Priorisierung je nach Spielerzahl", choices: [
-        { lab: "Bis 32 Slots", delta: 0 },
-        { lab: "Bis 64 Slots", delta: 5.00 },
-        { lab: "Bis 128 Slots", delta: 12.00 },
-        { lab: "Unbegrenzt", delta: 22.00 }
-      ]},
-      { id: "database", type: "check", title: "Datenbank & Scripting", sub: "Benötigt für TxAdmin & ESX/QBCore Frameworks", label: "Dedizierte MariaDB / MySQL Datenbank", price: 0.00 },
-      { id: "proxy", type: "check", title: "Erweiterte Erreichbarkeit", sub: "Schutz der Node-Haupt-IP", label: "DDoS-Game-Proxy-Schutzadresse", price: 3.50 }
-    ]
-  },
-  vps: {
-    title: "VPS / KVM Rootserver",
-    desc: "Voller Root-Zugriff, dedizierte Hardwareressourcen und freie Linux/Windows OS-Wahl.",
-    basePrice: 6.90,
-    options: [
-      { id: "cores", type: "box", title: "AMD Ryzen vCores", sub: "Dedizierte Rechenkerne für Virtualisierung", choices: [
-        { lab: "2 vCores", delta: 0 },
-        { lab: "4 vCores", delta: 4.50 },
-        { lab: "6 vCores", delta: 9.50 },
-        { lab: "8 vCores", delta: 16.00 }
-      ]},
-      { id: "storage", type: "box", title: "NVMe SSD Speicher", sub: "Echter PCIe NVMe Gen4 Storage", choices: [
-        { lab: "40 GB NVMe", delta: 0 },
-        { lab: "80 GB NVMe", delta: 3.00 },
-        { lab: "160 GB NVMe", delta: 8.00 }
-      ]},
-      { id: "ip", type: "check", title: "Netzwerk-Optionen", sub: "Zusätzliche IP-Adressierung", label: "1x zusätzliche dedizierte IPv4 Adresse", price: 2.00 }
-    ]
-  },
-  editor: {
-    title: "Editor- & Webspace-Server",
-    desc: "Schneller Webspace und Entwicklungsumgebungen für Devs, Webseiten & Bots.",
-    basePrice: 1.99,
-    options: [
-      { id: "space", type: "box", title: "Speicherplatz", sub: "Für Web-Dateien, Assets und Quellcodes", choices: [
-        { lab: "10 GB Space", delta: 0 },
-        { lab: "25 GB Space", delta: 2.00 },
-        { lab: "50 GB Space", delta: 4.50 }
-      ]},
-      { id: "ssl", type: "check", title: "Sicherheit", sub: "Verschlüsselung für alle Domains", label: "Wildcard Let's Encrypt SSL-Zertifikate", price: 0.00 },
-      { id: "node", type: "check", title: "App-Hosting", sub: "Unterstützung für Discord-Bots / Backends", label: "Node.js / Python Runtime Support", price: 1.00 }
-    ]
-  }
-};
-
-let currentServiceId = null;
-let selections = {};
-
-function initApp() {
-  const grid = document.getElementById("service-grid");
-  grid.innerHTML = "";
-  
-  Object.keys(servicesData).forEach((key, idx) => {
-    const s = servicesData[key];
-    const card = document.createElement("div");
-    card.className = "service-card reveal";
-    card.innerHTML = `
-      <div class="service-index">0${idx+1} // INFRASTRUCTURE</div>
-      <h3>${s.title}</h3>
-      <p>${s.desc}</p>
-      <div class="service-foot">
-        <span class="service-price">Ab ${s.basePrice.toFixed(2)} € / Mon.</span>
-        <div class="service-arrow">→</div>
-      </div>
-    `;
-    card.addEventListener("click", () => openConfigurator(key));
-    grid.appendChild(card);
-  });
-
-  document.querySelectorAll(".navlink").forEach(link => {
-    link.addEventListener("click", () => {
-      const view = link.getAttribute("data-view");
-      if(view) switchView(view);
-    });
-  });
-
-  document.getElementById("back-to-services").addEventListener("click", () => switchView("services"));
-  
-  // Modal Event Listeners
-  document.getElementById("order-btn").addEventListener("click", triggerOrder);
-  document.getElementById("close-modal-btn").addEventListener("click", closeModal);
-
-  document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
-}
-
-function switchView(viewId) {
-  document.querySelectorAll(".view, .configurator").forEach(v => v.classList.remove("active"));
-  document.querySelectorAll("nav .navlink").forEach(l => l.classList.remove("active"));
-  
-  const target = document.getElementById(`view-${viewId}`);
-  if(target) target.classList.add("active");
-  
-  const navBtn = document.querySelector(`nav .navlink[data-view="${viewId}"]`);
-  if(navBtn) navBtn.classList.add("active");
-  
-  window.scrollTo({top: 0});
-}
-
-function openConfigurator(serviceId) {
-  currentServiceId = serviceId;
-  const s = servicesData[serviceId];
-  selections = {};
-  
-  document.getElementById("config-title").textContent = s.title;
-  document.getElementById("config-desc").textContent = s.desc;
-  
-  const container = document.getElementById("config-options");
-  container.innerHTML = "";
-  
-  s.options.forEach(opt => {
-    const group = document.createElement("div");
-    group.className = "option-group reveal visible";
-    group.innerHTML = `<h4>${opt.title}</h4><div class="group-sub">${opt.sub}</div>`;
-    
-    if(opt.type === "box") {
-      selections[opt.id] = opt.choices[0];
-      const grid = document.createElement("div");
-      grid.className = "box-grid";
-      
-      opt.choices.forEach((c, idx) => {
-        const box = document.createElement("div");
-        box.className = "opt-box" + (idx === 0 ? " selected" : "");
-        box.innerHTML = `<div class="lab">${c.lab}</div><div class="delta">+${c.delta.toFixed(2)} €</div>`;
-        box.addEventListener("click", () => {
-          grid.querySelectorAll(".opt-box").forEach(b => b.classList.remove("selected"));
-          box.classList.add("selected");
-          selections[opt.id] = c;
-          updateSummary();
-        });
-        grid.appendChild(box);
-      });
-      group.appendChild(grid);
-    } else if(opt.type === "check") {
-      selections[opt.id] = false;
-      const check = document.createElement("div");
-      check.className = "check-box";
-      check.innerHTML = `
-        <div class="label-line">
-          <div class="checkmark">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#060607" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
-          </div>
-          <div class="label">${opt.label}</div>
-        </div>
-        <div class="price">+${opt.price.toFixed(2)} €</div>
-      `;
-      check.addEventListener("click", () => {
-        check.classList.toggle("selected");
-        selections[opt.id] = check.classList.contains("selected") ? opt : false;
-        updateSummary();
-      });
-      group.appendChild(check);
-    }
-    container.appendChild(group);
-  });
-  
-  switchView("configurator");
-  updateSummary();
-}
-
-function updateSummary() {
-  const s = servicesData[currentServiceId];
-  if(!s) return;
-  
-  document.getElementById("summary-title").textContent = s.title;
-  const linesContainer = document.getElementById("summary-lines");
-  linesContainer.innerHTML = "";
-  
-  let total = s.basePrice;
-  
-  const baseLine = document.createElement("div");
-  baseLine.className = "summary-line";
-  baseLine.innerHTML = `<span class="k">Basispreis</span><span class="v">${s.basePrice.toFixed(2)} €</span>`;
-  linesContainer.appendChild(baseLine);
-  
-  s.options.forEach(opt => {
-    const sel = selections[opt.id];
-    if(opt.type === "box" && sel) {
-      total += sel.delta;
-      if(sel.delta > 0) {
-        const line = document.createElement("div");
-        line.className = "summary-line";
-        line.innerHTML = `<span class="k">${sel.lab}</span><span class="v">+${sel.delta.toFixed(2)} €</span>`;
-        linesContainer.appendChild(line);
-      }
-    } else if(opt.type === "check" && sel) {
-      total += sel.price;
-      const line = document.createElement("div");
-      line.className = "summary-line";
-      line.innerHTML = `<span class="k">${sel.label}</span><span class="v">+${sel.price.toFixed(2)} €</span>`;
-      linesContainer.appendChild(line);
-    }
-  });
-  
-  document.getElementById("summary-total").innerHTML = `${total.toFixed(2)} €<span>/Mon.</span>`;
-}
-
-/* ===================== POPUP LOGIC ===================== */
-function generateConfigId() {
-  const chars = 'ABCDEF0123456789';
-  autoGen = (len) => Array.from({length: len}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-  return `ST-${autoGen(4)}-${autoGen(4)}`;
-}
-
-function triggerOrder() {
-  const modal = document.getElementById("order-modal");
-  const idDisplay = document.getElementById("modal-config-id");
-  
-  idDisplay.textContent = generateConfigId();
-  modal.classList.add("active");
-}
-
-function closeModal() {
-  document.getElementById("order-modal").classList.remove("active");
-}
-
-window.addEventListener("DOMContentLoaded", initApp);
-
-/* ===================== STARFIELD & INTERSECTION OBSERVER ===================== */
-(function(){
-  const canvas = document.getElementById('starfield');
-  const ctx = canvas.getContext('2d');
-  let stars = [];
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  function resize(){
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    const count = Math.floor((canvas.width * canvas.height) / 9000);
-    stars = Array.from({length: count}, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      r: Math.random() * 1.2 + 0.2,
-      phase: Math.random() * Math.PI * 2,
-      speed: 0.005 + Math.random() * 0.015
-    }));
-  }
-
-  function draw(t){
-    ctx.clearRect(0,0,canvas.width, canvas.height);
-    ctx.fillStyle = '#060607';
-    ctx.fillRect(0,0,canvas.width, canvas.height);
-    for(const s of stars){
-      const twinkle = reduceMotion ? 0.6 : (0.4 + 0.6 * Math.abs(Math.sin(s.phase + t * s.speed)));
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
-      ctx.fillStyle = `rgba(245,245,243,${twinkle * 0.8})`;
-      ctx.fill();
-    }
-    if(!reduceMotion) requestAnimationFrame(draw);
-  }
-
-  window.addEventListener('resize', resize);
-  resize();
-  requestAnimationFrame(draw);
-  if(reduceMotion) draw(0);
-})();
-
-(function(){
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const timeEl = document.getElementById('msg-time');
-  if(timeEl){
-    const now = new Date();
-    timeEl.textContent = `Heute um ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-  }
-
-  function countUp(el){
-    const target = parseFloat(el.dataset.target);
-    const prefix = el.dataset.prefix || '';
-    const suffix = el.dataset.suffix || '';
-    const isDecimal = String(target).includes('.');
-    const duration = 900;
-    const start = performance.now();
-    function frame(now){
-      const p = Math.min((now - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - p, 3);
-      const val = target * eased;
-      el.textContent = prefix + (isDecimal ? val.toFixed(1) : Math.round(val)) + suffix;
-      if(p < 1) requestAnimationFrame(frame);
-      else el.textContent = prefix + (isDecimal ? target.toFixed(1) : target) + suffix;
-    }
-    requestAnimationFrame(frame);
-  }
-
-  function playSequence(){
-    const typing = document.getElementById('typing-indicator');
-    const cv2 = document.getElementById('cv2-wrap');
-    if(!typing || !cv2) return;
-    typing.classList.remove('hidden');
-    cv2.classList.remove('shown');
-    cv2.querySelectorAll('.num').forEach(n => n.textContent = '0');
-
-    setTimeout(() => {
-      typing.classList.add('hidden');
-      cv2.classList.add('shown');
-      cv2.querySelectorAll('.num').forEach(n => { reduceMotion ? n.textContent = (n.dataset.prefix||'') + n.dataset.target + (n.dataset.suffix||'') : countUp(n); });
-    }, reduceMotion ? 0 : 1600);
-  }
-
-  const target = document.getElementById('embed-anchor');
-  let played = false;
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if(entry.isIntersecting && !played){
-        played = true;
-        playSequence();
-        if(!reduceMotion) setInterval(playSequence, 12000);
-      }
-    });
-  }, {threshold: 0.4});
-  if(target) observer.observe(target);
-})();
-</script>
-</body>
-</html>
