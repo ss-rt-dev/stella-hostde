@@ -6,7 +6,7 @@
 <title>Stella Host — Hosting, das trägt</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <style>
-  :root{--bg:#060607;--p1:#111113;--p2:#17171a;--p3:#1e1e21;--b1:rgba(255,255,255,0.09);--b2:rgba(255,255,255,0.22);--w:#f6f6f4;--d:#9c9c98;--f:#59595a;--fd:'Space Grotesk',sans-serif;--fm:'IBM Plex Mono',monospace}
+  :root{--bg:#060607;--p1:#111113;--p2:#17171a;--p3:#1e1e21;--b1:rgba(255,255,255,0.09);--b2:rgba(255,255,255,0.22);--w:#f6f6f4;--d:#9c9c98;--f:#59595a;--fd:'Space Grotesk',sans-serif;--fm:'IBM Plex Mono',monospace;--tp-green:#00b67a}
   *{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}
   body{background:var(--bg);color:var(--w);font-family:var(--fm);min-height:100vh;overflow-x:hidden;position:relative}
   #starfield{position:fixed;inset:0;z-index:0;pointer-events:none}
@@ -35,18 +35,22 @@
   .sub-section h2{font-family:var(--fd);font-size:1.7rem;margin-bottom:5px}
   .sub-sub{color:var(--d);font-size:0.85rem;margin-bottom:35px}
   
-  .info-grid,.stats-grid,.reviews-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}
-  .info-card,.stat-card,.review-card{background:var(--p1);border:1px solid var(--b1);border-radius:18px;padding:30px;transition:border .2s}
-  .info-card:hover,.stat-card:hover,.review-card:hover{border-color(--b2)}
+  .info-grid,.reviews-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}
+  .info-card,.review-card{background:var(--p1);border:1px solid var(--b1);border-radius:18px;padding:30px;transition:border .2s}
+  .info-card:hover,.review-card:hover{border-color:var(--b2)}
   .info-card h3{font-family:var(--fd);font-size:1.15rem;margin-bottom:10px}
   .info-card p,.review-card p{font-size:0.8rem;color:var(--d);line-height:1.6}
   
-  .stat-card{text-align:center;background:linear-gradient(180deg, var(--p1), transparent)}
-  .stat-card .big-num{font-family:var(--fd);font-size:2.5rem;font-weight:700;color:var(--w);margin-bottom:5px}
-  .stat-card .stat-lbl{font-size:0.7rem;color:var(--f);text-transform:uppercase;letter-spacing:0.05em}
-  
-  .review-card{position:relative}.review-card .author{font-size:0.85rem;font-weight:600;margin-top:15px;color:var(--w)}
-  .review-card .role{font-size:0.68rem;color:var(--f)}
+  /* Trustpilot Styling */
+  .tp-header{display:flex;align-items:center;gap:15px;margin-bottom:25px;background:rgba(0,182,122,0.05);padding:15px 20px;border-radius:12px;border:1px solid rgba(0,182,122,0.15);width:fit-content}
+  .tp-stars-wrap{display:flex;gap:4px}
+  .tp-star-box{width:20px;height:20px;background:var(--tp-green);display:flex;align-items:center;justify-content:center;border-radius:2px}
+  .tp-star-box svg{width:14px;height:14px;fill:#fff}
+  .review-card .tp-badge{display:flex;align-items:center;gap:6px;margin-bottom:15px}
+  .review-card .tp-badge span{font-size:0.75rem;font-weight:600;color:var(--tp-green);font-family:'Inter',sans-serif}
+  .review-card .author{font-size:0.85rem;font-weight:600;margin-top:15px;color:var(--w);display:flex;align-items:center;gap:6px}
+  .review-card .verified{font-size:0.65rem;color:var(--tp-green);background:rgba(0,182,122,0.1);padding:2px 6px;border-radius:4px}
+  .review-card .role{font-size:0.68rem;color:var(--f);margin-top:2px}
 
   /* FAQ Accordion */
   .faq-wrap{max-width:800px;margin:0 auto}
@@ -60,7 +64,7 @@
   .faq-item.open .faq-trigger span{transform:rotate(45deg);color:var(--w)}
   .faq-item.open .faq-content{max-height:200px}
 
-  /* Discord Embed & Rest */
+  /* Discord Window & Rest */
   .discord-window{background:#313338;border-radius:26px;overflow:hidden;box-shadow:0 50px 100px -30px rgba(0,0,0,0.85);font-family:'Inter',sans-serif}
   .dc-topbar{display:flex;align-items:center;gap:8px;padding:14px 18px;background:#2b2d31;border-bottom:1px solid rgba(0,0,0,0.24)}
   .dc-channel{color:#f2f3f5;font-weight:600;font-size:0.92rem}
@@ -127,7 +131,7 @@
   .modal-box{background:var(--p2);border:1px solid var(--b2);border-radius:26px;padding:40px;max-width:480px;width:90%;text-align:center}
   .modal-id-display{background:var(--bg);border:1px dashed var(--b2);border-radius:12px;padding:16px;font-family:var(--fm);font-size:1.15rem;font-weight:600;color:#ff9800;margin-bottom:26px}
   footer{padding:40px 0;display:flex;justify-content:space-between;color:var(--f);font-size:0.72rem;border-top:1px solid var(--b1);margin-top:60px}
-  @media (max-width:980px){.hero,.service-grid,.config-layout,.info-grid,.stats-grid,.reviews-grid{grid-template-columns:1fr}nav.mainnav{display:none}}
+  @media (max-width:980px){.hero,.service-grid,.config-layout,.info-grid,.reviews-grid{grid-template-columns:1fr}nav.mainnav{display:none}}
 </style>
 </head>
 <body>
@@ -180,12 +184,64 @@
     </section>
 
     <section class="sub-section">
-      <h2>Stella in Zahlen</h2>
-      <p class="sub-sub">Konstantes Wachstum durch zufriedene Communities.</p>
-      <div class="stats-grid">
-        <div class="stat-card"><div class="big-num num" data-target="1420" data-suffix="+">0</div><div class="stat-lbl">Aktive Server</div></div>
-        <div class="stat-card"><div class="big-num num" data-target="99.98" data-suffix="%">0</div><div class="stat-lbl">Gemessene Uptime</div></div>
-        <div class="stat-card"><div class="big-num num" data-target="450" data-suffix="k+">0</div><div class="stat-lbl">Blockierte Angriffe</div></div>
+      <h2>Kundenbewertungen</h2>
+      <p class="sub-sub">Unabhängiges Feedback direkt von Trustpilot bezogen.</p>
+      
+      <div class="tp-header">
+        <span style="font-family:'Inter',sans-serif; font-weight:700; font-size:1.05rem; letter-spacing:-0.03em;">Trustpilot</span>
+        <div class="tp-stars-wrap">
+          <div class="tp-star-box"><svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
+          <div class="tp-star-box"><svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
+          <div class="tp-star-box"><svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
+          <div class="tp-star-box"><svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
+          <div class="tp-star-box"><svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
+        </div>
+        <span style="font-size:0.8rem; color:var(--d);">Hervorragend 4.9 / 5</span>
+      </div>
+
+      <div class="reviews-grid">
+        <div class="review-card">
+          <div class="tp-badge">
+            <div class="tp-stars-wrap">
+              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
+              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
+              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
+              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
+              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
+            </div>
+            <span>Trustpilot</span>
+          </div>
+          <p>"Der FiveM Server läuft seit 3 Monaten ohne einen einzigen Ruckler. Der DDoS-Schutz hat schon zwei schwere Angriffe komplett unsichtbar gefiltert."</p>
+          <div class="author">Marc K. <span class="verified">✓ Verifiziert</span></div><div class="role">Projektleiter Roleplay-Community</div>
+        </div>
+        <div class="review-card">
+          <div class="tp-badge">
+            <div class="tp-stars-wrap">
+              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
+              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
+              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
+              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
+              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
+            </div>
+            <span>Trustpilot</span>
+          </div>
+          <p>"Extrem schnelles Setup über die Ticket-ID. Unser Minecraft-Modpack startet mit den dedizierten Kernen in unter 20 Sekunden. Absolut empfehlenswert."</p>
+          <div class="author">Syntox_TV <span class="verified">✓ Verifiziert</span></div><div class="role">Twitch Streamer & Host</div>
+        </div>
+        <div class="review-card">
+          <div class="tp-badge">
+            <div class="tp-stars-wrap">
+              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
+              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
+              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
+              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
+              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
+            </div>
+            <span>Trustpilot</span>
+          </div>
+          <p>"Nutze den VPS für meine Web-Apps und Bots. Die Pings sind fantastisch stabil und der Support via Discord antwortet meistens in wenigen Minuten."</p>
+          <div class="author">Laura M. <span class="verified">✓ Verifiziert</span></div><div class="role">Fullstack Entwicklerin</div>
+        </div>
       </div>
     </section>
 
@@ -208,25 +264,6 @@
         <div class="info-card">
           <h3>Volle Flexibilität</h3>
           <p>Keine versteckten Verträge. Verwalte deine Setups unkompliziert per Ticket und passe Ressourcen flexibel an, wenn deine Community wächst.</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="sub-section">
-      <h2>Was Kunden sagen</h2>
-      <p class="sub-sub">Stimmen aus unserer aktiven Discord-Community.</p>
-      <div class="reviews-grid">
-        <div class="review-card">
-          <p>"Der FiveM Server läuft seit 3 Monaten ohne einen einzigen Ruckler. Der DDoS-Schutz hat schon zwei schwere Angriffe komplett unsichtbar gefiltert."</p>
-          <div class="author">Marc K.</div><div class="role">Projektleiter Roleplay-Community</div>
-        </div>
-        <div class="review-card">
-          <p>"Extrem schnelles Setup über die Ticket-ID. Unser Minecraft-Modpack startet mit den dedizierten Kernen in unter 20 Sekunden. Absolut empfehlenswert."</p>
-          <div class="author">Syntox_TV</div><div class="role">Twitch Streamer & Host</div>
-        </div>
-        <div class="review-card">
-          <p>"Nutze den VPS für meine Web-Apps und Bots. Die Pings sind fantastisch stabil und der Support via Discord antwortet meistens in wenigen Minuten."</p>
-          <div class="author">Laura M.</div><div class="role">Fullstack Entwicklerin</div>
         </div>
       </div>
     </section>
@@ -416,7 +453,7 @@ function performLookup() {
   box.classList.add("active");
 }
 
-/* Background Effects & Intersection CountUp */
+/* Background Effects & Intersection Animation Trigger */
 (function(){
   const canvas = document.getElementById('starfield'), ctx = canvas.getContext('2d'); let stars = [];
   function resize(){
@@ -456,7 +493,6 @@ function performLookup() {
     });
   }, {threshold: 0.1});
   
-  // Binde Observer an alle Sektionen mit Zahlen (.hero und .sub-section)
   document.querySelectorAll('#view-home section').forEach(sec => obs.observe(sec));
 })();
 window.addEventListener("DOMContentLoaded", initApp);
