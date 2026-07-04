@@ -30,14 +30,37 @@
   .btn{font-family:var(--fm);font-size:0.8rem;padding:14px 28px;border-radius:999px;border:1px solid var(--w);transition:all .2s;display:inline-flex;align-items:center;background:transparent;color:var(--w);cursor:pointer}
   .btn.primary{background:var(--w);color:var(--bg)}.btn.primary:hover{background:transparent;color:var(--w)}
   
-  /* ---------- INFO SECTION CSS ---------- */
-  .info-section{padding:6vh 5vw 9vh 5vw;border-top:1px solid var(--b1);margin-top:4vh}
-  .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;margin-top:40px}
-  .info-card{background:var(--p1);border:1px solid var(--b1);border-radius:18px;padding:30px;transition:border .2s}
-  .info-card:hover{border-color:var(--b2)}
-  .info-card h3{font-family:var(--fd);font-size:1.15rem;margin-bottom:10px;color:var(--w)}
-  .info-card p{font-size:0.8rem;color:var(--d);line-height:1.6}
+  /* ---------- EXPANDED MAIN PAGE CSS ---------- */
+  .sub-section{padding:7vh 5vw;border-top:1px solid var(--b1)}
+  .sub-section h2{font-family:var(--fd);font-size:1.7rem;margin-bottom:5px}
+  .sub-sub{color:var(--d);font-size:0.85rem;margin-bottom:35px}
+  
+  .info-grid,.stats-grid,.reviews-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}
+  .info-card,.stat-card,.review-card{background:var(--p1);border:1px solid var(--b1);border-radius:18px;padding:30px;transition:border .2s}
+  .info-card:hover,.stat-card:hover,.review-card:hover{border-color(--b2)}
+  .info-card h3{font-family:var(--fd);font-size:1.15rem;margin-bottom:10px}
+  .info-card p,.review-card p{font-size:0.8rem;color:var(--d);line-height:1.6}
+  
+  .stat-card{text-align:center;background:linear-gradient(180deg, var(--p1), transparent)}
+  .stat-card .big-num{font-family:var(--fd);font-size:2.5rem;font-weight:700;color:var(--w);margin-bottom:5px}
+  .stat-card .stat-lbl{font-size:0.7rem;color:var(--f);text-transform:uppercase;letter-spacing:0.05em}
+  
+  .review-card{position:relative}.review-card .author{font-size:0.85rem;font-weight:600;margin-top:15px;color:var(--w)}
+  .review-card .role{font-size:0.68rem;color:var(--f)}
 
+  /* FAQ Accordion */
+  .faq-wrap{max-width:800px;margin:0 auto}
+  .faq-item{border:1px solid var(--b1);border-radius:12px;margin-bottom:12px;background:var(--p1);overflow:hidden;transition:all .2s}
+  .faq-trigger{padding:18px 24px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;font-size:0.88rem}
+  .faq-trigger h3{font-family:var(--fd);font-weight:500;font-size:0.95rem}
+  .faq-trigger span{font-family:var(--fd);transition:transform .2s;color:var(--f)}
+  .faq-content{max-height:0;overflow:hidden;transition:max-height .25s ease-out;background:var(--p2);color:var(--d);font-size:0.8rem;line-height:1.6}
+  .faq-content-inner{padding:18px 24px}
+  .faq-item.open{border-color:var(--b2)}
+  .faq-item.open .faq-trigger span{transform:rotate(45deg);color:var(--w)}
+  .faq-item.open .faq-content{max-height:200px}
+
+  /* Discord Embed & Rest */
   .discord-window{background:#313338;border-radius:26px;overflow:hidden;box-shadow:0 50px 100px -30px rgba(0,0,0,0.85);font-family:'Inter',sans-serif}
   .dc-topbar{display:flex;align-items:center;gap:8px;padding:14px 18px;background:#2b2d31;border-bottom:1px solid rgba(0,0,0,0.24)}
   .dc-channel{color:#f2f3f5;font-weight:600;font-size:0.92rem}
@@ -104,7 +127,7 @@
   .modal-box{background:var(--p2);border:1px solid var(--b2);border-radius:26px;padding:40px;max-width:480px;width:90%;text-align:center}
   .modal-id-display{background:var(--bg);border:1px dashed var(--b2);border-radius:12px;padding:16px;font-family:var(--fm);font-size:1.15rem;font-weight:600;color:#ff9800;margin-bottom:26px}
   footer{padding:40px 0;display:flex;justify-content:space-between;color:var(--f);font-size:0.72rem;border-top:1px solid var(--b1);margin-top:60px}
-  @media (max-width:980px){.hero,.service-grid,.config-layout,.info-grid{grid-template-columns:1fr}nav.mainnav{display:none}}
+  @media (max-width:980px){.hero,.service-grid,.config-layout,.info-grid,.stats-grid,.reviews-grid{grid-template-columns:1fr}nav.mainnav{display:none}}
 </style>
 </head>
 <body>
@@ -156,9 +179,19 @@
       </div>
     </section>
 
-    <section class="info-section">
-      <h2 style="font-family:var(--fd); font-size:1.6rem;">Warum Stella Host?</h2>
-      <p style="color:var(--d); font-size:0.85rem; margin-top:5px;">Unsere Qualitätsmerkmale im Überblick.</p>
+    <section class="sub-section">
+      <h2>Stella in Zahlen</h2>
+      <p class="sub-sub">Konstantes Wachstum durch zufriedene Communities.</p>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="big-num num" data-target="1420" data-suffix="+">0</div><div class="stat-lbl">Aktive Server</div></div>
+        <div class="stat-card"><div class="big-num num" data-target="99.98" data-suffix="%">0</div><div class="stat-lbl">Gemessene Uptime</div></div>
+        <div class="stat-card"><div class="big-num num" data-target="450" data-suffix="k+">0</div><div class="stat-lbl">Blockierte Angriffe</div></div>
+      </div>
+    </section>
+
+    <section class="sub-section">
+      <h2>Deine Vorteile bei uns</h2>
+      <p class="sub-sub">Unsere Qualitätsmerkmale im Überblick.</p>
       <div class="info-grid">
         <div class="info-card">
           <h3>Echte NVMe Hardware</h3>
@@ -175,6 +208,48 @@
         <div class="info-card">
           <h3>Volle Flexibilität</h3>
           <p>Keine versteckten Verträge. Verwalte deine Setups unkompliziert per Ticket und passe Ressourcen flexibel an, wenn deine Community wächst.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="sub-section">
+      <h2>Was Kunden sagen</h2>
+      <p class="sub-sub">Stimmen aus unserer aktiven Discord-Community.</p>
+      <div class="reviews-grid">
+        <div class="review-card">
+          <p>"Der FiveM Server läuft seit 3 Monaten ohne einen einzigen Ruckler. Der DDoS-Schutz hat schon zwei schwere Angriffe komplett unsichtbar gefiltert."</p>
+          <div class="author">Marc K.</div><div class="role">Projektleiter Roleplay-Community</div>
+        </div>
+        <div class="review-card">
+          <p>"Extrem schnelles Setup über die Ticket-ID. Unser Minecraft-Modpack startet mit den dedizierten Kernen in unter 20 Sekunden. Absolut empfehlenswert."</p>
+          <div class="author">Syntox_TV</div><div class="role">Twitch Streamer & Host</div>
+        </div>
+        <div class="review-card">
+          <p>"Nutze den VPS für meine Web-Apps und Bots. Die Pings sind fantastisch stabil und der Support via Discord antwortet meistens in wenigen Minuten."</p>
+          <div class="author">Laura M.</div><div class="role">Fullstack Entwicklerin</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sub-section" style="padding-bottom:12vh;">
+      <h2 style="text-align:center; margin-bottom:10px;">Häufig gestellte Fragen</h2>
+      <p class="sub-sub" style="text-align:center;">Alles, was du vor dem Start wissen musst.</p>
+      <div class="faq-wrap">
+        <div class="faq-item">
+          <div class="faq-trigger"><h3>Wie funktioniert die Bestellung per Ticket-ID?</h3><span>+</span></div>
+          <div class="faq-content"><div class="faq-content-inner">Unser System generiert nach dem Konfigurieren eine verschlüsselte ID (z.B. ST-MC-211-AZ). Diese postest du einfach in unserem Discord-Support. Ein Teammitglied liest die ID direkt aus, sodass dein Server exakt nach Wunsch manuell und fehlerfrei bereitgestellt wird.</div></div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-trigger"><h3>Gibt es versteckte Vertragslaufzeiten?</h3><span>+</span></div>
+          <div class="faq-content"><div class="faq-content-inner">Nein, bei Stella Host setzen wir auf absolute Transparenz. Alle Server laufen auf Prepaid-Basis oder mit monatlich kündbaren Intervallen. Lädst du dein Guthaben nicht auf oder kündigst im Ticket, läuft der Server einfach aus.</div></div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-trigger"><h3>Welche Zahlungsmethoden werden akzeptiert?</h3><span>+</span></div>
+          <div class="faq-content"><div class="faq-content-inner">Wir akzeptieren alle gängigen Zahlungsmethoden wie PayPal, Paysafecard und Krypto-Zahlungen. Die Abrechnung erfolgt unkompliziert direkt während der Ticketeröffnung.</div></div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-trigger"><h3>Was passiert bei einem DDoS-Angriff?</h3><span>+</span></div>
+          <div class="faq-content"><div class="faq-content-inner">Unser Schutzsystem läuft permanent im Hintergrund. Sobald schadhafter Traffic erkannt wird, schalten sich unsere automatischen Filterregeln live davor. Dein Server bleibt online und die Spieler merken im Idealfall absolut nichts davon.</div></div>
         </div>
       </div>
     </section>
@@ -235,6 +310,16 @@ function initApp() {
   document.getElementById("order-btn").addEventListener("click", generateAndShowId);
   document.getElementById("close-modal-btn").addEventListener("click", () => document.getElementById("order-modal").classList.remove("active"));
   document.getElementById("search-id-btn").addEventListener("click", performLookup);
+
+  // FAQ Toggle Logic
+  document.querySelectorAll('.faq-trigger').forEach(trigger => {
+    trigger.addEventListener('click', () => {
+      const parent = trigger.parentElement;
+      const isOpen = parent.classList.contains('open');
+      document.querySelectorAll('.faq-item').forEach(item => item.classList.remove('open'));
+      if (!isOpen) parent.classList.add('open');
+    });
+  });
 }
 
 function switchView(viewId) {
@@ -331,7 +416,7 @@ function performLookup() {
   box.classList.add("active");
 }
 
-/* Background Effects */
+/* Background Effects & Intersection CountUp */
 (function(){
   const canvas = document.getElementById('starfield'), ctx = canvas.getContext('2d'); let stars = [];
   function resize(){
@@ -353,9 +438,14 @@ function performLookup() {
   const obs = new IntersectionObserver((entries) => {
     entries.forEach(e => {
       if(e.isIntersecting){
-        document.getElementById('typing-indicator').classList.add('hidden');
-        document.getElementById('cv2-wrap').classList.add('shown');
-        document.querySelectorAll('.num').forEach(el => {
+        const ti = document.getElementById('typing-indicator');
+        if(ti) ti.classList.add('hidden');
+        const cv = document.getElementById('cv2-wrap');
+        if(cv) cv.classList.add('shown');
+        
+        e.target.querySelectorAll('.num').forEach(el => {
+          if (el.dataset.animated) return;
+          el.dataset.animated = "true";
           const target = parseFloat(el.dataset.target), suff = el.dataset.suffix || '', pref = el.dataset.prefix || '';
           let c = 0; const i = setInterval(() => {
             c += target/15; if(c >= target) { c = target; clearInterval(i); }
@@ -364,8 +454,10 @@ function performLookup() {
         });
       }
     });
-  }, {threshold: 0.2});
-  obs.observe(document.getElementById('embed-anchor'));
+  }, {threshold: 0.1});
+  
+  // Binde Observer an alle Sektionen mit Zahlen (.hero und .sub-section)
+  document.querySelectorAll('#view-home section').forEach(sec => obs.observe(sec));
 })();
 window.addEventListener("DOMContentLoaded", initApp);
 </script>
