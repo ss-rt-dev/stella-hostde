@@ -3,6 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="Stella Host — Hosting, das trägt">
+<meta property="og:description" content="Minecraft-, FiveM-, VPS/KVM- und Editor-Server auf echter NVMe-Hardware. Kein Overselling, DDoS-Schutz inklusive & Setup in Sekunden.">
+<meta property="og:url" content="https://stella-host.de">
+
+<meta property="og:image" content="https://cdn3.emoji.gg/emojis/50738-globe.png">
+<meta property="og:image:width" content="128">
+<meta property="og:image:height" content="128">
+
+<meta name="theme-color" content="#060607">
+
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Stella Host — Hosting, das trägt">
+<meta name="twitter:description" content="Minecraft-, FiveM-, VPS/KVM- und Editor-Server auf echter NVMe-Hardware.">
+<meta name="twitter:image" content="https://cdn3.emoji.gg/emojis/50738-globe.png">
+
 <title>Stella Host — Hosting, das trägt</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -387,7 +404,6 @@
     </nav>
   </header>
 
-  <!-- ============ HOME ============ -->
   <div class="view" id="view-home">
 
     <section class="hero">
@@ -438,7 +454,7 @@
                       <div class="dc-embed-top">
                         <div>
                           <div class="dc-embed-title">Node „Vega-3" ist online</div>
-                          <div class="dc-embed-desc">Alle Systeme laufen stabil. NVMe-Cluster, DDoS-Schutz und automatische Backups sind aktiv.</div>
+                          <div class="dc-embed-desc">Alle Systeme laufen stabil. NVMe-Cluster, DDoS-Schutz und automatische Backups sind active.</div>
                         </div>
                         <div class="dc-embed-thumb">
                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f5f5f3" stroke-width="1.4"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg>
@@ -512,7 +528,6 @@
     </footer>
   </div>
 
-  <!-- ============ SERVICES ============ -->
   <div class="view" id="view-services">
     <section class="services-hero reveal">
       <div class="eyebrow">Alle Services</div>
@@ -536,7 +551,6 @@
     </footer>
   </div>
 
-  <!-- ============ CONFIGURATOR ============ -->
   <div class="configurator" id="view-configurator">
     <a class="back-link" id="back-to-services">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
@@ -697,267 +711,24 @@ const StellaMotion = (function(){
     ticking = false;
   }
 
-  function onScroll(){
+  window.addEventListener('scroll', () => {
     if(!ticking){
       requestAnimationFrame(updateParallax);
       ticking = true;
     }
-  }
+  });
 
-  if(!reduceMotion){
-    window.addEventListener('scroll', onScroll, {passive:true});
-    window.addEventListener('resize', onScroll);
-    updateParallax();
-  }
-
+  // Reveal Animations
   const revealObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if(entry.isIntersecting){
         entry.target.classList.add('visible');
-        revealObserver.unobserve(entry.target);
       }
     });
-  }, {threshold:0.15, rootMargin:'0px 0px -60px 0px'});
+  }, {threshold: 0.1, rootMargin: '0px 0px -40px 0px'});
 
   document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
-
-  return {
-    registerParallax(el){
-      if(reduceMotion) return;
-      parallaxEls.push(el);
-      updateParallax();
-    },
-    registerReveal(el){
-      revealObserver.observe(el);
-    },
-    refresh(){ updateParallax(); }
-  };
 })();
-
-/* ===================== ROUTING ===================== */
-function showView(view){
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.getElementById('view-configurator').classList.remove('active');
-  if(view === 'configurator'){
-    document.getElementById('view-configurator').classList.add('active');
-  } else {
-    document.getElementById('view-' + view).classList.add('active');
-  }
-  document.querySelectorAll('.navlink').forEach(l => {
-    l.classList.toggle('active', l.dataset.view === view);
-  });
-  window.scrollTo({top:0, behavior:'auto'});
-  window.dispatchEvent(new Event('resize'));
-}
-
-document.addEventListener('click', (e) => {
-  const link = e.target.closest('.navlink');
-  if(link && link.dataset.view){
-    e.preventDefault();
-    showView(link.dataset.view);
-  }
-});
-
-document.getElementById('back-to-services').addEventListener('click', () => showView('services'));
-
-/* ===================== SERVICE DATA ===================== */
-const SERVICES = {
-  minecraft: {
-    name: 'Minecraft Server',
-    tagline: 'Vanilla, Spigot, Paper oder Modded — jede Art von Minecraft-Server, sofort spielbereit.',
-    desc: 'Stelle deinen Minecraft-Server nach deinen Wünschen zusammen: Arbeitsspeicher, Server-Typ, Spieleranzahl und Zusatzoptionen.',
-    basePrice: 2.49,
-    groups: [
-      { key:'ram', label:'Arbeitsspeicher (RAM)', sub:'Mehr RAM = mehr Mods, Plugins und Spieler gleichzeitig.', type:'box',
-        options:[{id:'2gb',label:'2 GB',delta:0},{id:'4gb',label:'4 GB',delta:3},{id:'8gb',label:'8 GB',delta:7},{id:'16gb',label:'16 GB',delta:14},{id:'32gb',label:'32 GB',delta:28}], default:'2gb' },
-      { key:'typ', label:'Server-Typ', sub:'Bestimmt, welche Software auf deinem Server läuft.', type:'box',
-        options:[{id:'vanilla',label:'Vanilla',delta:0},{id:'spigot',label:'Spigot/Paper',delta:0.5},{id:'modded',label:'Modded/Forge',delta:1.5}], default:'vanilla' },
-      { key:'slots', label:'Spieleranzahl', sub:'Maximale Anzahl gleichzeitiger Spieler.', type:'box',
-        options:[{id:'10',label:'10 Slots',delta:0},{id:'20',label:'20 Slots',delta:1},{id:'50',label:'50 Slots',delta:2.5},{id:'unlimited',label:'Unbegrenzt',delta:4}], default:'10' },
-      { key:'addons', label:'Zusatzoptionen', sub:'Optionale Erweiterungen für deinen Server.', type:'check',
-        options:[{id:'backup',label:'Tägliche automatische Backups',delta:1}] }
-    ]
-  },
-  fivem: {
-    name: 'FiveM Server',
-    tagline: 'GTA-Roleplay-Server mit stabiler Performance und geringer Latenz.',
-    desc: 'Konfiguriere deinen FiveM-Server für dein RP-Projekt — RAM, Slots und Serverstandort frei wählbar.',
-    basePrice: 7.99,
-    groups: [
-      { key:'ram', label:'Arbeitsspeicher (RAM)', sub:'Wichtig für Skript-Last und Ressourcen.', type:'box',
-        options:[{id:'4gb',label:'4 GB',delta:0},{id:'8gb',label:'8 GB',delta:4},{id:'16gb',label:'16 GB',delta:9},{id:'32gb',label:'32 GB',delta:18}], default:'4gb' },
-      { key:'slots', label:'Spieler-Slots', sub:'Maximale gleichzeitige Spieleranzahl.', type:'box',
-        options:[{id:'32',label:'32 Slots',delta:0},{id:'48',label:'48 Slots',delta:2},{id:'64',label:'64 Slots',delta:4},{id:'128',label:'128 Slots',delta:9}], default:'32' },
-      { key:'standort', label:'Serverstandort', sub:'Beeinflusst die Latenz deiner Spieler.', type:'box',
-        options:[{id:'de',label:'Deutschland',delta:0},{id:'fr',label:'Frankreich',delta:0},{id:'us',label:'USA',delta:2.5}], default:'de' },
-      { key:'addons', label:'Zusatzoptionen', sub:'Optionale Erweiterungen für dein RP-Projekt.', type:'check',
-        options:[{id:'priority',label:'Priority Support',delta:1.5}] }
-    ]
-  },
-  vps: {
-    name: 'KVM / VPS Server',
-    tagline: 'Volle Root-Kontrolle mit dedizierten CPU-Kernen und NVMe-Storage.',
-    desc: 'Baue deinen eigenen virtuellen Server — frei konfigurierbar für Webprojekte, Bots, Datenbanken oder eigene Systeme.',
-    basePrice: 4.99,
-    groups: [
-      { key:'cpu', label:'CPU-Kerne', sub:'Dedizierte Kerne für konstante Rechenleistung.', type:'box',
-        options:[{id:'1',label:'1 Kern',delta:0},{id:'2',label:'2 Kerne',delta:3},{id:'4',label:'4 Kerne',delta:7},{id:'8',label:'8 Kerne',delta:15}], default:'1' },
-      { key:'ram', label:'Arbeitsspeicher (RAM)', sub:'Für Anwendungen, Datenbanken und Dienste.', type:'box',
-        options:[{id:'2gb',label:'2 GB',delta:0},{id:'4gb',label:'4 GB',delta:3},{id:'8gb',label:'8 GB',delta:7},{id:'16gb',label:'16 GB',delta:14},{id:'32gb',label:'32 GB',delta:28},{id:'64gb',label:'64 GB',delta:55}], default:'2gb' },
-      { key:'storage', label:'NVMe-Speicher', sub:'Schneller SSD-Speicherplatz für dein System.', type:'box',
-        options:[{id:'20gb',label:'20 GB',delta:0},{id:'50gb',label:'50 GB',delta:3},{id:'100gb',label:'100 GB',delta:6},{id:'250gb',label:'250 GB',delta:14},{id:'500gb',label:'500 GB',delta:27}], default:'20gb' },
-      { key:'os', label:'Betriebssystem', sub:'Wähle dein bevorzugtes System.', type:'box',
-        options:[{id:'linux',label:'Linux',delta:0},{id:'windows',label:'Windows Server',delta:6}], default:'linux' }
-    ]
-  },
-  editor: {
-    name: 'Editor / Language Server',
-    tagline: 'Cloud-Entwicklungsumgebung mit Language-Server-Support — direkt im Browser.',
-    desc: 'Richte deinen persönlichen Code-Server ein: Ressourcen und Laufzeitumgebung frei wählbar.',
-    basePrice: 3.49,
-    groups: [
-      { key:'ram', label:'Arbeitsspeicher (RAM)', sub:'Relevant für große Projekte und mehrere Language-Server.', type:'box',
-        options:[{id:'2gb',label:'2 GB',delta:0},{id:'4gb',label:'4 GB',delta:2.5},{id:'8gb',label:'8 GB',delta:6},{id:'16gb',label:'16 GB',delta:12}], default:'2gb' },
-      { key:'cpu', label:'CPU-Kerne', sub:'Für schnelleres Kompilieren und Autovervollständigung.', type:'box',
-        options:[{id:'1',label:'1 Kern',delta:0},{id:'2',label:'2 Kerne',delta:2},{id:'4',label:'4 Kerne',delta:5},{id:'8',label:'8 Kerne',delta:10}], default:'1' },
-      { key:'storage', label:'Speicherplatz', sub:'Platz für Projekte, Dependencies und Caches.', type:'box',
-        options:[{id:'10gb',label:'10 GB',delta:0},{id:'25gb',label:'25 GB',delta:1.5},{id:'50gb',label:'50 GB',delta:3},{id:'100gb',label:'100 GB',delta:6}], default:'10gb' },
-      { key:'runtime', label:'Laufzeitumgebung', sub:'Vorinstallierter Language Server.', type:'box',
-        options:[{id:'node',label:'Node.js',delta:0},{id:'python',label:'Python',delta:0},{id:'java',label:'Java',delta:0.5},{id:'multi',label:'Multi-Runtime',delta:1.5}], default:'node' }
-    ]
-  }
-};
-
-const SERVICE_ORDER = ['minecraft','fivem','vps','editor'];
-
-function fmt(n){ return n.toLocaleString('de-DE', {minimumFractionDigits:2, maximumFractionDigits:2}); }
-
-/* ===================== RENDER SERVICE GRID ===================== */
-const grid = document.getElementById('service-grid');
-SERVICE_ORDER.forEach((key, i) => {
-  const s = SERVICES[key];
-  const card = document.createElement('button');
-  card.className = 'service-card';
-  card.style.border = '1px solid var(--border)';
-  card.style.color = 'inherit';
-  card.innerHTML = `
-    <div class="service-index">0${i+1}</div>
-    <h3>${s.name}</h3>
-    <p>${s.tagline}</p>
-    <div class="service-foot">
-      <span>ab <span class="service-price">${fmt(s.basePrice)} € / Mon.</span></span>
-      <span class="service-arrow">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-      </span>
-    </div>
-  `;
-  card.addEventListener('click', () => openConfigurator(key));
-  grid.appendChild(card);
-});
-
-/* ===================== CONFIGURATOR LOGIC ===================== */
-let currentServiceKey = null;
-let currentSelection = {};
-
-function openConfigurator(key){
-  currentServiceKey = key;
-  const s = SERVICES[key];
-  currentSelection = {};
-
-  s.groups.forEach(g => {
-    if(g.type === 'box') currentSelection[g.key] = g.default;
-    else if(g.type === 'check') currentSelection[g.key] = {};
-  });
-
-  document.getElementById('config-title').textContent = s.name + ' konfigurieren';
-  document.getElementById('config-desc').textContent = s.desc;
-
-  const optionsWrap = document.getElementById('config-options');
-  optionsWrap.innerHTML = '';
-
-  s.groups.forEach(g => {
-    const groupEl = document.createElement('div');
-    groupEl.className = 'option-group';
-    groupEl.innerHTML = `<h4>${g.label}</h4><div class="group-sub">${g.sub}</div>`;
-
-    if(g.type === 'box'){
-      const row = document.createElement('div');
-      row.className = 'box-grid';
-      g.options.forEach(opt => {
-        const box = document.createElement('button');
-        box.className = 'opt-box' + (opt.id === g.default ? ' selected' : '');
-        box.innerHTML = `<div class="lab">${opt.label}</div><div class="delta">${opt.delta > 0 ? '+' + fmt(opt.delta) + ' €' : 'inklusive'}</div>`;
-        box.addEventListener('click', () => {
-          currentSelection[g.key] = opt.id;
-          row.querySelectorAll('.opt-box').forEach(p => p.classList.remove('selected'));
-          box.classList.add('selected');
-          updateSummary();
-        });
-        row.appendChild(box);
-      });
-      groupEl.appendChild(row);
-    } else if(g.type === 'check'){
-      g.options.forEach(opt => {
-        const row = document.createElement('div');
-        row.className = 'check-box';
-        row.innerHTML = `
-          <span class="label-line">
-            <span class="checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="3"><path d="M5 12l5 5L20 6"/></svg></span>
-            <span class="label">${opt.label}</span>
-          </span>
-          <span class="price">+${fmt(opt.delta)} €</span>
-        `;
-        row.addEventListener('click', () => {
-          currentSelection[g.key][opt.id] = !currentSelection[g.key][opt.id];
-          row.classList.toggle('selected', currentSelection[g.key][opt.id]);
-          updateSummary();
-        });
-        groupEl.appendChild(row);
-      });
-    }
-
-    optionsWrap.appendChild(groupEl);
-  });
-
-  document.getElementById('summary-title').textContent = s.name;
-  updateSummary();
-  showView('configurator');
-}
-
-function updateSummary(){
-  const s = SERVICES[currentServiceKey];
-  let total = s.basePrice;
-  const lines = [];
-
-  s.groups.forEach(g => {
-    if(g.type === 'box'){
-      const selId = currentSelection[g.key];
-      const opt = g.options.find(o => o.id === selId);
-      total += opt.delta;
-      lines.push({k: g.label, v: opt.label});
-    } else if(g.type === 'check'){
-      g.options.forEach(opt => {
-        if(currentSelection[g.key][opt.id]){
-          total += opt.delta;
-          lines.push({k: opt.label, v: '+' + fmt(opt.delta) + ' €'});
-        }
-      });
-    }
-  });
-
-  const linesWrap = document.getElementById('summary-lines');
-  linesWrap.innerHTML = lines.map(l => `<div class="summary-line"><span class="k">${l.k}</span><span class="v">${l.v}</span></div>`).join('');
-  document.getElementById('summary-total').innerHTML = `${fmt(total)} €<span>/Mon.</span>`;
-}
-
-document.getElementById('order-btn').addEventListener('click', () => {
-  document.getElementById('order-btn').textContent = 'Anfrage notiert ✓';
-  setTimeout(() => { document.getElementById('order-btn').textContent = 'Jetzt bestellen →'; }, 2200);
-});
-
-/* ===================== INIT ===================== */
-showView('home');
 </script>
-
 </body>
 </html>
