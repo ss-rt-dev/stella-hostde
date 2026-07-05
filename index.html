@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Stella Host — Hosting, das trägt</title>
 
-<!-- Discord / Open Graph Embed -->
 <meta property="og:title" content="Stella Host — Hosting, das trägt">
 <meta property="og:description" content="Premium Hosting für Minecraft, Bots & Webprojekte. Schnell, zuverlässig, fair supportet.">
 <meta property="og:image" content="https://cdn3.emoji.gg/emojis/1119-globe.png">
@@ -14,7 +13,6 @@
 <meta property="og:site_name" content="Stella Host">
 <meta name="theme-color" content="#ffffff">
 
-<!-- Twitter Card (wird von manchen Clients zusätzlich genutzt) -->
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Stella Host — Hosting, das trägt">
 <meta name="twitter:description" content="Premium Hosting für Minecraft, Bots & Webprojekte. Schnell, zuverlässig, fair supportet.">
@@ -39,7 +37,7 @@
   .navlink.staff-btn.active{background:#ff9800;color:var(--bg);border-color:#ff9800}
   .view{display:none}.view.active{display:block}section{padding:0 5vw}
   .hero{padding:8vh 0 5vh 0;display:grid;grid-template-columns:1.02fr 0.98fr;gap:64px;align-items:center}
-  .eyebrow{font-size:0.7rem;letter-spacing:0.22em;text-transform:uppercase;color:var(--d);margin-bottom:24px;display:flex;align-items:center;gap:10px}
+  .eyebrow{font-size:0.7aram;letter-spacing:0.22em;text-transform:uppercase;color:var(--d);margin-bottom:24px;display:flex;align-items:center;gap:10px}
   .eyebrow::before{content:"";width:24px;height:1px;background:var(--f)}
   h1{font-family:var(--fd);font-weight:700;font-size:clamp(2.3rem,4.6vw,3.9rem);line-height:1.05}
   .hero p.lead{margin-top:24px;color:var(--d);font-size:0.98rem;line-height:1.75;max-width:46ch}
@@ -376,6 +374,15 @@ function initApp() {
 }
 
 function switchView(viewId) {
+  // Passwortabfrage hinzufügen, wenn auf das Staff Panel zugegriffen wird
+  if (viewId === 'staff-dashboard') {
+    const pw = prompt("Bitte gib das Staff-Passwort ein:");
+    if (pw !== "Jopo23%?06") {
+      alert("Falsches Passwort! Zugriff verweigert.");
+      return; // Bricht den View-Wechsel ab
+    }
+  }
+
   document.querySelectorAll(".view, .configurator").forEach(v => v.classList.remove("active"));
   document.querySelectorAll("nav .navlink").forEach(l => l.classList.remove("active"));
   const t = document.getElementById(viewId === 'services' || viewId === 'home' || viewId === 'staff-dashboard' ? `view-${viewId}` : `view-configurator`);
@@ -469,7 +476,6 @@ function performLookup() {
   box.classList.add("active");
 }
 
-/* Background Effects & Intersection Animation Trigger */
 (function(){
   const canvas = document.getElementById('starfield'), ctx = canvas.getContext('2d'); let stars = [];
   function resize(){
