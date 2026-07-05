@@ -35,7 +35,8 @@
   .navlink:hover{color:var(--w)}.navlink.active{color:var(--bg);background:var(--w)}
   .navlink.staff-btn{border:1px dashed var(--b2);color:#ff9800}.navlink.staff-btn:hover{border-color:#ff9800;color:#fff}
   .navlink.staff-btn.active{background:#ff9800;color:var(--bg);border-color:#ff9800}
-  .view{display:none}.view.active{display:block}section{padding:0 5vw}
+  .view{display:none}
+  .view.active{display:block}section{padding:0 5vw}
   .hero{padding:8vh 0 5vh 0;display:grid;grid-template-columns:1.02fr 0.98fr;gap:64px;align-items:center}
   .eyebrow{font-size:0.7rem;letter-spacing:0.22em;text-transform:uppercase;color:var(--d);margin-bottom:24px;display:flex;align-items:center;gap:10px}
   .eyebrow::before{content:"";width:24px;height:1px;background:var(--f)}
@@ -157,13 +158,44 @@
   .status-badge{display:inline-block;padding:4px 10px;background:rgba(255,152,0,0.15);color:#ff9800;border-radius:4px;font-size:0.7rem;font-weight:bold;margin-bottom:12px}
   
   .log-terminal {background:#000;border-radius:10px;padding:15px;height:160px;overflow-y:auto;font-size:0.75rem;color:#00ff66;border:1px solid var(--b1);line-height:1.5}
-  .ticket-item {display:flex;justify-content:between;align-items:center;background:var(--p2);border:1px solid var(--b1);padding:10px 15px;border-radius:10px;margin-bottom:8px;font-size:0.8rem}
+  .ticket-item {display:flex;justify-content:space-between;align-items:center;background:var(--p2);border:1px solid var(--b1);padding:10px 15px;border-radius:10px;margin-bottom:8px;font-size:0.8rem}
   .node-bar-wrapper {margin-bottom:12px}
   .node-bar-meta {display:flex;justify-content:space-between;font-size:0.75rem;color:var(--d);margin-bottom:4px}
   .node-bar-bg {background:var(--bg);height:8px;border-radius:4px;overflow:hidden}
   .node-bar-fill {background:#ff9800;height:100%;width:0%;transition:width 0.5s ease}
   .badge-list {display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
   .banned-badge {background:rgba(239,83,80,0.15);color:#ef5350;padding:4px 8px;border-radius:6px;font-size:0.72rem;border:1px solid rgba(239,83,80,0.3)}
+
+  /* --- NEUES STAFF LOGIN MODAL OVERLAY STYLING --- */
+  #staff-login-modal .modal-box {
+    border-color: rgba(255, 152, 0, 0.4);
+    box-shadow: 0 20px 50px rgba(255, 152, 0, 0.1);
+    text-align: left;
+  }
+  #staff-login-modal h3 {
+    font-family: var(--fd);
+    color: #ff9800;
+    font-size: 1.4rem;
+    margin-bottom: 8px;
+  }
+  #staff-login-modal p {
+    color: var(--d);
+    font-size: 0.85rem;
+    margin-bottom: 20px;
+  }
+  #staff-login-err {
+    color: #ef5350;
+    font-size: 0.78rem;
+    margin-top: -6px;
+    margin-bottom: 12px;
+    display: none;
+  }
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 8px;
+  }
 
   @media (max-width:980px){.hero,.service-grid,.config-layout,.info-grid,.reviews-grid,.staff-container{grid-template-columns:1fr}nav.mainnav{display:none}}
 </style>
@@ -402,35 +434,8 @@
           <div id="ticket-queue">
             <div class="ticket-item" id="t-1">
               <div><strong>#0821</strong> - Marc K. (Minecraft Fehler)</div>
-              <button class="staff-btn-small" style="padding:4px 10px; margin-left:auto;" onclick="closeTicket('t-1')">Schließen</button>
+              <button class="staff-btn-small" onclick="closeTicket('t-1')">Schließen</button>
             </div>
-            <div class="ticket-item" id="t-2">
-              <div><strong>#0822</strong> - Laura M. (VPS ISO Boot)</div>
-              <button class="staff-btn-small" style="padding:4px 10px; margin-left:auto;" onclick="closeTicket('t-2')">Schließen</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="staff-card">
-          <h3>📊 Node Live-Auslastung</h3>
-          <p style="color:var(--d);font-size:0.8rem; margin-bottom:15px">Aktuelle Virtualisierungs-Cluster Auslastung der Hauptrechner.</p>
-          <div class="node-bar-wrapper">
-            <div class="node-bar-meta"><span>Stella-Node-01 (Frankfurt)</span><span id="node1-val">64%</span></div>
-            <div class="node-bar-bg"><div class="node-bar-fill" id="node1-fill" style="width: 64%;"></div></div>
-          </div>
-          <div class="node-bar-wrapper">
-            <div class="node-bar-meta"><span>Stella-Node-02 (Düsseldorf)</span><span id="node2-val">42%</span></div>
-            <div class="node-bar-bg"><div class="node-bar-fill" id="node2-fill" style="width: 42%;"></div></div>
-          </div>
-          <button class="staff-btn-small" onclick="refreshNodeStats()">Cluster anpingen</button>
-        </div>
-
-        <div class="staff-card full-width">
-          <h3>📜 System Audit Log & Protokolle</h3>
-          <p style="color:var(--d);font-size:0.8rem; margin-bottom:12px">Sicherheitsrelevante Systemereignisse innerhalb dieser Sitzung.</p>
-          <div class="log-terminal" id="audit-log">
-            [09:12:04] SYSTEM: Audit Log erfolgreich initialisiert.<br>
-            [09:12:05] SECURITY: Firewall-Regeln geladen (2 IPs aktiv geblockt).<br>
           </div>
         </div>
 
@@ -439,349 +444,388 @@
   </div>
 </div>
 
-<div class="modal-overlay" id="order-modal"><div class="modal-box"><div class="modal-id-display" id="modal-config-id">ST-XXXX</div><p style="margin-bottom:20px;font-size:0.85rem;color:var(--d)">Kopiere diese ID in dein Support-Ticket.</p><button class="btn primary" id="close-modal-btn">Schließen</button></div></div>
+<div class="modal-overlay" id="order-modal">
+  <div class="modal-box">
+    <h3 style="font-family:var(--fd); font-size:1.4rem; margin-bottom:10px">Deine Ticket-ID wurde generiert!</h3>
+    <p style="color:var(--d); font-size:0.82rem; margin-bottom:24px; line-height:1.6">Kopiere diese ID und sende sie uns in einem Discord-Support-Ticket, um die Einrichtung abzuschließen.</p>
+    <div class="modal-id-display" id="modal-generated-id">ST-XXXX-XXXX</div>
+    <button class="btn primary" onclick="closeModal()" style="width:100%; justify-content:center">Schließen & Kopieren</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="staff-login-modal">
+  <div class="modal-box">
+    <h3>🔒 Staff Authentifizierung</h3>
+    <p>Geben Sie den Autorisierungsschlüssel ein, um fortzufahren.</p>
+    
+    <input type="password" class="staff-input" id="staff-password-input" placeholder="Passwort eingeben...">
+    <div id="staff-login-err">Ungültiges Administrator-Passwort!</div>
+    
+    <div class="modal-actions">
+      <button class="staff-btn-small" id="staff-login-cancel-btn">Abbrechen</button>
+      <button class="staff-btn-small" id="staff-login-confirm-btn" style="border-color:#ff9800; background:#ff9800; color:#000;">Login</button>
+    </div>
+  </div>
+</div>
 
 <script>
-const servicesData = {
-  mc: { title: "Minecraft Server", basePrice: 4.50, options: [
-    { id: "ram", type: "box", sub:"RAM Speicher", choices: [{lab:"4 GB RAM", delta:0}, {lab:"6 GB RAM", delta:3}, {lab:"8 GB RAM", delta:6}, {lab:"16 GB RAM", delta:18}] },
-    { id: "cpu", type: "box", sub:"CPU Fokus", choices: [{lab:"Standard Core", delta:0}, {lab:"High-Priority", delta:2.5}, {lab:"Dedicated Core", delta:7}] },
-    { id: "backup", type: "check", label: "Automatisches Backup", price: 1.50 }
-  ]},
-  fivem: { title: "FiveM Gameserver", basePrice: 9.90, options: [
-    { id: "slots", type: "box", sub:"Spieler-Slots", choices: [{lab:"32 Slots", delta:0}, {lab:"64 Slots", delta:5}, {lab:"128 Slots", delta:12}] },
-    { id: "db", type: "check", label: "Dedizierte MariaDB", price: 0.00 },
-    { id: "proxy", type: "check", label: "DDoS-Game-Proxy", price: 3.50 }
-  ]},
-  vps: { title: "VPS / KVM Rootserver", basePrice: 6.90, options: [
-    { id: "cores", type: "box", sub:"Ryzen vCores", choices: [{lab:"2 vCores", delta:0}, {lab:"4 vCores", delta:4.5}, {lab:"8 vCores", delta:16}] },
-    { id: "storage", type: "box", sub:"NVMe Speicher", choices: [{lab:"40 GB NVMe", delta:0}, {lab:"80 GB NVMe", delta:3}, {lab:"160 GB NVMe", delta:8}] },
-    { id: "ip", type: "check", label: "Zusätzliche IPv4", price: 2.00 }
-  ]},
-  editor: { title: "Webspace & Runtimes", basePrice: 1.99, options: [
-    { id: "space", type: "box", sub:"Speicherplatz", choices: [{lab:"10 GB", delta:0}, {lab:"25 GB", delta:2}, {lab:"50 GB", delta:4.5}] },
-    { id: "ssl", type: "check", label: "Wildcard SSL", price: 0.00 },
-    { id: "node", type: "check", label: "Node.js/Python Support", price: 1.00 }
-  ]}
-};
-
-let currentServiceId = null, selections = {};
-
-window.addEventListener('DOMContentLoaded', () => {
-  // Starfield Generator
-  const canvas = document.getElementById("starfield");
-  const ctx = canvas.getContext("2d");
-  function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-  window.addEventListener('resize', resize); resize();
-  
-  let stars = Array.from({length: 80}, () => ({
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height,
-    r: Math.random() * 1.2,
-    v: Math.random() * 0.15 + 0.05
-  }));
-  
-  function loop() {
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.fillStyle = "rgba(255,255,255,0.3)";
-    stars.forEach(s => {
-      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
-      s.y -= s.v; if(s.y < 0) { s.y = canvas.height; s.x = Math.random()*canvas.width; }
-    });
-    requestAnimationFrame(loop);
+  // STARFIELD BACKDROP EFFECT
+  const canvas = document.getElementById('starfield');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
   }
-  loop();
+  window.addEventListener('resize', resize);
+  resize();
+  for(let i=0; i<65; i++) {
+    stars.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      size: Math.random() * 1.5,
+      speed: Math.random() * 0.15 + 0.05
+    });
+  }
+  function animateStars() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    stars.forEach(s => {
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.size, 0, Math.PI*2);
+      ctx.fill();
+      s.y -= s.speed;
+      if(s.y < 0) {
+        s.y = canvas.height;
+        s.x = Math.random() * canvas.width;
+      }
+    });
+    requestAnimationFrame(animateStars);
+  }
+  animateStars();
 
-  // Stats Counter Animation (Discord Widget)
-  setTimeout(() => {
-    document.getElementById("typing-indicator").classList.add("hidden");
-    document.getElementById("cv2-wrap").classList.add("shown");
-    document.querySelectorAll(".dc-stat .num").forEach(el => {
-      const target = parseFloat(el.getAttribute("data-target"));
-      const prefix = el.getAttribute("data-prefix") || "";
-      const suffix = el.getAttribute("data-suffix") || "";
-      let current = 0;
-      const step = target / 40;
-      const int = setInterval(() => {
-        current += step;
-        if(current >= target) { current = target; clearInterval(int); }
-        el.innerHTML = prefix + (Number.isInteger(target) ? Math.floor(current) : current.toFixed(2)) + suffix;
+  // APP DATA STRUCTS
+  const SERVICES = [
+    { id:'mc', name:'Minecraft Dedicated', basePrice:2.50, desc:'Dedizierte Ryzen CPU-Kerne, unbegrenzter NVMe-Speicher.', opts:[
+      {title:'Arbeitsspeicher (RAM)', key:'ram', type:'select', items:[{l:'4 GB', p:0},{l:'8 GB', p:4},{l:'16 GB', p:12},{l:'32 GB', p:24}]},
+      {title:'Standort', key:'loc', type:'select', items:[{l:'Frankfurt am Main (Falkenstein)', p:0},{l:'Helsinki (Finnland)', p:-0.5}]},
+      {title:'Zusatz-Features', key:'feat', type:'check', items:[{l:'Dedizierte IPv4 Adresse', p:3, id:'ip'},{l:'Automatisches Backup-Intervall', p:1.5, id:'bk'}]}
+    ]},
+    { id:'vps', name:'KVM Rootserver (VPS)', basePrice:4.90, desc:'Voller Root-Zugriff, schnelle Anbindung, DDR5 RAM.', opts:[
+      {title:'CPU & RAM Verbund', key:'cpu', type:'select', items:[{l:'2 vCore / 4GB RAM', p:0},{l:'4 vCore / 8GB RAM', p:5},{l:'6 vCore / 16GB RAM', p:13}]},
+      {title:'Betriebssystem', key:'os', type:'select', items:[{l:'Debian 12 (Bookworm)', p:0},{l:'Ubuntu 24.04 LTS', p:0},{l:'Windows Server 2022', p:6}]},
+      {title:'Netzwerk', key:'net', type:'check', items:[{l:'Premium Uplink 2.5 Gbit/s', p:2.5, id:'up'}]}
+    ]},
+    { id:'bot', name:'Discord Bot Hosting', basePrice:1.00, desc:'24/7 Laufzeitgarantie für NodeJS, Python oder Java.', opts:[
+      {title:'Bot Instanzen', key:'inst', type:'select', items:[{l:'1 aktiver Bot', p:0},{l:'3 aktive Bots', p:1.5},{l:'Unbegrenzt', p:4}]},
+      {title:'Speicherplatz', key:'storage', type:'select', items:[{l:'5 GB NVMe SSD', p:0},{l:'20 GB NVMe SSD', p:2}]}
+    ]},
+    { id:'web', name:'Webspace / Plesk', basePrice:1.90, desc:'Inklusive NVMe-Webspace, SSL-Zertifikaten und Plesk Panel.', opts:[
+      {title:'Domains & Speicher', key:'webspace', type:'select', items:[{l:'1 Domain / 10GB', p:0},{l:'5 Domains / 50GB', p:3},{l:'Unlimitiert', p:7}]}
+    ]}
+  ];
+
+  let currentService = null;
+  let currentSelections = {};
+
+  // DOM VIEWS SWITCHER
+  const navlinks = document.querySelectorAll('.navlink');
+  const views = document.querySelectorAll('.view');
+
+  function switchView(viewId) {
+    // Falls das Staff-Dashboard direkt angewählt wird (z.B. über manuelle Aufrufe), verhindern wir das
+    if (viewId === 'staff-dashboard' && !isStaffAuthenticated) {
+      openStaffLoginModal();
+      return;
+    }
+
+    views.forEach(v => v.classList.remove('active'));
+    navlinks.forEach(l => {
+      l.classList.remove('active');
+      if(l.getAttribute('data-view') === viewId) l.classList.add('active');
+    });
+    
+    const target = document.getElementById('view-' + viewId);
+    if(target) target.classList.add('active');
+    window.scrollTo(0,0);
+  }
+
+  // --- NEUE LOGIK FÜR DAS STAFF LOGIN POPUP ---
+  let isStaffAuthenticated = false;
+  const staffLoginModal = document.getElementById('staff-login-modal');
+  const staffPasswordInput = document.getElementById('staff-password-input');
+  const staffLoginErr = document.getElementById('staff-login-err');
+
+  function openStaffLoginModal() {
+    staffPasswordInput.value = "";
+    staffLoginErr.style.display = "none";
+    staffLoginModal.classList.add('active');
+    staffPasswordInput.focus();
+  }
+
+  function closeStaffLoginModal() {
+    staffLoginModal.classList.remove('active');
+  }
+
+  // Event Listener für den Staff Nav Button abfangen
+  document.querySelector('.navlink.staff-btn').addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isStaffAuthenticated) {
+      switchView('staff-dashboard');
+    } else {
+      openStaffLoginModal();
+    }
+  });
+
+  // Login absenden Event Handler
+  function handleStaffLogin() {
+    const enteredPassword = staffPasswordInput.value;
+    if (enteredPassword === "stella2026") {
+      isStaffAuthenticated = true;
+      closeStaffLoginModal();
+      switchView('staff-dashboard');
+    } else {
+      staffLoginErr.style.display = "block";
+      staffPasswordInput.select();
+    }
+  }
+
+  document.getElementById('staff-login-confirm-btn').addEventListener('click', handleStaffLogin);
+  
+  staffPasswordInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') handleStaffLogin();
+  });
+
+  document.getElementById('staff-login-cancel-btn').addEventListener('click', function() {
+    closeStaffLoginModal();
+    switchView('home'); // Schicke den User zurück auf die Startseite
+  });
+
+
+  // Standard Nav-Link Logik für alle anderen Seiten
+  navlinks.forEach(link => {
+    if (link.classList.contains('staff-btn')) return; // Überspringen, da oben separat geregelt
+    link.addEventListener('click', () => {
+      switchView(link.getAttribute('data-view'));
+    });
+  });
+
+  // RENDER SERVICES LIST
+  const grid = document.getElementById('service-grid');
+  SERVICES.forEach(s => {
+    const card = document.createElement('div');
+    card.className = 'service-card';
+    card.innerHTML = `
+      <div class="service-index">// 0${SERVICES.indexOf(s)+1}</div>
+      <h3>${s.name}</h3>
+      <p style="margin-top:8px; font-size:0.8rem; color:var(--d); line-height:1.6">${s.desc}</p>
+      <div class="service-foot">
+        <span class="service-price">ab ${s.basePrice.toFixed(2)} € <span style="font-size:0.65rem;color:var(--f)">/ Mo</span></span>
+        <span style="font-size:0.8rem; color:#ff9800">Konfigurieren →</span>
+      </div>
+    `;
+    card.onclick = () => initConfigurator(s);
+    grid.appendChild(card);
+  });
+
+  // CONFIGURATOR ENGINE
+  function initConfigurator(service) {
+    currentService = service;
+    currentSelections = { select: {}, check: {} };
+    
+    // Set defaults
+    service.opts.forEach(o => {
+      if(o.type === 'select') currentSelections.select[o.key] = o.items[0];
+    });
+
+    renderConfigOptions();
+    calculateTotal();
+    switchView('configurator');
+  }
+
+  function renderConfigOptions() {
+    const wrapper = document.getElementById('config-options');
+    wrapper.innerHTML = `<h2 style="font-family:var(--fd);margin-bottom:5px">${currentService.name} anpassen</h2><p class="sub-sub">Konfiguriere die Systemleistung nach deinen Vorgaben.</p>`;
+    
+    currentService.opts.forEach(o => {
+      const group = document.createElement('div');
+      group.className = 'option-group';
+      group.innerHTML = `<h4>${o.title}</h4><div class="group-sub">Zuweisung für dein Cluster-System</div>`;
+      
+      const grid = document.createElement('div');
+      grid.className = 'box-grid';
+      
+      if(o.type === 'select') {
+        o.items.forEach(item => {
+          const isSel = currentSelections.select[o.key]?.l === item.l;
+          const box = document.createElement('div');
+          box.className = `opt-box ${isSel?'selected':''}`;
+          box.innerHTML = `<div class="lab" style="font-size:0.82rem;font-weight:600;color:${isSel?'var(--bg)':'#fff'}">${item.l}</div>
+                           <div class="delta" style="font-size:0.62rem;margin-top:4px;color:${isSel?'#555':'var(--f)'}">${item.p===0?'Inkl.':'+'+item.p.toFixed(2)+'€'}</div>`;
+          box.onclick = () => {
+            currentSelections.select[o.key] = item;
+            renderConfigOptions();
+            calculateTotal();
+          };
+          grid.appendChild(box);
+        });
+        group.appendChild(grid);
+      } else {
+        const checkWrap = document.createElement('div');
+        checkWrap.style.display = 'flex';
+        checkWrap.style.flexDirection = 'column';
+        checkWrap.style.gap = '10px';
+        o.items.forEach(item => {
+          const isSel = !!currentSelections.check[item.id];
+          const box = document.createElement('div');
+          box.className = `check-box ${isSel?'selected':''}`;
+          box.innerHTML = `<div>
+                            <div style="font-size:0.82rem;font-weight:600">${item.l}</div>
+                            <div style="font-size:0.65rem;color:var(--f);margin-top:2px">+ ${item.p.toFixed(2)} € / Monat</div>
+                           </div>
+                           <div class="checkmark">${isSel?'<svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:var(--bg)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>':''}</div>`;
+          box.onclick = () => {
+            if(isSel) delete currentSelections.check[item.id];
+            else currentSelections.check[item.id] = item;
+            renderConfigOptions();
+            calculateTotal();
+          };
+          checkWrap.appendChild(box);
+        });
+        group.appendChild(checkWrap);
+      }
+      wrapper.appendChild(group);
+    });
+  }
+
+  function calculateTotal() {
+    let total = currentService.basePrice;
+    const linesWrap = document.getElementById('summary-lines');
+    linesWrap.innerHTML = `<div class="summary-line"><span class="k">Basispreis</span><span class="v">${currentService.basePrice.toFixed(2)} €</span></div>`;
+    
+    Object.values(currentSelections.select).forEach(item => {
+      total += item.p;
+      if(item.p !== 0) {
+        linesWrap.innerHTML += `<div class="summary-line"><span class="k">${item.l}</span><span class="v">+${item.p.toFixed(2)} €</span></div>`;
+      }
+    });
+    Object.values(currentSelections.check).forEach(item => {
+      total += item.p;
+      linesWrap.innerHTML += `<div class="summary-line"><span class="k">${item.l}</span><span class="v">+${item.p.toFixed(2)} €</span></div>`;
+    });
+    
+    document.getElementById('summary-total').innerText = `${total.toFixed(2)} €`;
+  }
+
+  document.getElementById('back-to-services').onclick = () => switchView('services');
+
+  // MODAL LOGIC & ORDER PROCESSING
+  function generateTicketId() {
+    const prefixes = { 'mc':'ST-MC', 'vps':'ST-KVM', 'bot':'ST-BOT', 'web':'ST-WEB' };
+    const randNum = Math.floor(100 + Math.random() * 900);
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const randChars = chars[Math.floor(Math.random()*26)] + chars[Math.floor(Math.random()*26)];
+    return `${prefixes[currentService.id] || 'ST-SRV'}-${randNum}-${randChars}`;
+  }
+
+  document.getElementById('order-btn').onclick = () => {
+    const tid = generateTicketId();
+    document.getElementById('modal-generated-id').innerText = tid;
+    document.getElementById('order-modal').classList.add('active');
+    navigator.clipboard.writeText(tid).catch(()=>{});
+  };
+
+  function closeModal() {
+    document.getElementById('order-modal').classList.remove('active');
+    switchView('home');
+  }
+
+  // INTERACTIVE DISCORD EMBED TIMING ON HERO
+  setTimeout(() => { document.getElementById('typing-indicator').classList.add('hidden'); document.getElementById('cv2-wrap').classList.add('shown'); countUpCounters(); }, 1400);
+  
+  function countUpCounters() {
+    document.querySelectorAll('.dc-stat .num').forEach(el => {
+      const target = parseFloat(el.getAttribute('data-target'));
+      const suffix = el.getAttribute('data-suffix') || '';
+      const prefix = el.getAttribute('data-prefix') || '';
+      let curr = 0;
+      const step = target / 30;
+      const interval = setInterval(() => {
+        curr += step;
+        if(curr >= target) { curr = target; clearInterval(interval); }
+        el.innerHTML = prefix + (Number.isInteger(target)? Math.floor(curr) : curr.toFixed(1)) + suffix;
       }, 25);
     });
-  }, 1200);
+  }
 
-  // Time-Ticker Clock for Staff Panel
+  // FAQ INTERACTION ACCORDION
+  document.querySelectorAll('.faq-trigger').forEach(trigger => {
+    trigger.onclick = () => {
+      const item = trigger.parentElement;
+      const isOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+      if(!isOpen) item.classList.add('open');
+    };
+  });
+
+  // ---------- STAFF PANEL FUNCTIONS ----------
   setInterval(() => {
     const now = new Date();
     document.getElementById('staff-ticker-time').innerText = now.toTimeString().split(' ')[0];
   }, 1000);
 
-  initApp();
-});
-
-function initApp() {
-  const grid = document.getElementById("service-grid");
-  Object.keys(servicesData).forEach((key, idx) => {
-    const s = servicesData[key];
-    const card = document.createElement("div");
-    card.className = "service-card";
-    card.innerHTML = `<div class="service-index">0${idx+1} // HOSTING</div><h3>${s.title}</h3><div class="service-foot"><span class="service-price">Ab ${s.basePrice.toFixed(2)} €</span><div>→</div></div>`;
-    card.addEventListener("click", () => openConfigurator(key));
-    grid.appendChild(card);
-  });
-
-  document.querySelectorAll(".navlink").forEach(link => {
-    link.addEventListener("click", () => switchView(link.getAttribute("data-view")));
-  });
-  document.getElementById("back-to-services").addEventListener("click", () => switchView("services"));
-  document.getElementById("order-btn").addEventListener("click", generateAndShowId);
-  document.getElementById("close-modal-btn").addEventListener("click", () => document.getElementById("order-modal").classList.remove("active"));
-  document.getElementById("search-id-btn").addEventListener("click", performLookup);
-
-  // FAQ Toggle Logic
-  document.querySelectorAll('.faq-trigger').forEach(trigger => {
-    trigger.addEventListener('click', () => {
-      const parent = trigger.parentElement;
-      const isOpen = parent.classList.contains('open');
-      document.querySelectorAll('.faq-item').forEach(item => item.classList.remove('open'));
-      if (!isOpen) parent.classList.add('open');
-    });
-  });
-}
-
-function switchView(viewId) {
-  if (viewId === 'staff-dashboard') {
-    const pw = prompt("Bitte gib das Staff-Passwort ein:");
-    if (pw !== "Jopo23%?06") {
-      alert("Falsches Passwort! Zugriff verweigert.");
-      return;
-    }
-    logAction("SECURITY", "Erfolgreicher Login in das Admin Kontrollzentrum.");
-    simulateRandomTicker();
-  }
-
-  document.querySelectorAll(".view, .configurator").forEach(v => v.classList.remove("active"));
-  document.querySelectorAll("nav .navlink").forEach(l => l.classList.remove("active"));
-  
-  const t = document.getElementById(viewId === 'services' || viewId === 'home' || viewId === 'staff-dashboard' ? `view-${viewId}` : `view-configurator`);
-  if(t) t.classList.add("active");
-  const btn = document.querySelector(`nav .navlink[data-view="${viewId}"]`);
-  if(btn) btn.classList.add("active");
-  window.scrollTo({top:0});
-}
-
-function openConfigurator(id) {
-  currentServiceId = id; const s = servicesData[id]; selections = {};
-  const container = document.getElementById("config-options");
-  container.innerHTML = `<h2 style="font-family:var(--fd);margin-bottom:20px">${s.title} anpassen</h2>`;
-  
-  s.options.forEach(opt => {
-    const group = document.createElement("div");
-    group.className = "option-group";
-    group.innerHTML = `<h4>${opt.id.toUpperCase()}</h4><div class="group-sub">${opt.sub || ''}</div>`;
+  document.getElementById('search-id-btn').onclick = function() {
+    const id = document.getElementById('search-id-input').value.toUpperCase().trim();
+    const resBox = document.getElementById('search-results');
     
-    if(opt.type === "box") {
-      selections[opt.id] = 0; 
-      const boxGrid = document.createElement("div");
-      boxGrid.className = "box-grid";
-      opt.choices.forEach((c, cIdx) => {
-        const box = document.createElement("div");
-        box.className = `opt-box ${cIdx===0?'selected':''}`;
-        box.innerHTML = `<div class="lab" style="font-size:0.8rem;font-weight:600;">${c.lab}</div><div class="delta" style="font-size:0.65rem;color:var(--d);margin-top:4px;">+${c.delta.toFixed(2)} €</div>`;
-        box.addEventListener("click", () => {
-          boxGrid.querySelectorAll(".opt-box").forEach(b => b.classList.remove("selected"));
-          box.classList.add("selected"); selections[opt.id] = cIdx; calculatePrice();
-        });
-        boxGrid.appendChild(box);
-      });
-      group.appendChild(boxGrid);
-    } else if(opt.type === "check") {
-      selections[opt.id] = false;
-      const cBox = document.createElement("div");
-      cBox.className = "check-box";
-      cBox.innerHTML = `<div style="font-size:0.8rem">${opt.label} <span style="color:var(--d);font-size:0.7rem;margin-left:5px;">(+${opt.price.toFixed(2)} €)</span></div><div class="checkmark"></div>`;
-      cBox.addEventListener("click", () => {
-        cBox.classList.toggle("selected"); selections[opt.id] = cBox.classList.contains("selected"); calculatePrice();
-      });
-      group.appendChild(cBox);
-    }
-    container.appendChild(group);
-  });
-  switchView("configurator"); calculatePrice();
-}
+    if(!id) return;
+    
+    let type = "Unbekanntes Paket";
+    let hardware = "Standard Node Allocation";
+    let calculated = "5.00 €";
+    
+    if(id.includes("-MC")) { type = "Minecraft Dedicated Node v4"; hardware = "AMD Ryzen 9 7950X3D // 16GB Dedicated RAM // NVMe Raid 1"; calculated = "14.50 €"; }
+    else if(id.includes("-KVM")) { type = "KVM Rootserver Cluster 2"; hardware = "Intel Xeon Gold // 4 vCores // 8GB RAM Cores"; calculated = "9.90 €"; }
+    else if(id.includes("-BOT")) { type = "Discord Bot Multi-Instance"; hardware = "NodeJS / Python Container Isolated Runtime"; calculated = "2.50 €"; }
+    else if(id.includes("-WEB")) { type = "Enterprise Webspace Plesk Pro"; hardware = "Apache/Nginx Reverse-Proxy NVMe Bound"; calculated = "4.90 €"; }
+    
+    document.getElementById('result-service-name').innerText = type;
+    document.getElementById('result-lines').innerHTML = `
+      <div style="margin-bottom:4px; color:var(--d)"><strong>Hardware:</strong> ${hardware}</div>
+      <div style="color:var(--d)"><strong>Ticket-Referenz:</strong> Verifiziert über Cluster-Core</div>
+    `;
+    document.getElementById('result-total-price').innerText = calculated;
+    resBox.classList.add('active');
+  };
 
-function calculatePrice() {
-  if(!currentServiceId) return 0;
-  const s = servicesData[currentServiceId]; let total = s.basePrice;
-  const lines = document.getElementById("summary-lines"); lines.innerHTML = "";
-  
-  s.options.forEach(opt => {
-    if(opt.type === "box") {
-      const choice = opt.choices[selections[opt.id] || 0]; total += choice.delta;
-      lines.innerHTML += `<div class="summary-line"><span class="k">${opt.id.toUpperCase()}: ${choice.lab}</span><span class="v">+${choice.delta.toFixed(2)} €</span></div>`;
-    } else if(opt.type === "check" && selections[opt.id]) {
-      total += opt.price;
-      lines.innerHTML += `<div class="summary-line"><span class="k">${opt.label}</span><span class="v">+${opt.price.toFixed(2)} €</span></div>`;
-    }
-  });
-  document.getElementById("summary-total").innerText = `${total.toFixed(2)} €`;
-  return total;
-}
-
-function generateAndShowId() {
-  if(!currentServiceId) return;
-  const s = servicesData[currentServiceId];
-  let segment = currentServiceId.toUpperCase();
-  s.options.forEach(opt => {
-    segment += `-${selections[opt.id] === true ? '1' : (selections[opt.id] === false ? '0' : selections[opt.id])}`;
-  });
-  const randomHex = Math.random().toString(16).substr(2, 4).toUpperCase();
-  const configId = `ST-${segment}-${randomHex}`;
-  document.getElementById("modal-config-id").innerText = configId;
-  document.getElementById("order-modal").classList.add("active");
-}
-
-function performLookup() {
-  const input = document.getElementById("search-id-input").value.trim();
-  const resBox = document.getElementById("search-results");
-  const resName = document.getElementById("result-service-name");
-  const resLines = document.getElementById("result-lines");
-  const resPrice = document.getElementById("result-total-price");
-  
-  if(!input.startsWith("ST-")) {
-    alert("Ungültiges ID-Format. Muss mit ST- beginnen."); return;
+  function adjustCredits(isAdd) {
+    const user = document.getElementById('credit-user').value;
+    const amount = document.getElementById('credit-amount').value;
+    if(!user || !amount) return alert("Bitte User-ID und Betrag angeben.");
+    alert(`Guthaben-Schnittstelle erfolgreich:\nDem User '${user}' wurden ${amount}€ ${isAdd?'gutgeschrieben':'abgezogen'}.`);
   }
-  
-  const parts = input.split("-");
-  const serviceKey = parts[1].toLowerCase();
-  const s = servicesData[serviceKey];
-  
-  if(!s) {
-    alert("Service-Typ in der ID nicht erkannt."); return;
+
+  function generatePromoCode() {
+    const val = document.getElementById('promo-value').value || "10";
+    const code = "STELLA-" + val + "OFF-" + Math.floor(100 + Math.random()*900);
+    document.getElementById('promo-result').innerText = `Code erstellt: ${code} (-${val}%)`;
   }
-  
-  logAction("DECODER", `ID '${input}' wurde erfolgreich decodiert.`);
-  resName.innerText = s.title; resLines.innerHTML = ""; let calculated = s.basePrice;
-  
-  s.options.forEach((opt, idx) => {
-    const valueToken = parseInt(parts[2+idx]);
-    if(opt.type === "box") {
-      const choice = opt.choices[valueToken] || opt.choices[0]; calculated += choice.delta;
-      resLines.innerHTML += `<div style="display:flex;justify-content:space-between;color:var(--d);margin-bottom:6px;"><span>• ${opt.id.toUpperCase()}: ${choice.lab}</span><span>+${choice.delta.toFixed(2)} €</span></div>`;
-    } else if(opt.type === "check") {
-      if(valueToken === 1) {
-        calculated += opt.price;
-        resLines.innerHTML += `<div style="display:flex;justify-content:space-between;color:var(--d);margin-bottom:6px;"><span>• ${opt.label}</span><span>+${opt.price.toFixed(2)} €</span></div>`;
-      }
-    }
-  });
-  
-  resPrice.innerText = `${calculated.toFixed(2)} €`;
-  resBox.classList.add("active");
-}
 
-/* ---------- NEUE STAFF PANEL FUNKTIONEN (JS) ---------- */
-
-// Hilfsfunktion: Schreibt Log ins interne Terminal
-function logAction(category, text) {
-  const terminal = document.getElementById("audit-log");
-  const now = new Date();
-  const timeStr = now.toTimeString().split(' ')[0];
-  terminal.innerHTML += `[${timeStr}] <span style="color:#ff9800">${category}</span>: ${text}<br>`;
-  terminal.scrollTop = terminal.scrollHeight;
-}
-
-// 1. Live Ticker Zufallstexte (Simuliert Aktivität)
-function simulateRandomTicker() {
-  const lines = [
-    "⚡ TICKER: Node-01 DDoS Angriff blockiert (1.2 Gbps) - Keine Auswirkungen.",
-    "⚡ TICKER: Backup-Routine für alle VPS-Instanzen erfolgreich beendet.",
-    "⚡ TICKER: API-Antwortzeit stabil bei 14ms.",
-    "⚡ TICKER: Neue Bestellung über Ticket ID verarbeitet."
-  ];
-  setInterval(() => {
-    if(document.getElementById('view-staff-dashboard').classList.contains('active')) {
-      const randomLine = lines[Math.floor(Math.random() * lines.length)];
-      document.getElementById('staff-live-ticker').innerText = randomLine;
-    }
-  }, 12000);
-}
-
-// 2. Kunden Guthaben Manager
-function adjustCredits(isAdding) {
-  const user = document.getElementById("credit-user").value.trim();
-  const amount = parseFloat(document.getElementById("credit-amount").value);
-  
-  if(!user || isNaN(amount) || amount <= 0) {
-    alert("Bitte gültigen User und positiven Betrag eingeben!"); return;
+  function addIpBan() {
+    const ip = document.getElementById('ban-ip').value;
+    if(!ip) return;
+    const badge = document.createElement('span');
+    badge.className = 'banned-badge';
+    badge.innerText = ip;
+    document.getElementById('banned-ips-container').appendChild(badge);
+    document.getElementById('ban-ip').value = "";
   }
-  
-  const action = isAdding ? "gutgeschrieben" : "abgebucht";
-  alert(`Guthaben-Änderung live geschaltet!\n${amount.toFixed(2)} € wurden für User '${user}' ${action}.`);
-  logAction("ECONOMY", `${amount.toFixed(2)} € für User '${user}' ${action}.`);
-  
-  document.getElementById("credit-user").value = "";
-  document.getElementById("credit-amount").value = "";
-}
 
-// 3. Rabattcode Generator
-function generatePromoCode() {
-  const value = parseInt(document.getElementById("promo-value").value);
-  if(isNaN(value) || value <= 0 || value > 100) {
-    alert("Bitte eine valide Prozentzahl zwischen 1 und 100 eingeben."); return;
+  function closeTicket(id) {
+    const item = document.getElementById(id);
+    if(item) item.remove();
   }
-  
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let randomCode = "STELLA-";
-  for(let i=0; i<6; i++) randomCode += chars.charAt(Math.floor(Math.random() * chars.length));
-  
-  document.getElementById("promo-result").innerText = `Generiert: ${randomCode} (-${value}%)`;
-  logAction("MARKETING", `Rabattcode ${randomCode} (${value}% Rabatt) erstellt.`);
-}
-
-// 4. IP-Bann System
-function addIpBan() {
-  const ip = document.getElementById("ban-ip").value.trim();
-  const regex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
-  
-  if(!regex.test(ip)) {
-    alert("Bitte eine valide IPv4 Adresse eingeben."); return;
-  }
-  
-  const container = document.getElementById("banned-ips-container");
-  const badge = document.createElement("span");
-  badge.className = "banned-badge";
-  badge.innerText = ip;
-  container.appendChild(badge);
-  
-  logAction("FIREWALL", `IP ${ip} permanent auf Blacklist gesetzt.`);
-  document.getElementById("ban-ip").value = "";
-}
-
-// 5. Support-Ticket Queue Manager
-function closeTicket(ticketId) {
-  const ticket = document.getElementById(ticketId);
-  if(ticket) {
-    ticket.style.display = "none";
-    logAction("TICKET", `Support-Ticket ${ticketId.toUpperCase()} geschlossen und archiviert.`);
-  }
-}
-
-// 6. Node-Auslastungs-Simulator (Anping-Animation)
-function refreshNodeStats() {
-  logAction("CLUSTER", "Manuelles Anpingen der Virtualisierungs-Nodes gestartet...");
-  
-  const n1 = Math.floor(Math.random() * 45) + 35;
-  const n2 = Math.floor(Math.random() * 55) + 20;
-  
-  setTimeout(() => {
-    document.getElementById("node1-val").innerText = n1 + "%";
-    document.getElementById("node1-fill").style.width = n1 + "%";
-    document.getElementById("node2-val").innerText = n2 + "%";
-    document.getElementById("node2-fill").style.width = n2 + "%";
-    logAction("CLUSTER", `Antwort erhalten: Node-01 = ${n1}%, Node-02 = ${n2}%. All green.`);
-  }, 600);
-}
 </script>
 </body>
 </html>
