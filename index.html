@@ -6,7 +6,7 @@
 <title>Stella Host — Hosting, das trägt</title>
 
 <meta property="og:title" content="Stella Host — Hosting, das trägt">
-<meta property="og:description" content="Premium Hosting für Minecraft, Bots & Webprojekte. Schnell, zuverlässig, fair supportet.">
+<meta property="og:description" content="Premium Free-Hosting für Minecraft, Bots & Webprojekte. Schnell, zuverlässig, fair supportet.">
 <meta property="og:image" content="https://i.postimg.cc/zDnPDCbf/file-00000000c19c71f481670b9bd997c7ca.png">
 <meta property="og:url" content="https://stella-host.de">
 <meta property="og:type" content="website">
@@ -15,7 +15,7 @@
 
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Stella Host — Hosting, das trägt">
-<meta name="twitter:description" content="Premium Hosting für Minecraft, Bots & Webprojekte. Schnell, zuverlässig, fair supportet.">
+<meta name="twitter:description" content="Premium Free-Hosting für Minecraft, Bots & Webprojekte. Schnell, zuverlässig, fair supportet.">
 <meta name="twitter:image" content="https://cdn3.emoji.gg/emojis/1119-globe.png">
 
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;600&display=swap" rel="stylesheet">
@@ -33,8 +33,7 @@
   nav.mainnav{display:flex;gap:6px;align-items:center;padding:5px;border:1px solid var(--b1);border-radius:999px;background:var(--p1)}
   .navlink{font-size:0.76rem;letter-spacing:0.06em;text-transform:uppercase;padding:9px 18px;border-radius:999px;color:var(--d);transition:all .2s;cursor:pointer}
   .navlink:hover{color:var(--w)}.navlink.active{color:var(--bg);background:var(--w)}
-  .navlink.staff-btn{border:1px dashed var(--b2);color:#ff9800}.navlink.staff-btn:hover{border-color:#ff9800;color:#fff}
-  .navlink.staff-btn.active{background:#ff9800;color:var(--bg);border-color:#ff9800}
+  .navlink.staff-btn{border:1px dashed var(--b2);color:#ff9800;text-decoration:none;display:inline-block;}.navlink.staff-btn:hover{border-color:#ff9800;color:#fff}
   .view{display:none}
   .view.active{display:block}section{padding:0 5vw}
   .hero{padding:8vh 0 5vh 0;display:grid;grid-template-columns:1.02fr 0.98fr;gap:64px;align-items:center}
@@ -48,7 +47,6 @@
   /* ---------- EXPANDED MAIN PAGE CSS ---------- */
   .sub-section{padding:7vh 5vw;border-top:1px solid var(--b1)}
   .sub-section h2{font-family:var(--fd);font-size:1.7rem;margin-bottom:5px}
-  .sub-section.staff-headline h2 {color:#ff9800}
   .sub-sub{color:var(--d);font-size:0.85rem;margin-bottom:35px}
   
   .info-grid,.reviews-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}
@@ -140,64 +138,8 @@
   .modal-box{background:var(--p2);border:1px solid var(--b2);border-radius:26px;padding:40px;max-width:480px;width:90%;text-align:center}
   .modal-id-display{background:var(--bg);border:1px dashed var(--b2);border-radius:12px;padding:16px;font-family:var(--fm);font-size:1.15rem;font-weight:600;color:#ff9800;margin-bottom:26px}
   footer{padding:40px 0;display:flex;justify-content:space-between;color:var(--f);font-size:0.72rem;border-top:1px solid var(--b1);margin-top:60px}
-  
-  /* ---------- STAFF PANEL LAYOUT & UTILITIES ---------- */
-  .staff-container {display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:20px;align-items:start}
-  .staff-card {background:var(--p1);border:1px solid var(--b1);border-radius:20px;padding:26px;position:relative;overflow:hidden}
-  .staff-card.full-width {grid-column: 1 / -1}
-  .staff-card h3 {font-family:var(--fd);font-size:1.1rem;margin-bottom:12px;display:flex;align-items:center;gap:10px;color:#ff9800}
-  .staff-input {width:100%;background:var(--bg);border:1px solid var(--b1);border-radius:10px;padding:12px 16px;color:#fff;font-family:var(--fm);font-size:0.9rem;margin-bottom:12px;transition:border .2s}
-  .staff-input:focus {border-color:#ff9800;outline:none}
-  .staff-btn-group {display:flex;gap:10px}
-  .staff-btn-small {padding:10px 20px;border-radius:10px;font-size:0.78rem;font-family:var(--fm);cursor:pointer;border:1px solid var(--b2);background:transparent;color:#fff;transition:all .2s}
-  .staff-btn-small:hover {background:#ff9800;color:var(--bg);border-color:#ff9800}
-  
-  /* Feature Specific Styles */
-  .results-box{background:var(--p2);border:1px solid var(--b1);border-radius:14px;padding:18px;margin-top:12px;display:none}
-  .results-box.active{display:block}
-  .status-badge{display:inline-block;padding:4px 10px;background:rgba(255,152,0,0.15);color:#ff9800;border-radius:4px;font-size:0.7rem;font-weight:bold;margin-bottom:12px}
-  
-  .log-terminal {background:#000;border-radius:10px;padding:15px;height:160px;overflow-y:auto;font-size:0.75rem;color:#00ff66;border:1px solid var(--b1);line-height:1.5}
-  .ticket-item {display:flex;justify-content:space-between;align-items:center;background:var(--p2);border:1px solid var(--b1);padding:10px 15px;border-radius:10px;margin-bottom:8px;font-size:0.8rem}
-  .node-bar-wrapper {margin-bottom:12px}
-  .node-bar-meta {display:flex;justify-content:space-between;font-size:0.75rem;color:var(--d);margin-bottom:4px}
-  .node-bar-bg {background:var(--bg);height:8px;border-radius:4px;overflow:hidden}
-  .node-bar-fill {background:#ff9800;height:100%;width:0%;transition:width 0.5s ease}
-  .badge-list {display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-  .banned-badge {background:rgba(239,83,80,0.15);color:#ef5350;padding:4px 8px;border-radius:6px;font-size:0.72rem;border:1px solid rgba(239,83,80,0.3)}
 
-  /* --- NEUES STAFF LOGIN MODAL OVERLAY STYLING --- */
-  #staff-login-modal .modal-box {
-    border-color: rgba(255, 152, 0, 0.4);
-    box-shadow: 0 20px 50px rgba(255, 152, 0, 0.1);
-    text-align: left;
-  }
-  #staff-login-modal h3 {
-    font-family: var(--fd);
-    color: #ff9800;
-    font-size: 1.4rem;
-    margin-bottom: 8px;
-  }
-  #staff-login-modal p {
-    color: var(--d);
-    font-size: 0.85rem;
-    margin-bottom: 20px;
-  }
-  #staff-login-err {
-    color: #ef5350;
-    font-size: 0.78rem;
-    margin-top: -6px;
-    margin-bottom: 12px;
-    display: none;
-  }
-  .modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    margin-top: 8px;
-  }
-
-  @media (max-width:980px){.hero,.service-grid,.config-layout,.info-grid,.reviews-grid,.staff-container{grid-template-columns:1fr}nav.mainnav{display:none}}
+  @media (max-width:980px){.hero,.service-grid,.config-layout,.info-grid,.reviews-grid{grid-template-columns:1fr}nav.mainnav{display:none}}
 </style>
 </head>
 <body>
@@ -209,7 +151,7 @@
     <nav class="mainnav">
       <div class="navlink active" data-view="home">Home</div>
       <div class="navlink" data-view="services">Services</div>
-      <div class="navlink staff-btn" data-view="staff-dashboard">⚡ Staff Panel</div>
+      <a href="https://panel.stella-host.de" target="_blank" class="navlink staff-btn">⚡ Panel</a>
     </nav>
   </header>
 
@@ -218,8 +160,8 @@
       <div>
         <div class="eyebrow">Hosting-Infrastruktur</div>
         <h1>Server, die halten,<br>was Stella verspricht.</h1>
-        <p class="lead">Minecraft-, FiveM-, VPS- und Webspace-Hosting auf echter NVMe-Hardware. Ohne Overselling, im Live-DDoS-Schutzverbund.</p>
-        <div style="margin-top:36px"><button class="btn primary navlink" data-view="services">Services ansehen →</button></div>
+        <p class="lead">Kostenloses Minecraft-, Bot- und Webspace-Hosting auf echter Hardware. Ohne versteckte Kosten, im Live-DDoS-Schutzverbund.</p>
+        <div style="margin-top:36px"><button class="btn primary navlink" data-view="services">Kostenlose Services ansehen →</button></div>
       </div>
       <div class="discord-window" id="embed-anchor">
         <div class="dc-topbar"><span class="dc-channel"># live-status</span></div>
@@ -233,7 +175,7 @@
                 <div class="dc-embed">
                   <div class="dc-embed-accent"></div>
                   <div class="dc-embed-body">
-                    <div class="dc-embed-title">Alle Nodes stabil online</div>
+                    <div class="dc-embed-title">Alle Free-Nodes stabil online</div>
                     <div class="dc-embed-desc">Cluster Uptime beträgt aktuell 99.98%. All System Ready.</div>
                     <div class="dc-stats">
                       <div class="dc-stat"><div class="num" data-target="99.9" data-suffix="%">0</div><div class="lbl">Uptime</div></div>
@@ -277,8 +219,8 @@
             </div>
             <span>Trustpilot</span>
           </div>
-          <p>"Der FiveM Server läuft seit 3 Monaten ohne einen einzigen Ruckler. Der DDoS-Schutz hat schon zwei schwere Angriffe komplett unsichtbar gefiltert."</p>
-          <div class="author">Marc K. <span class="verified">✓ Verifiziert</span></div><div class="role">Projektleiter Roleplay-Community</div>
+          <p>"Kaum zu fassen, dass dieser Service komplett kostenlos ist! Der Minecraft Server läuft seit 3 Monaten ohne einen Ruckler. Der DDoS-Schutz ist top."</p>
+          <div class="author">Marc K. <span class="verified">✓ Verifiziert</span></div><div class="role">Projektleiter Community</div>
         </div>
         <div class="review-card">
           <div class="tp-badge">
@@ -291,8 +233,8 @@
             </div>
             <span>Trustpilot</span>
           </div>
-          <p>"Extrem schnelles Setup über die Ticket-ID. Unser Minecraft-Modpack startet mit den dedizierten Kernen in unter 20 Sekunden. Absolut empfehlenswert."</p>
-          <div class="author">Syntox_TV <span class="verified">✓ Verifiziert</span></div><div class="role">Twitch Streamer & Host</div>
+          <p>"Extrem schnelles Setup über die Ticket-ID. Ich zahle absolut gar nichts für mein Webhosting und alles startet rasend schnell. Absolut empfehlenswert."</p>
+          <div class="author">Syntox_TV <span class="verified">✓ Verifiziert</span></div><div class="role">Twitch Streamer</div>
         </div>
         <div class="review-card">
           <div class="tp-badge">
@@ -305,8 +247,8 @@
             </div>
             <span>Trustpilot</span>
           </div>
-          <p>"Nutze den VPS für meine Web-Apps und Bots. Die Pings sind fantastisch stabil und der Support via Discord antwortet meistens in wenigen Minuten."</p>
-          <div class="author">Laura M. <span class="verified">✓ Verifiziert</span></div><div class="role">Fullstack Entwicklerin</div>
+          <p>"Nutze das kostenfreie Bot-Hosting für meine Discord-Bots. Die Pings sind fantastisch und der Support via Discord antwortet meistens in wenigen Minuten."</p>
+          <div class="author">Laura M. <span class="verified">✓ Verifiziert</span></div><div class="role">Hobby-Entwicklerin</div>
         </div>
       </div>
     </section>
@@ -316,12 +258,12 @@
       <p class="sub-sub">Unsere Qualitätsmerkmale im Überblick.</p>
       <div class="info-grid">
         <div class="info-card">
-          <h3>Echte NVMe Hardware</h3>
-          <p>Wir setzen konsequent auf Enterprise NVMe SSDs und moderne Prozessoren. Kein geteilter Flaschenhals, maximale I/O-Leistung für deine Projekte.</p>
+          <h3>Echte Hardware, Gratis</h3>
+          <p>Wir setzen konsequent auf Enterprise SSDs und moderne Prozessoren. Kostenlos heißt bei uns nicht langsam – maximale I/O-Leistung für deine Projekte.</p>
         </div>
         <div class="info-card">
           <h3>Kein Overselling</h3>
-          <p>Was du buchst, gehört dir. Ressourcen werden auf unseren Nodes fest zugewiesen, sodass dein Server auch bei Volllast absolut flüssig läuft.</p>
+          <p>Ressourcen werden auf unseren Nodes fest zugewiesen, sodass dein Server auch bei Volllast flüssig läuft, obwohl er komplett kostenfrei ist.</p>
         </div>
         <div class="info-card">
           <h3>Permanent DDoS-Schutz</h3>
@@ -329,7 +271,7 @@
         </div>
         <div class="info-card">
           <h3>Volle Flexibilität</h3>
-          <p>Keine versteckten Verträge. Verwalte deine Setups unkompliziert per Ticket und passe Ressourcen flexibel an, wenn deine Community wächst.</p>
+          <p>Keine versteckten Verträge, keine hinterlegten Zahlungsdaten. Verwalte deine Setups unkompliziert per Ticket und passe Ressourcen flexibel an.</p>
         </div>
       </div>
     </section>
@@ -339,20 +281,20 @@
       <p class="sub-sub" style="text-align:center;">Alles, was du vor dem Start wissen musst.</p>
       <div class="faq-wrap">
         <div class="faq-item">
-          <div class="faq-trigger"><h3>Wie funktioniert die Bestellung per Ticket-ID?</h3><span>+</span></div>
-          <div class="faq-content"><div class="faq-content-inner">Unser System generiert nach dem Konfigurieren eine verschlüsselte ID (z.B. ST-MC-211-AZ). Diese postest du einfach in unserem Discord-Support. Ein Teammitglied liest die ID direkt aus, sodass dein Server exakt nach Wunsch manuell und fehlerfrei bereitgestellt wird.</div></div>
+          <div class="faq-trigger"><h3>Sind die Dienste wirklich komplett kostenlos?</h3><span>+</span></div>
+          <div class="faq-content"><div class="faq-content-inner">Ja! Unser Hosting für Minecraft, Webspace und Discord-Bots ist zu 100% kostenfrei. Es gibt keine versteckten Gebühren oder Abo-Fallen.</div></div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-trigger"><h3>Muss ich Zahlungsdaten hinterlegen?</h3><span>+</span></div>
+          <div class="faq-content"><div class="faq-content-inner">Nein, da unsere Dienste (mit Ausnahme der Premium KVM-Server) kostenlos sind, musst du bei der Registrierung keine Bank- oder Kreditkartendaten angeben.</div></div>
         </div>
         <div class="faq-item">
           <div class="faq-trigger"><h3>Gibt es versteckte Vertragslaufzeiten?</h3><span>+</span></div>
-          <div class="faq-content"><div class="faq-content-inner">Nein, bei Stella Host setzen wir auf absolute Transparenz. Alle Server laufen auf Prepaid-Basis oder mit monatlich kündbaren Intervallen. Lädst du dein Guthaben nicht auf oder kündigst im Ticket, läuft der Server einfach aus.</div></div>
+          <div class="faq-content"><div class="faq-content-inner">Nein, bei Stella Host setzen wir auf absolute Transparenz. Kostenlose Server kannst du jederzeit über unser Support-System wieder beenden.</div></div>
         </div>
         <div class="faq-item">
-          <div class="faq-trigger"><h3>Welche Zahlungsmethoden werden akzeptiert?</h3><span>+</span></div>
-          <div class="faq-content"><div class="faq-content-inner">Wir akzeptieren alle gängigen Zahlungsmethoden wie PayPal, Paysafecard und Krypto-Zahlungen. Die Abrechnung erfolgt unkompliziert direkt während der Ticketeröffnung.</div></div>
-        </div>
-        <div class="faq-item">
-          <div class="faq-trigger"><h3>Was passiert bei einem DDoS-Angriff?</h3><span>+</span></div>
-          <div class="faq-content"><div class="faq-content-inner">Unser Schutzsystem läuft permanent im Hintergrund. Sobald schadhafter Traffic erkannt wird, schalten sich unsere automatischen Filterregeln live davor. Dein Server bleibt online und die Spieler merken im Idealfall absolut nichts davon.</div></div>
+          <div class="faq-trigger"><h3>Wie funktioniert die Bestellung per Ticket-ID?</h3><span>+</span></div>
+          <div class="faq-content"><div class="faq-content-inner">Unser System generiert nach dem Konfigurieren eine verschlüsselte ID. Diese postest du einfach in unserem Discord-Support. Ein Teammitglied liest die ID aus und stellt den Server bereit.</div></div>
         </div>
       </div>
     </section>
@@ -360,88 +302,10 @@
     <footer><span>© 2026 Stella Host</span><span>Made for communities</span></footer>
   </div>
 
-  <div class="view" id="view-services"><section><div class="services-hero"><h1>Was möchtest du hosten?</h1><p>Wähle einen Basis-Service, um die Konfiguration zu starten.</p></div><div class="service-grid" id="service-grid"></div></section></div>
+  <div class="view" id="view-services"><section><div class="services-hero"><h1>Was möchtest du hosten?</h1><p>Wähle einen Service, um die Konfiguration zu starten.</p></div><div class="service-grid" id="service-grid"></div></section></div>
   
-  <div class="view" id="view-configurator"><section class="configurator"><div class="back-link" id="back-to-services">← Zurück</div><div class="config-layout"><div id="config-options"></div><div class="summary"><h3>Zusammenfassung</h3><div id="summary-lines" style="margin:15px 0"></div><div class="summary-total"><span>Gesamt</span><span id="summary-total">0.00 €</span></div><button class="btn primary" id="order-btn" style="width:100%;margin-top:20px;justify-content:center">Jetzt bestellen →</button></div></div></section></div>
+  <div class="view" id="view-configurator"><section class="configurator"><div class="back-link" id="back-to-services">← Zurück</div><div class="config-layout"><div id="config-options"></div><div class="summary"><h3>Zusammenfassung</h3><div id="summary-lines" style="margin:15px 0"></div><div class="summary-total"><span>Gesamt</span><span id="summary-total">0.00 €</span></div><button class="btn primary" id="order-btn" style="width:100%;margin-top:20px;justify-content:center">Jetzt anfordern →</button></div></div></section></div>
 
-  <div class="view" id="view-staff-dashboard">
-    <section>
-      <div class="sub-section staff-headline" style="border:none; padding-bottom:10px;">
-        <h2>Stella Host Admin Kontrollzentrum</h2>
-        <p class="sub-sub">Interne Tools & Live-Management-Schnittstellen für Administratoren.</p>
-      </div>
-
-      <div style="background:#ff9800; color:#000; padding:10px 20px; border-radius:10px; margin-bottom:24px; font-weight:bold; font-size:0.8rem; display:flex; justify-content:space-between; align-items:center;">
-        <span id="staff-live-ticker">⚡ TICKER: Systemstatus Normal // Keine Anomalien erkannt.</span>
-        <span style="font-family:var(--fm);" id="staff-ticker-time">00:00:00</span>
-      </div>
-
-      <div class="staff-container">
-        
-        <div class="staff-card full-width">
-          <h3>🔍 Konfigurations-Verfolgung & ID-Decoder</h3>
-          <p style="color:var(--d);font-size:0.8rem; margin-bottom:15px">Gefundene Ticket-IDs entschlüsseln, um Hardware-Konfigurationen einzusehen.</p>
-          <div class="search-input-group" style="display:flex; gap:12px;">
-            <input type="text" class="staff-input" id="search-id-input" placeholder="z.B. ST-MC-211-AZ" style="margin:0;">
-            <button class="staff-btn-small" id="search-id-btn" style="border-color:#ff9800; color:#ff9800;">Entschlüsseln</button>
-          </div>
-          <div class="results-box" id="search-results">
-            <div class="status-badge">Eintrag Entschlüsselt</div>
-            <h3 id="result-service-name" style="color:#fff; margin-bottom:10px;">-</h3>
-            <div style="margin:15px 0; font-size:0.85rem;" id="result-lines"></div>
-            <div class="summary-total" style="border-top:1px solid var(--b1); padding-top:10px;">
-              <span style="font-size:0.85rem;">Berechneter Preis:</span>
-              <span id="result-total-price" style="font-size:1.4rem;font-weight:bold;color:#ff9800">0.00 €</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="staff-card">
-          <h3>💳 Kunden-Guthaben anpassen</h3>
-          <p style="color:var(--d);font-size:0.8rem; margin-bottom:12px">Erhöhe oder reduziere Guthaben für eine Discord-User-ID.</p>
-          <input type="text" class="staff-input" id="credit-user" placeholder="Discord Username oder ID">
-          <input type="number" class="staff-input" id="credit-amount" placeholder="Betrag in € (z.B. 25)">
-          <div class="staff-btn-group">
-            <button class="staff-btn-small" onclick="adjustCredits(true)">+ Buchen</button>
-            <button class="staff-btn-small" onclick="adjustCredits(false)">- Abziehen</button>
-          </div>
-        </div>
-
-        <div class="staff-card">
-          <h3>🎟️ Rabattcode-Generator</h3>
-          <p style="color:var(--d);font-size:0.8rem; margin-bottom:12px">Erstelle temporäre Marketing-Codes für Aktionen.</p>
-          <input type="text" class="staff-input" id="promo-value" placeholder="Rabatt-Wert in % (z.B. 15)">
-          <div class="staff-btn-group">
-            <button class="staff-btn-small" onclick="generatePromoCode()">Code generieren</button>
-          </div>
-          <div id="promo-result" style="margin-top:12px; font-family:var(--fm); font-size:0.85rem; color:#ff9800;"></div>
-        </div>
-
-        <div class="staff-card">
-          <h3>🚫 Blacklist & IP-Bann-System</h3>
-          <p style="color:var(--d);font-size:0.8rem; margin-bottom:12px">Gesperrte IPs oder Netzwerke direkt vom Web-Cluster trennen.</p>
-          <input type="text" class="staff-input" id="ban-ip" placeholder="IP-Adresse (z.B. 45.12.88.102)">
-          <button class="staff-btn-small" onclick="addIpBan()">Adresse blockieren</button>
-          <div class="badge-list" id="banned-ips-container">
-            <span class="banned-badge">185.22.14.99</span>
-            <span class="banned-badge">91.210.43.5</span>
-          </div>
-        </div>
-
-        <div class="staff-card">
-          <h3>📥 Offene Support-Tickets</h3>
-          <p style="color:var(--d);font-size:0.8rem; margin-bottom:12px">Aktuelle Discord-Warteschlange live bearbeiten.</p>
-          <div id="ticket-queue">
-            <div class="ticket-item" id="t-1">
-              <div><strong>#0821</strong> - Marc K. (Minecraft Fehler)</div>
-              <button class="staff-btn-small" onclick="closeTicket('t-1')">Schließen</button>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </section>
-  </div>
 </div>
 
 <div class="modal-overlay" id="order-modal">
@@ -450,21 +314,6 @@
     <p style="color:var(--d); font-size:0.82rem; margin-bottom:24px; line-height:1.6">Kopiere diese ID und sende sie uns in einem Discord-Support-Ticket, um die Einrichtung abzuschließen.</p>
     <div class="modal-id-display" id="modal-generated-id">ST-XXXX-XXXX</div>
     <button class="btn primary" onclick="closeModal()" style="width:100%; justify-content:center">Schließen & Kopieren</button>
-  </div>
-</div>
-
-<div class="modal-overlay" id="staff-login-modal">
-  <div class="modal-box">
-    <h3>🔒 Staff Authentifizierung</h3>
-    <p>Geben Sie den Autorisierungsschlüssel ein, um fortzufahren.</p>
-    
-    <input type="password" class="staff-input" id="staff-password-input" placeholder="Passwort eingeben...">
-    <div id="staff-login-err">Ungültiges Administrator-Passwort!</div>
-    
-    <div class="modal-actions">
-      <button class="staff-btn-small" id="staff-login-cancel-btn">Abbrechen</button>
-      <button class="staff-btn-small" id="staff-login-confirm-btn" style="border-color:#ff9800; background:#ff9800; color:#000;">Login</button>
-    </div>
   </div>
 </div>
 
@@ -504,24 +353,24 @@
   }
   animateStars();
 
-  // APP DATA STRUCTS
+  // APP DATA STRUCTS (Updated Prices to Free)
   const SERVICES = [
-    { id:'mc', name:'Minecraft Dedicated', basePrice:2.50, desc:'Dedizierte Ryzen CPU-Kerne, unbegrenzter NVMe-Speicher.', opts:[
-      {title:'Arbeitsspeicher (RAM)', key:'ram', type:'select', items:[{l:'4 GB', p:0},{l:'8 GB', p:4},{l:'16 GB', p:12},{l:'32 GB', p:24}]},
-      {title:'Standort', key:'loc', type:'select', items:[{l:'Frankfurt am Main (Falkenstein)', p:0},{l:'Helsinki (Finnland)', p:-0.5}]},
-      {title:'Zusatz-Features', key:'feat', type:'check', items:[{l:'Dedizierte IPv4 Adresse', p:3, id:'ip'},{l:'Automatisches Backup-Intervall', p:1.5, id:'bk'}]}
+    { id:'mc', name:'Minecraft Dedicated', basePrice:0.00, desc:'Dedizierte Ryzen CPU-Kerne, unbegrenzter Speicher. Komplett Free.', opts:[
+      {title:'Arbeitsspeicher (RAM)', key:'ram', type:'select', items:[{l:'4 GB', p:0},{l:'8 GB', p:0},{l:'16 GB', p:0},{l:'32 GB', p:0}]},
+      {title:'Standort', key:'loc', type:'select', items:[{l:'Frankfurt am Main (Falkenstein)', p:0},{l:'Helsinki (Finnland)', p:0}]},
+      {title:'Zusatz-Features', key:'feat', type:'check', items:[{l:'Automatisches Backup-Intervall', p:0, id:'bk'}]}
     ]},
-    { id:'vps', name:'KVM Rootserver (VPS)', basePrice:4.90, desc:'Voller Root-Zugriff, schnelle Anbindung, DDR5 RAM.', opts:[
+    { id:'vps', name:'KVM Rootserver (Premium)', basePrice:4.90, desc:'Voller Root-Zugriff, schnelle Anbindung, DDR5 RAM. (Bezahlter Service)', opts:[
       {title:'CPU & RAM Verbund', key:'cpu', type:'select', items:[{l:'2 vCore / 4GB RAM', p:0},{l:'4 vCore / 8GB RAM', p:5},{l:'6 vCore / 16GB RAM', p:13}]},
       {title:'Betriebssystem', key:'os', type:'select', items:[{l:'Debian 12 (Bookworm)', p:0},{l:'Ubuntu 24.04 LTS', p:0},{l:'Windows Server 2022', p:6}]},
       {title:'Netzwerk', key:'net', type:'check', items:[{l:'Premium Uplink 2.5 Gbit/s', p:2.5, id:'up'}]}
     ]},
-    { id:'bot', name:'Discord Bot Hosting', basePrice:1.00, desc:'24/7 Laufzeitgarantie für NodeJS, Python oder Java.', opts:[
-      {title:'Bot Instanzen', key:'inst', type:'select', items:[{l:'1 aktiver Bot', p:0},{l:'3 aktive Bots', p:1.5},{l:'Unbegrenzt', p:4}]},
-      {title:'Speicherplatz', key:'storage', type:'select', items:[{l:'5 GB NVMe SSD', p:0},{l:'20 GB NVMe SSD', p:2}]}
+    { id:'bot', name:'Discord Bot Hosting', basePrice:0.00, desc:'24/7 Laufzeitgarantie für NodeJS, Python oder Java. Kostenfrei.', opts:[
+      {title:'Bot Instanzen', key:'inst', type:'select', items:[{l:'1 aktiver Bot', p:0},{l:'3 aktive Bots', p:0},{l:'Unbegrenzt', p:0}]},
+      {title:'Speicherplatz', key:'storage', type:'select', items:[{l:'5 GB NVMe SSD', p:0},{l:'20 GB NVMe SSD', p:0}]}
     ]},
-    { id:'web', name:'Webspace / Plesk', basePrice:1.90, desc:'Inklusive NVMe-Webspace, SSL-Zertifikaten und Plesk Panel.', opts:[
-      {title:'Domains & Speicher', key:'webspace', type:'select', items:[{l:'1 Domain / 10GB', p:0},{l:'5 Domains / 50GB', p:3},{l:'Unlimitiert', p:7}]}
+    { id:'web', name:'Webspace / Plesk', basePrice:0.00, desc:'Inklusive NVMe-Webspace, SSL-Zertifikaten und Plesk. 100% Free.', opts:[
+      {title:'Domains & Speicher', key:'webspace', type:'select', items:[{l:'1 Domain / 10GB', p:0},{l:'5 Domains / 50GB', p:0},{l:'Unlimitiert', p:0}]}
     ]}
   ];
 
@@ -533,12 +382,6 @@
   const views = document.querySelectorAll('.view');
 
   function switchView(viewId) {
-    // Falls das Staff-Dashboard direkt angewählt wird (z.B. über manuelle Aufrufe), verhindern wir das
-    if (viewId === 'staff-dashboard' && !isStaffAuthenticated) {
-      openStaffLoginModal();
-      return;
-    }
-
     views.forEach(v => v.classList.remove('active'));
     navlinks.forEach(l => {
       l.classList.remove('active');
@@ -550,62 +393,9 @@
     window.scrollTo(0,0);
   }
 
-  // --- NEUE LOGIK FÜR DAS STAFF LOGIN POPUP ---
-  let isStaffAuthenticated = false;
-  const staffLoginModal = document.getElementById('staff-login-modal');
-  const staffPasswordInput = document.getElementById('staff-password-input');
-  const staffLoginErr = document.getElementById('staff-login-err');
-
-  function openStaffLoginModal() {
-    staffPasswordInput.value = "";
-    staffLoginErr.style.display = "none";
-    staffLoginModal.classList.add('active');
-    staffPasswordInput.focus();
-  }
-
-  function closeStaffLoginModal() {
-    staffLoginModal.classList.remove('active');
-  }
-
-  // Event Listener für den Staff Nav Button abfangen
-  document.querySelector('.navlink.staff-btn').addEventListener('click', function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    if (isStaffAuthenticated) {
-      switchView('staff-dashboard');
-    } else {
-      openStaffLoginModal();
-    }
-  });
-
-  // Login absenden Event Handler
-  function handleStaffLogin() {
-    const enteredPassword = staffPasswordInput.value;
-    if (enteredPassword === "stella2026") {
-      isStaffAuthenticated = true;
-      closeStaffLoginModal();
-      switchView('staff-dashboard');
-    } else {
-      staffLoginErr.style.display = "block";
-      staffPasswordInput.select();
-    }
-  }
-
-  document.getElementById('staff-login-confirm-btn').addEventListener('click', handleStaffLogin);
-  
-  staffPasswordInput.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') handleStaffLogin();
-  });
-
-  document.getElementById('staff-login-cancel-btn').addEventListener('click', function() {
-    closeStaffLoginModal();
-    switchView('home'); // Schicke den User zurück auf die Startseite
-  });
-
-
-  // Standard Nav-Link Logik für alle anderen Seiten
+  // Standard Nav-Link Logik (Staff Panel ignoriert, da es jetzt ein direkter Link ist)
   navlinks.forEach(link => {
-    if (link.classList.contains('staff-btn')) return; // Überspringen, da oben separat geregelt
+    if (link.classList.contains('staff-btn')) return;
     link.addEventListener('click', () => {
       switchView(link.getAttribute('data-view'));
     });
@@ -616,12 +406,17 @@
   SERVICES.forEach(s => {
     const card = document.createElement('div');
     card.className = 'service-card';
+    
+    const priceDisplay = s.basePrice === 0 
+        ? `Kostenlos` 
+        : `ab ${s.basePrice.toFixed(2)} € <span style="font-size:0.65rem;color:var(--f)">/ Mo</span>`;
+
     card.innerHTML = `
       <div class="service-index">// 0${SERVICES.indexOf(s)+1}</div>
       <h3>${s.name}</h3>
       <p style="margin-top:8px; font-size:0.8rem; color:var(--d); line-height:1.6">${s.desc}</p>
       <div class="service-foot">
-        <span class="service-price">ab ${s.basePrice.toFixed(2)} € <span style="font-size:0.65rem;color:var(--f)">/ Mo</span></span>
+        <span class="service-price">${priceDisplay}</span>
         <span style="font-size:0.8rem; color:#ff9800">Konfigurieren →</span>
       </div>
     `;
@@ -662,7 +457,7 @@
           const box = document.createElement('div');
           box.className = `opt-box ${isSel?'selected':''}`;
           box.innerHTML = `<div class="lab" style="font-size:0.82rem;font-weight:600;color:${isSel?'var(--bg)':'#fff'}">${item.l}</div>
-                           <div class="delta" style="font-size:0.62rem;margin-top:4px;color:${isSel?'#555':'var(--f)'}">${item.p===0?'Inkl.':'+'+item.p.toFixed(2)+'€'}</div>`;
+                           <div class="delta" style="font-size:0.62rem;margin-top:4px;color:${isSel?'#555':'var(--f)'}">${item.p===0?'Inkl. / Gratis':'+'+item.p.toFixed(2)+'€'}</div>`;
           box.onclick = () => {
             currentSelections.select[o.key] = item;
             renderConfigOptions();
@@ -682,7 +477,7 @@
           box.className = `check-box ${isSel?'selected':''}`;
           box.innerHTML = `<div>
                             <div style="font-size:0.82rem;font-weight:600">${item.l}</div>
-                            <div style="font-size:0.65rem;color:var(--f);margin-top:2px">+ ${item.p.toFixed(2)} € / Monat</div>
+                            <div style="font-size:0.65rem;color:var(--f);margin-top:2px">${item.p===0?'Kostenlos':'+ ' + item.p.toFixed(2) + ' € / Monat'}</div>
                            </div>
                            <div class="checkmark">${isSel?'<svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:var(--bg)"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>':''}</div>`;
           box.onclick = () => {
@@ -702,7 +497,7 @@
   function calculateTotal() {
     let total = currentService.basePrice;
     const linesWrap = document.getElementById('summary-lines');
-    linesWrap.innerHTML = `<div class="summary-line"><span class="k">Basispreis</span><span class="v">${currentService.basePrice.toFixed(2)} €</span></div>`;
+    linesWrap.innerHTML = `<div class="summary-line"><span class="k">Basispreis</span><span class="v">${currentService.basePrice === 0 ? 'Kostenlos' : currentService.basePrice.toFixed(2) + ' €'}</span></div>`;
     
     Object.values(currentSelections.select).forEach(item => {
       total += item.p;
@@ -712,10 +507,12 @@
     });
     Object.values(currentSelections.check).forEach(item => {
       total += item.p;
-      linesWrap.innerHTML += `<div class="summary-line"><span class="k">${item.l}</span><span class="v">+${item.p.toFixed(2)} €</span></div>`;
+      if(item.p !== 0) {
+        linesWrap.innerHTML += `<div class="summary-line"><span class="k">${item.l}</span><span class="v">+${item.p.toFixed(2)} €</span></div>`;
+      }
     });
     
-    document.getElementById('summary-total').innerText = `${total.toFixed(2)} €`;
+    document.getElementById('summary-total').innerText = total === 0 ? '0.00 €' : `${total.toFixed(2)} €`;
   }
 
   document.getElementById('back-to-services').onclick = () => switchView('services');
@@ -768,64 +565,6 @@
       if(!isOpen) item.classList.add('open');
     };
   });
-
-  // ---------- STAFF PANEL FUNCTIONS ----------
-  setInterval(() => {
-    const now = new Date();
-    document.getElementById('staff-ticker-time').innerText = now.toTimeString().split(' ')[0];
-  }, 1000);
-
-  document.getElementById('search-id-btn').onclick = function() {
-    const id = document.getElementById('search-id-input').value.toUpperCase().trim();
-    const resBox = document.getElementById('search-results');
-    
-    if(!id) return;
-    
-    let type = "Unbekanntes Paket";
-    let hardware = "Standard Node Allocation";
-    let calculated = "5.00 €";
-    
-    if(id.includes("-MC")) { type = "Minecraft Dedicated Node v4"; hardware = "AMD Ryzen 9 7950X3D // 16GB Dedicated RAM // NVMe Raid 1"; calculated = "14.50 €"; }
-    else if(id.includes("-KVM")) { type = "KVM Rootserver Cluster 2"; hardware = "Intel Xeon Gold // 4 vCores // 8GB RAM Cores"; calculated = "9.90 €"; }
-    else if(id.includes("-BOT")) { type = "Discord Bot Multi-Instance"; hardware = "NodeJS / Python Container Isolated Runtime"; calculated = "2.50 €"; }
-    else if(id.includes("-WEB")) { type = "Enterprise Webspace Plesk Pro"; hardware = "Apache/Nginx Reverse-Proxy NVMe Bound"; calculated = "4.90 €"; }
-    
-    document.getElementById('result-service-name').innerText = type;
-    document.getElementById('result-lines').innerHTML = `
-      <div style="margin-bottom:4px; color:var(--d)"><strong>Hardware:</strong> ${hardware}</div>
-      <div style="color:var(--d)"><strong>Ticket-Referenz:</strong> Verifiziert über Cluster-Core</div>
-    `;
-    document.getElementById('result-total-price').innerText = calculated;
-    resBox.classList.add('active');
-  };
-
-  function adjustCredits(isAdd) {
-    const user = document.getElementById('credit-user').value;
-    const amount = document.getElementById('credit-amount').value;
-    if(!user || !amount) return alert("Bitte User-ID und Betrag angeben.");
-    alert(`Guthaben-Schnittstelle erfolgreich:\nDem User '${user}' wurden ${amount}€ ${isAdd?'gutgeschrieben':'abgezogen'}.`);
-  }
-
-  function generatePromoCode() {
-    const val = document.getElementById('promo-value').value || "10";
-    const code = "STELLA-" + val + "OFF-" + Math.floor(100 + Math.random()*900);
-    document.getElementById('promo-result').innerText = `Code erstellt: ${code} (-${val}%)`;
-  }
-
-  function addIpBan() {
-    const ip = document.getElementById('ban-ip').value;
-    if(!ip) return;
-    const badge = document.createElement('span');
-    badge.className = 'banned-badge';
-    badge.innerText = ip;
-    document.getElementById('banned-ips-container').appendChild(badge);
-    document.getElementById('ban-ip').value = "";
-  }
-
-  function closeTicket(id) {
-    const item = document.getElementById(id);
-    if(item) item.remove();
-  }
 </script>
 </body>
 </html>
