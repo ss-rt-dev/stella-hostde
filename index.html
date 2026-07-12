@@ -49,22 +49,11 @@
   .sub-section h2{font-family:var(--fd);font-size:1.7rem;margin-bottom:5px}
   .sub-sub{color:var(--d);font-size:0.85rem;margin-bottom:35px}
   
-  .info-grid,.reviews-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}
-  .info-card,.review-card{background:var(--p1);border:1px solid var(--b1);border-radius:18px;padding:30px;transition:border .2s}
-  .info-card:hover,.review-card:hover{border-color:var(--b2)}
+  .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}
+  .info-card{background:var(--p1);border:1px solid var(--b1);border-radius:18px;padding:30px;transition:border .2s}
+  .info-card:hover{border-color:var(--b2)}
   .info-card h3{font-family:var(--fd);font-size:1.15rem;margin-bottom:10px}
-  .info-card p,.review-card p{font-size:0.8rem;color:var(--d);line-height:1.6}
-  
-  /* Trustpilot Styling */
-  .tp-header{display:flex;align-items:center;gap:15px;margin-bottom:25px;background:rgba(0,182,122,0.05);padding:15px 20px;border-radius:12px;border:1px solid rgba(0,182,122,0.15);width:fit-content}
-  .tp-stars-wrap{display:flex;gap:4px}
-  .tp-star-box{width:20px;height:20px;background:var(--tp-green);display:flex;align-items:center;justify-content:center;border-radius:2px}
-  .tp-star-box svg{width:14px;height:14px;fill:#fff}
-  .review-card .tp-badge{display:flex;align-items:center;gap:6px;margin-bottom:15px}
-  .review-card .tp-badge span{font-size:0.75rem;font-weight:600;color:var(--tp-green);font-family:'Inter',sans-serif}
-  .review-card .author{font-size:0.85rem;font-weight:600;margin-top:15px;color:var(--w);display:flex;align-items:center;gap:6px}
-  .review-card .verified{font-size:0.65rem;color:var(--tp-green);background:rgba(0,182,122,0.1);padding:2px 6px;border-radius:4px}
-  .review-card .role{font-size:0.68rem;color:var(--f);margin-top:2px}
+  .info-card p{font-size:0.8rem;color:var(--d);line-height:1.6}
 
   /* FAQ Accordion */
   .faq-wrap{max-width:800px;margin:0 auto}
@@ -139,7 +128,7 @@
   .modal-id-display{background:var(--bg);border:1px dashed var(--b2);border-radius:12px;padding:16px;font-family:var(--fm);font-size:1.15rem;font-weight:600;color:#ff9800;margin-bottom:26px}
   footer{padding:40px 0;display:flex;justify-content:space-between;color:var(--f);font-size:0.72rem;border-top:1px solid var(--b1);margin-top:60px}
 
-  @media (max-width:980px){.hero,.service-grid,.config-layout,.info-grid,.reviews-grid{grid-template-columns:1fr}nav.mainnav{display:none}}
+  @media (max-width:980px){.hero,.service-grid,.config-layout,.info-grid{grid-template-columns:1fr}nav.mainnav{display:none}}
 </style>
 </head>
 <body>
@@ -187,68 +176,6 @@
               </div>
             </div>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="sub-section">
-      <h2>Kundenbewertungen</h2>
-      <p class="sub-sub">Unabhängiges Feedback direkt von Trustpilot bezogen.</p>
-      
-      <div class="tp-header">
-        <span style="font-family:'Inter',sans-serif; font-weight:700; font-size:1.05rem; letter-spacing:-0.03em;">Trustpilot</span>
-        <div class="tp-stars-wrap">
-          <div class="tp-star-box"><svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
-          <div class="tp-star-box"><svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
-          <div class="tp-star-box"><svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
-          <div class="tp-star-box"><svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
-          <div class="tp-star-box"><svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
-        </div>
-        <span style="font-size:0.8rem; color:var(--d);">Hervorragend 4.9 / 5</span>
-      </div>
-
-      <div class="reviews-grid">
-        <div class="review-card">
-          <div class="tp-badge">
-            <div class="tp-stars-wrap">
-              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
-              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
-              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
-              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
-              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
-            </div>
-            <span>Trustpilot</span>
-          </div>
-          <p>"Kaum zu fassen, dass dieser Service komplett kostenlos ist! Der Minecraft Server läuft seit 3 Monaten ohne einen Ruckler. Der DDoS-Schutz ist top."</p>
-          <div class="author">Marc K. <span class="verified">✓ Verifiziert</span></div><div class="role">Projektleiter Community</div>
-        </div>
-        <div class="review-card">
-          <div class="tp-badge">
-            <div class="tp-stars-wrap">
-              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
-              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
-              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
-              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
-              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
-            </div>
-            <span>Trustpilot</span>
-          </div>
-          <p>"Extrem schnelles Setup über die Ticket-ID. Ich zahle absolut gar nichts für mein Webhosting und alles startet rasend schnell. Absolut empfehlenswert."</p>
-          <div class="author">Syntox_TV <span class="verified">✓ Verifiziert</span></div><div class="role">Twitch Streamer</div>
-        </div>
-        <div class="review-card">
-          <div class="tp-badge">
-            <div class="tp-stars-wrap">
-              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
-              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
-              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
-              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
-              <div class="tp-star-box" style="width:14px; height:14px;"><svg viewBox="0 0 24 24" style="width:10px; height:10px;"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
-            </div>
-            <span>Trustpilot</span>
-          </div>
-          <p>"Nutze das kostenfreie Bot-Hosting für meine Discord-Bots. Die Pings sind fantastisch und der Support via Discord antwortet meistens in wenigen Minuten."</p>
-          <div class="author">Laura M. <span class="verified">✓ Verifiziert</span></div><div class="role">Hobby-Entwicklerin</div>
         </div>
       </div>
     </section>
@@ -393,7 +320,7 @@
     window.scrollTo(0,0);
   }
 
-  // Standard Nav-Link Logik (Staff Panel ignoriert, da es jetzt ein direkter Link ist)
+  // Standard Nav-Link Logik
   navlinks.forEach(link => {
     if (link.classList.contains('staff-btn')) return;
     link.addEventListener('click', () => {
