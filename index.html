@@ -226,7 +226,13 @@
       </div>
     </section>
 
-    <footer><span>© 2026 Stella Host</span><span>Made for communities</span></footer>
+    <footer>
+      <span>© 2026 Stella Host</span>
+      <span style="display:flex; gap:15px; align-items:center;">
+        <a href="#" id="open-impressum" style="color:var(--f); text-decoration:none; transition: color 0.2s;">Impressum</a>
+        <span>Made for communities</span>
+      </span>
+    </footer>
   </div>
 
   <div class="view" id="view-services"><section><div class="services-hero"><h1>Was möchtest du hosten?</h1><p>Wähle einen Service, um die Konfiguration zu starten.</p></div><div class="service-grid" id="service-grid"></div></section></div>
@@ -241,6 +247,20 @@
     <p style="color:var(--d); font-size:0.82rem; margin-bottom:24px; line-height:1.6">Kopiere diese ID und sende sie uns in einem Discord-Support-Ticket, um die Einrichtung abzuschließen.</p>
     <div class="modal-id-display" id="modal-generated-id">ST-XXXX-XXXX</div>
     <button class="btn primary" onclick="closeModal()" style="width:100%; justify-content:center">Schließen & Kopieren</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="impressum-modal">
+  <div class="modal-box" style="text-align: left; padding: 30px;">
+    <h3 style="font-family:var(--fd); font-size:1.4rem; margin-bottom:15px; color:var(--w);">Impressum</h3>
+    <p style="color:var(--d); font-size:0.9rem; line-height:1.6; margin-bottom:10px;">
+      <strong>Name / rechtlicher Vertreter:</strong><br>
+      Justin Scheer<br><br>
+      <strong>Kontakt:</strong><br>
+      Telefon: +352621399411<br>
+      E-Mail: teyoorll@gmail.com
+    </p>
+    <button class="btn primary" onclick="closeImpressum()" style="width:100%; justify-content:center; margin-top:20px;">Schließen</button>
   </div>
 </div>
 
@@ -463,6 +483,16 @@
   function closeModal() {
     document.getElementById('order-modal').classList.remove('active');
     switchView('home');
+  }
+
+  // IMPRESSUM MODAL LOGIC
+  document.getElementById('open-impressum').onclick = (e) => {
+    e.preventDefault();
+    document.getElementById('impressum-modal').classList.add('active');
+  };
+
+  function closeImpressum() {
+    document.getElementById('impressum-modal').classList.remove('active');
   }
 
   // INTERACTIVE DISCORD EMBED TIMING ON HERO
