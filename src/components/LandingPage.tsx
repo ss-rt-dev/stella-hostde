@@ -1,23 +1,62 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import "../app/landing.css";
-import { landingMarkup, landingScript } from "./landing-content";
 
 export default function LandingPage() {
   const rootRef = useRef<HTMLDivElement>(null);
-  const ran = useRef(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (ran.current || !rootRef.current) return;
-    ran.current = true;
+    let cancelled = false;
 
-    rootRef.current.innerHTML = landingMarkup;
+    async function load() {
+      try {
+        const res = await fetch("/landing.html");
+        if (!res.ok) throw new Error("landing.html nicht gefunden");
+        const html = await res.text();
 
-    const el = document.createElement("script");
-    el.textContent = landingScript;
-    rootRef.current.appendChild(el);
+        if (cancelled || !rootRef.current) return;
+
+        // Body-Inhalt + Scripts extrahieren
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+        const body = doc.body;
+
+        // Scripts entfernen und separat ausführen
+        const scripts = Array.from(body.querySelectorAll("script"));
+        scripts.forEach((s) => s.remove());
+
+        rootRef.current.innerHTML = body.innerHTML;
+
+        // Original-Scripts ausführen
+        for (const s of scripts) {
+          const el = document.createElement("script");
+          if (s.src) {
+            el.src = s.src;
+          } else {
+            el.textContent = s.textContent;
+          }
+          rootRef.current.appendChild(el);
+        }
+      } catch (e: any) {
+        if (!cancelled) setError(e.message || "Fehler beim Laden");
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  if (error) {
+    return (
+      <div style={{ padding: 40, color: "#f66" }}>
+        Landingpage konnte nicht geladen werden: {error}
+      </div>
+    );
+  }
 
   return (
     <div
