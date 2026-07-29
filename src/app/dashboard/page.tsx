@@ -59,7 +59,7 @@ export default async function DashboardPage() {
         </div>
 
         <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-          <p className="text-sm text-zinc-400">Gesamt Server</p>
+          <p className="text-sm text-zinc-400">Insgesamte Server</p>
           <p className="mt-1 text-3xl font-bold">{user.servers.length}</p>
         </div>
       </div>
@@ -71,7 +71,7 @@ export default async function DashboardPage() {
         <div className="divide-y divide-zinc-800">
           {user.transactions.length === 0 ? (
             <p className="px-6 py-8 text-center text-zinc-500">
-              Noch keine Transaktionen
+              Du hast noch keine Transaktionen
             </p>
           ) : (
             user.transactions.map((t) => (
