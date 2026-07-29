@@ -1,21 +1,20 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "Server Dashboard",
-  description: "LXC Server mieten – Powered by Proxmox",
+  title: "Stella Host — Hosting, das trägt",
+  description:
+    "Premium Free-Hosting für Minecraft, Bots & Webprojekte. Schnell, zuverlässig, fair supportet.",
+  openGraph: {
+    title: "Stella Host — Hosting, das trägt",
+    description:
+      "Premium Free-Hosting für Minecraft, Bots & Webprojekte. Schnell, zuverlässig, fair supportet.",
+    url: "https://stella-host.de",
+    siteName: "Stella Host",
+    images: ["https://i.postimg.cc/25RvgMy6/sh-logo.png"],
+    type: "website",
+  },
 };
 
 export default function RootLayout({
@@ -24,11 +23,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="de"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-zinc-950 text-zinc-100">
+    <html lang="de">
+      <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;600&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body
+        className="min-h-screen antialiased"
+        style={{ background: "#060607", color: "#f6f6f4", margin: 0 }}
+      >
         <Providers>{children}</Providers>
       </body>
     </html>
