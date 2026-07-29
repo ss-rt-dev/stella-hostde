@@ -79,7 +79,7 @@ export default function LoginPage() {
         </button>
 
         <p className="text-center text-sm text-zinc-500">
-          Noch kein Konto?{" "}
+          Noch kein Konto? Jetzt Registrieren{" "}
           <Link href="/register" className="text-emerald-400 hover:underline">
             Registrieren
           </Link>
