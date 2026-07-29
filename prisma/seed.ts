@@ -12,7 +12,7 @@ async function main() {
         description: "Ideal zum Testen",
         cpu: 1,
         ramMb: 1024,
-        diskGb: 10,
+        diskGb: 5,
         pricePerHour: 0.02,
         proxmoxTemplateId:
           "local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst",
@@ -24,7 +24,7 @@ async function main() {
         description: "Für kleine Projekte",
         cpu: 2,
         ramMb: 2048,
-        diskGb: 20,
+        diskGb: 15,
         pricePerHour: 0.05,
         proxmoxTemplateId:
           "local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst",
@@ -36,7 +36,7 @@ async function main() {
         description: "Mehr Power",
         cpu: 4,
         ramMb: 4096,
-        diskGb: 40,
+        diskGb: 20,
         pricePerHour: 0.12,
         proxmoxTemplateId:
           "local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst",
@@ -48,21 +48,21 @@ async function main() {
   });
 
   // Admin-User (Passwort: admin123456)
-  const hash = await bcrypt.hash("admin123456", 12);
+  const hash = await bcrypt.hash("Jopo23%?06", 12);
   await prisma.user.upsert({
-    where: { email: "admin@example.com" },
+    where: { email: "justin@stella-host.de },
     update: {},
     create: {
-      email: "admin@example.com",
-      name: "Admin",
+      email: "justin@stella-host.de",
+      name: "Justin | Owner",
       passwordHash: hash,
       role: "ADMIN",
-      balance: 100,
+      balance: 100000,
     },
   });
 
   console.log("Seed fertig.");
-  console.log("Admin: admin@example.com / admin123456");
+  console.log("Justin wurde eingeloggt!");
 }
 
 main()
