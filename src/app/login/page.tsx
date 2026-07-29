@@ -79,9 +79,9 @@ export default function LoginPage() {
         </button>
 
         <p className="text-center text-sm text-zinc-500">
-          Noch kein Konto? Jetzt Registrieren{" "}
+          Noch kein Konto?{" "}
           <Link href="/register" className="text-emerald-400 hover:underline">
-            Registrieren
+            Jetzt Registrieren
           </Link>
         </p>
       </form>
