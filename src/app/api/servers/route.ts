@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { createLxc, getNextVmid, resolveNode } from "@/lib/proxmox";
-import { calcPricePerHour, clampConfig } from "@/lib/pricing";
+import { calcPricePerHour, clampConfig, PRICING } from "@/lib/pricing";
 import { z } from "zod";
 import { randomBytes } from "crypto";
 
@@ -11,9 +11,9 @@ export const maxDuration = 60;
 
 const createSchema = z.object({
   hostname: z.string().min(3).max(32).regex(/^[a-z0-9-]+$/),
-  cpu: z.number().int().min(1).max(16),
-  ramMb: z.number().int().min(512).max(32768),
-  diskGb: z.number().int().min(10).max(500),
+  cpu: z.number().int().min(PRICING.minCpu).max(PRICING.maxCpu),
+  ramMb: z.number().int().min(PRICING.minRamMb).max(PRICING.maxRamMb),
+  diskGb: z.number().int().min(PRICING.minDiskGb).max(PRICING.maxDiskGb),
 });
 
 export async function GET() {

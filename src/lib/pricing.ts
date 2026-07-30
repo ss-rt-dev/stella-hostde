@@ -1,19 +1,17 @@
 /**
  * Stundensatz aus Ressourcen (EUR)
- * CPU: 0,015 € / Kern
- * RAM: 0,008 € / GB
- * SSD: 0,0015 € / GB
+ * Hardware-Limit Host: 8 vCPU, 32 GB RAM, ~265 GB SSD
  */
 export const PRICING = {
   cpuPerHour: 0.015,
   ramGbPerHour: 0.008,
   diskGbPerHour: 0.0015,
   minCpu: 1,
-  maxCpu: 16,
+  maxCpu: 8,
   minRamMb: 512,
   maxRamMb: 32768,
   minDiskGb: 10,
-  maxDiskGb: 500,
+  maxDiskGb: 250,
 } as const;
 
 export function calcPricePerHour(cpu: number, ramMb: number, diskGb: number): number {
