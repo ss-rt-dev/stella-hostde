@@ -35,67 +35,119 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-4">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-md space-y-6 rounded-xl border border-zinc-800 bg-zinc-900 p-8"
-      >
-        <h1 className="text-2xl font-bold">Registrieren</h1>
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden p-4">
+      <div className="pointer-events-none absolute inset-0 bg-[#060608]" />
+      <div
+        className="pointer-events-none absolute -right-32 top-1/4 h-[420px] w-[420px] rounded-full opacity-40 blur-[120px]"
+        style={{ background: "radial-gradient(circle, rgba(212,175,55,0.35), transparent 70%)" }}
+      />
+      <div
+        className="pointer-events-none absolute -left-24 bottom-1/4 h-[380px] w-[380px] rounded-full opacity-30 blur-[100px]"
+        style={{ background: "radial-gradient(circle, rgba(245,200,50,0.2), transparent 70%)" }}
+      />
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.04]"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
+          backgroundSize: "64px 64px",
+        }}
+      />
 
-        {error && (
-          <p className="rounded-lg bg-red-500/10 px-4 py-2 text-sm text-red-400">
-            {error}
-          </p>
-        )}
-
-        <div className="space-y-2">
-          <label className="text-sm text-zinc-400">Name</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-4 py-2.5 outline-none focus:border-emerald-500"
-          />
+      <div className="relative w-full max-w-[420px]">
+        <div className="mb-8 flex flex-col items-center">
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-600 shadow-xl shadow-amber-500/30">
+            <span className="text-xl font-bold text-black">S</span>
+          </div>
+          <h1 className="text-xl font-semibold tracking-tight text-white">
+            stella<span className="text-amber-400">host</span>
+          </h1>
+          <p className="mt-1 text-sm text-zinc-500">Konto erstellen</p>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-sm text-zinc-400">E-Mail</label>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-4 py-2.5 outline-none focus:border-emerald-500"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm text-zinc-400">Passwort (min. 8 Zeichen)</label>
-          <input
-            type="password"
-            required
-            minLength={8}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-4 py-2.5 outline-none focus:border-emerald-500"
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-lg bg-emerald-600 py-2.5 font-medium hover:bg-emerald-500 disabled:opacity-50 transition"
+        <form
+          onSubmit={handleSubmit}
+          className="rounded-3xl border border-white/10 bg-white/[0.04] p-8 shadow-2xl backdrop-blur-2xl"
+          style={{
+            boxShadow:
+              "0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)",
+          }}
         >
-          {loading ? "Wird erstellt…" : "Konto erstellen"}
-        </button>
+          <h2 className="mb-6 text-lg font-semibold text-white">Registrieren</h2>
 
-        <p className="text-center text-sm text-zinc-500">
-          Bereits registriert?{" "}
-          <Link href="/login" className="text-emerald-400 hover:underline">
-            Anmelden
-          </Link>
+          {error && (
+            <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-red-400 backdrop-blur-sm">
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+                Name
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Dein Name"
+                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-amber-500/50 focus:bg-white/[0.06] focus:ring-2 focus:ring-amber-500/20"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+                E-Mail
+              </label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@example.com"
+                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-amber-500/50 focus:bg-white/[0.06] focus:ring-2 focus:ring-amber-500/20"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+                Passwort (min. 8 Zeichen)
+              </label>
+              <input
+                type="password"
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-amber-500/50 focus:bg-white/[0.06] focus:ring-2 focus:ring-amber-500/20"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="mt-6 w-full rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 py-3 text-sm font-semibold text-black shadow-lg shadow-amber-500/25 transition hover:from-amber-300 hover:to-yellow-400 disabled:opacity-50"
+          >
+            {loading ? "Wird erstellt…" : "Konto erstellen"}
+          </button>
+
+          <p className="mt-6 text-center text-sm text-zinc-500">
+            Bereits registriert?{" "}
+            <Link
+              href="/login"
+              className="font-medium text-amber-400 transition hover:text-amber-300"
+            >
+              Anmelden
+            </Link>
+          </p>
+        </form>
+
+        <p className="mt-6 text-center text-xs text-zinc-600">
+          © 2026 Stella Host
         </p>
-      </form>
+      </div>
     </main>
   );
 }
