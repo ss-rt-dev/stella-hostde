@@ -12,10 +12,10 @@ export default async function DashboardLayout({
   if (!session) redirect("/login");
 
   return (
-    <div className="min-h-screen bg-[#0a0a0e] text-[#e8e8ec]">
+    <div className="min-h-screen bg-[#f5f6fa] text-slate-800">
       <DashboardNav user={session.user} />
-      <main className="lg:pl-[220px]">
-        <div className="mx-auto max-w-[1100px] px-4 py-5 pb-20 lg:px-6 lg:py-6 lg:pb-8">
+      <main className="lg:pl-[260px]">
+        <div className="mx-auto max-w-[1200px] px-4 py-5 pb-20 lg:px-8 lg:py-7 lg:pb-8">
           {children}
         </div>
       </main>

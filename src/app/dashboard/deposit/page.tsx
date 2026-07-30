@@ -12,28 +12,21 @@ export default function DepositPage() {
   return (
     <div className="mx-auto max-w-lg space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-white">
-          Guthaben aufladen
-        </h1>
-        <p className="mt-1 text-sm text-zinc-400">
-          Sicher bezahlen mit PayPal – erscheint als Stella Host.
-        </p>
+        <h1 className="text-xl font-bold text-slate-800 sm:text-2xl">Guthaben aufladen</h1>
+        <p className="text-sm text-slate-400">Sicher bezahlen mit PayPal</p>
       </div>
 
-      <div
-        className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 space-y-6 backdrop-blur-xl"
-        style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)" }}
-      >
+      <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm space-y-5">
         <div className="grid grid-cols-4 gap-2">
           {amounts.map((a) => (
             <button
               key={a}
               type="button"
               onClick={() => setAmount(a)}
-              className={`rounded-xl py-3 text-sm font-medium transition ${
+              className={`rounded-xl py-3 text-sm font-semibold transition ${
                 amount === a
-                  ? "bg-gradient-to-r from-amber-400 to-yellow-500 text-black shadow-md shadow-amber-500/20"
-                  : "border border-white/10 bg-white/[0.04] text-zinc-300 hover:bg-white/[0.08]"
+                  ? "bg-[#3a57e8] text-white shadow-md shadow-blue-500/20"
+                  : "border border-slate-200 text-slate-600 hover:bg-slate-50"
               }`}
             >
               {a} €
@@ -41,17 +34,15 @@ export default function DepositPage() {
           ))}
         </div>
 
-        <div className="space-y-2">
-          <label className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-            Betrag (€)
-          </label>
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-slate-500">Betrag (€)</label>
           <input
             type="number"
             min={5}
             max={500}
             value={amount}
             onChange={(e) => setAmount(Number(e.target.value))}
-            className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm outline-none transition focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20"
+            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-[#3a57e8] focus:ring-2 focus:ring-[#3a57e8]/20"
           />
         </div>
 
@@ -59,8 +50,8 @@ export default function DepositPage() {
           <p
             className={`rounded-xl px-4 py-2.5 text-sm ${
               message.includes("erfolgreich") || message.includes("Erfolgreich")
-                ? "border border-amber-500/20 bg-amber-500/10 text-amber-400"
-                : "border border-red-500/20 bg-red-500/10 text-red-400"
+                ? "bg-emerald-50 text-emerald-700"
+                : "bg-red-50 text-red-600"
             }`}
           >
             {message}
@@ -75,12 +66,7 @@ export default function DepositPage() {
           }}
         >
           <PayPalButtons
-            style={{
-              layout: "vertical",
-              color: "gold",
-              shape: "rect",
-              label: "pay",
-            }}
+            style={{ layout: "vertical", color: "blue", shape: "rect", label: "pay" }}
             createOrder={async () => {
               const res = await fetch("/api/paypal/create-order", {
                 method: "POST",
@@ -108,9 +94,8 @@ export default function DepositPage() {
           />
         </PayPalScriptProvider>
 
-        <p className="text-center text-xs text-zinc-500">
-          Zahlung an <strong className="text-zinc-400">Stella Host</strong> ·
-          Sichere Abwicklung über PayPal
+        <p className="text-center text-xs text-slate-400">
+          Zahlung an <strong>Stella Host</strong> · PayPal
         </p>
       </div>
     </div>
