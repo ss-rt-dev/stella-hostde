@@ -5,16 +5,21 @@ import { signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 
 const serviceLinks = [
-  { href: "/dashboard", label: "Dashboard", icon: "◆" },
+  { href: "/dashboard", label: "Dashboard", icon: "◉" },
   { href: "/dashboard/servers", label: "Virtual Servers", icon: "▣" },
+  { href: "#", label: "Dedicated Servers", icon: "▤", disabled: true },
+  { href: "#", label: "GPU Servers", icon: "◈", disabled: true },
+  { href: "#", label: "Orchestration", icon: "⬡", disabled: true },
 ];
 
 const financeLinks = [
-  { href: "/dashboard/deposit", label: "Billing", icon: "◈" },
+  { href: "/dashboard/deposit", label: "Billing", icon: "◎" },
+  { href: "#", label: "Affiliate Program", icon: "✧", disabled: true },
 ];
 
 const accountLinks = [
   { href: "#", label: "Settings", icon: "⚙", disabled: true },
+  { href: "#", label: "Resource Limits", icon: "▦", disabled: true },
   { href: "#", label: "Support", icon: "✉", disabled: true },
 ];
 
@@ -26,6 +31,7 @@ export function DashboardNav({
   const pathname = usePathname();
 
   function isActive(href: string) {
+    if (href === "#") return false;
     if (href === "/dashboard") return pathname === "/dashboard";
     return pathname.startsWith(href);
   }
@@ -44,8 +50,10 @@ export function DashboardNav({
     const active = isActive(href);
     if (disabled) {
       return (
-        <span className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-600 cursor-not-allowed">
-          <span className="w-5 text-center text-xs">{icon}</span>
+        <span className="flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] text-zinc-600 cursor-not-allowed">
+          <span className="flex h-5 w-5 items-center justify-center text-[12px] opacity-50">
+            {icon}
+          </span>
           {label}
         </span>
       );
@@ -53,13 +61,19 @@ export function DashboardNav({
     return (
       <Link
         href={href}
-        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
+        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition ${
           active
-            ? "bg-amber-500/15 text-amber-400 font-medium ring-1 ring-amber-500/30"
-            : "text-zinc-400 hover:text-zinc-100 hover:bg-white/5"
+            ? "bg-amber-500/12 text-amber-400 font-medium ring-1 ring-inset ring-amber-500/25"
+            : "text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.04]"
         }`}
       >
-        <span className="w-5 text-center text-xs">{icon}</span>
+        <span
+          className={`flex h-5 w-5 items-center justify-center text-[12px] ${
+            active ? "text-amber-400" : ""
+          }`}
+        >
+          {icon}
+        </span>
         {label}
       </Link>
     );
@@ -68,24 +82,25 @@ export function DashboardNav({
   return (
     <>
       {/* Sidebar – desktop */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-white/8 bg-[#0c0c0e] lg:flex">
-        <div className="flex h-16 items-center gap-2.5 border-b border-white/8 px-5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-yellow-600 shadow-lg shadow-amber-500/20">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[232px] flex-col border-r border-white/[0.06] bg-[#0a0a0c] lg:flex">
+        {/* Logo */}
+        <div className="flex h-[60px] items-center gap-2.5 border-b border-white/[0.06] px-5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-yellow-600 shadow-lg shadow-amber-500/25">
             <span className="text-sm font-bold text-black">S</span>
           </div>
-          <span className="font-semibold tracking-tight text-white">
+          <span className="text-[15px] font-semibold tracking-tight text-white">
             stella<span className="text-amber-400">host</span>
           </span>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+        <nav className="flex-1 overflow-y-auto px-3 py-5 space-y-6">
           <div>
-            <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
+            <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600">
               Service
             </p>
             <div className="space-y-0.5">
               {serviceLinks.map((l) => (
-                <NavItem key={l.href} {...l} />
+                <NavItem key={l.label} {...l} />
               ))}
               {user.role === "ADMIN" && (
                 <NavItem href="/admin" label="Admin" icon="★" />
@@ -94,38 +109,38 @@ export function DashboardNav({
           </div>
 
           <div>
-            <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
+            <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600">
               Finance
             </p>
             <div className="space-y-0.5">
               {financeLinks.map((l) => (
-                <NavItem key={l.href} {...l} />
+                <NavItem key={l.label} {...l} />
               ))}
             </div>
           </div>
 
           <div>
-            <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
+            <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600">
               Account
             </p>
             <div className="space-y-0.5">
               {accountLinks.map((l) => (
-                <NavItem key={l.href + l.label} {...l} />
+                <NavItem key={l.label} {...l} />
               ))}
             </div>
           </div>
         </nav>
 
-        <div className="border-t border-white/8 p-4">
+        <div className="border-t border-white/[0.06] p-4">
           <div className="mb-3 flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-500/20 text-sm font-semibold text-amber-400">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-sm font-semibold text-amber-400 ring-1 ring-amber-500/25">
               {(user.name || user.email || "U")[0].toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-zinc-200">
                 {user.name || "Kunde"}
               </p>
-              <p className="truncate text-xs text-zinc-500">{user.email}</p>
+              <p className="truncate text-[11px] text-zinc-500">{user.email}</p>
             </div>
           </div>
           <button
@@ -138,7 +153,7 @@ export function DashboardNav({
       </aside>
 
       {/* Top bar – mobile */}
-      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-white/8 bg-[#0c0c0e]/90 px-4 py-3 backdrop-blur-xl lg:hidden">
+      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-white/[0.06] bg-[#0a0a0c]/95 px-4 py-3 backdrop-blur-xl lg:hidden">
         <Link href="/dashboard" className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-amber-400 to-yellow-600">
             <span className="text-xs font-bold text-black">S</span>
@@ -156,8 +171,11 @@ export function DashboardNav({
       </header>
 
       {/* Mobile bottom nav */}
-      <nav className="fixed bottom-0 inset-x-0 z-40 flex border-t border-white/8 bg-[#0c0c0e]/95 backdrop-blur-xl lg:hidden">
-        {[...serviceLinks, ...financeLinks].map((l) => {
+      <nav className="fixed bottom-0 inset-x-0 z-40 flex border-t border-white/[0.06] bg-[#0a0a0c]/95 backdrop-blur-xl lg:hidden">
+        {[...
+          serviceLinks.filter((l) => !l.disabled),
+          ...financeLinks.filter((l) => !l.disabled),
+        ].map((l) => {
           const active = isActive(l.href);
           return (
             <Link
