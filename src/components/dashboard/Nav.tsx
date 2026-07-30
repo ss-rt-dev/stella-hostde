@@ -10,6 +10,7 @@ const serviceLinks = [
   { href: "#", label: "Dedicated Servers", icon: "▤", disabled: true },
   { href: "#", label: "GPU Servers", icon: "◈", disabled: true },
   { href: "#", label: "Orchestration", icon: "⬡", disabled: true },
+  { href: "#", label: "Databases", icon: "☰", disabled: true },
 ];
 
 const financeLinks = [
@@ -19,7 +20,6 @@ const financeLinks = [
 
 const accountLinks = [
   { href: "#", label: "Settings", icon: "⚙", disabled: true },
-  { href: "#", label: "Resource Limits", icon: "▦", disabled: true },
   { href: "#", label: "Support", icon: "✉", disabled: true },
 ];
 
@@ -50,8 +50,8 @@ export function DashboardNav({
     const active = isActive(href);
     if (disabled) {
       return (
-        <span className="flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] text-zinc-600 cursor-not-allowed">
-          <span className="flex h-5 w-5 items-center justify-center text-[12px] opacity-50">
+        <span className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-[13px] text-zinc-600">
+          <span className="flex h-5 w-5 items-center justify-center text-xs opacity-40">
             {icon}
           </span>
           {label}
@@ -63,15 +63,11 @@ export function DashboardNav({
         href={href}
         className={`flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition ${
           active
-            ? "bg-amber-500/12 text-amber-400 font-medium ring-1 ring-inset ring-amber-500/25"
-            : "text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.04]"
+            ? "bg-amber-500/12 font-medium text-amber-400 ring-1 ring-inset ring-amber-500/25"
+            : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-100"
         }`}
       >
-        <span
-          className={`flex h-5 w-5 items-center justify-center text-[12px] ${
-            active ? "text-amber-400" : ""
-          }`}
-        >
+        <span className="flex h-5 w-5 items-center justify-center text-xs">
           {icon}
         </span>
         {label}
@@ -81,9 +77,7 @@ export function DashboardNav({
 
   return (
     <>
-      {/* Sidebar – desktop */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[232px] flex-col border-r border-white/[0.06] bg-[#0a0a0c] lg:flex">
-        {/* Logo */}
         <div className="flex h-[60px] items-center gap-2.5 border-b border-white/[0.06] px-5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-yellow-600 shadow-lg shadow-amber-500/25">
             <span className="text-sm font-bold text-black">S</span>
@@ -93,7 +87,7 @@ export function DashboardNav({
           </span>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-5 space-y-6">
+        <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5">
           <div>
             <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600">
               Service
@@ -152,7 +146,6 @@ export function DashboardNav({
         </div>
       </aside>
 
-      {/* Top bar – mobile */}
       <header className="sticky top-0 z-40 flex items-center justify-between border-b border-white/[0.06] bg-[#0a0a0c]/95 px-4 py-3 backdrop-blur-xl lg:hidden">
         <Link href="/dashboard" className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-amber-400 to-yellow-600">
@@ -170,8 +163,7 @@ export function DashboardNav({
         </button>
       </header>
 
-      {/* Mobile bottom nav */}
-      <nav className="fixed bottom-0 inset-x-0 z-40 flex border-t border-white/[0.06] bg-[#0a0a0c]/95 backdrop-blur-xl lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-white/[0.06] bg-[#0a0a0c]/95 backdrop-blur-xl lg:hidden">
         {[...
           serviceLinks.filter((l) => !l.disabled),
           ...financeLinks.filter((l) => !l.disabled),
