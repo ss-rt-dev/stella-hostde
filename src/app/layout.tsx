@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata: Metadata = {
   title: "Stella Host — Hosting, das trägt",
@@ -35,6 +36,7 @@ export default function RootLayout({
         style={{ background: "#060607", color: "#f6f6f4", margin: 0 }}
       >
         <Providers>{children}</Providers>
+        <SpeedInsights />
       </body>
     </html>
   );
