@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { calcPricePerHour, PRICING } from "@/lib/pricing";
 
 interface Server {
   id: string;
+  accessSlug: string;
   name: string;
   status: string;
   ipAddress: string | null;
@@ -27,6 +29,7 @@ export default function ServersPage() {
   const [ramMb, setRamMb] = useState(2048);
   const [diskGb, setDiskGb] = useState(20);
   const [rootPassword, setRootPassword] = useState<string | null>(null);
+  const [createdSlug, setCreatedSlug] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   const price = useMemo(
@@ -53,6 +56,7 @@ export default function ServersPage() {
     setCreating(true);
     setError("");
     setRootPassword(null);
+    setCreatedSlug(null);
 
     try {
       const res = await fetch("/api/servers", {
@@ -74,6 +78,7 @@ export default function ServersPage() {
       }
 
       setRootPassword(data.rootPassword);
+      setCreatedSlug(data.accessSlug);
       setHostname("");
       load();
     } catch (err: any) {
@@ -131,14 +136,30 @@ export default function ServersPage() {
         )}
 
         {rootPassword && (
-          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm">
+          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm space-y-2">
             <p className="font-medium text-emerald-400">Server erstellt!</p>
-            <p className="mt-1 text-emerald-300/80">
+            <p className="text-emerald-300/80">
               Root-Passwort:{" "}
               <code className="rounded bg-black/40 px-2 py-0.5 font-mono text-emerald-400">
                 {rootPassword}
               </code>
             </p>
+            {createdSlug && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Link
+                  href={`/server/${createdSlug}/console`}
+                  className="rounded-lg bg-amber-400 px-3 py-1.5 text-xs font-semibold text-black"
+                >
+                  Console
+                </Link>
+                <Link
+                  href={`/server/${createdSlug}/files`}
+                  className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-zinc-300"
+                >
+                  Dateien
+                </Link>
+              </div>
+            )}
           </div>
         )}
 
@@ -154,7 +175,6 @@ export default function ServersPage() {
           />
         </div>
 
-        {/* CPU */}
         <div>
           <div className="mb-2 flex items-center justify-between text-sm">
             <span className="text-zinc-400">vCPU</span>
@@ -169,18 +189,15 @@ export default function ServersPage() {
             onChange={(e) => setCpu(Number(e.target.value))}
             className="w-full accent-amber-400"
           />
-          <div className="mt-1 flex justify-between text-[10px] text-zinc-600">
-            <span>{PRICING.minCpu}</span>
-            <span>{PRICING.maxCpu}</span>
-          </div>
         </div>
 
-        {/* RAM */}
         <div>
           <div className="mb-2 flex items-center justify-between text-sm">
             <span className="text-zinc-400">RAM</span>
             <span className="font-semibold text-amber-400">
-              {ramMb >= 1024 ? `${(ramMb / 1024).toFixed(ramMb % 1024 === 0 ? 0 : 1)} GB` : `${ramMb} MB`}
+              {ramMb >= 1024
+                ? `${(ramMb / 1024).toFixed(ramMb % 1024 === 0 ? 0 : 1)} GB`
+                : `${ramMb} MB`}
             </span>
           </div>
           <input
@@ -192,13 +209,8 @@ export default function ServersPage() {
             onChange={(e) => setRamMb(Number(e.target.value))}
             className="w-full accent-amber-400"
           />
-          <div className="mt-1 flex justify-between text-[10px] text-zinc-600">
-            <span>512 MB</span>
-            <span>32 GB</span>
-          </div>
         </div>
 
-        {/* Disk */}
         <div>
           <div className="mb-2 flex items-center justify-between text-sm">
             <span className="text-zinc-400">SSD</span>
@@ -213,10 +225,6 @@ export default function ServersPage() {
             onChange={(e) => setDiskGb(Number(e.target.value))}
             className="w-full accent-amber-400"
           />
-          <div className="mt-1 flex justify-between text-[10px] text-zinc-600">
-            <span>10 GB</span>
-            <span>500 GB</span>
-          </div>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
@@ -225,9 +233,6 @@ export default function ServersPage() {
             <p className="text-2xl font-bold text-amber-400">
               {formatCurrency(price)}
               <span className="text-sm font-normal text-zinc-500">/h</span>
-            </p>
-            <p className="text-[11px] text-zinc-600">
-              ≈ {formatCurrency(price * 24 * 30)}/Monat (ca.)
             </p>
           </div>
           <button
@@ -238,10 +243,6 @@ export default function ServersPage() {
             {creating ? "Wird erstellt…" : "Server erstellen"}
           </button>
         </div>
-
-        <p className="text-[11px] text-zinc-600">
-          OS: <span className="text-zinc-400">Debian 11</span> · Abrechnung stündlich nach Konfiguration
-        </p>
       </form>
 
       <div className="rounded-2xl border border-white/10 bg-[#121214] overflow-hidden">
@@ -273,10 +274,25 @@ export default function ServersPage() {
                     {s.pricePerHour != null &&
                       ` · ${formatCurrency(Number(s.pricePerHour))}/h`}
                     {s.proxmoxVmid != null && ` · VMID ${s.proxmoxVmid}`}
-                    {s.ipAddress && ` · ${s.ipAddress}`}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  {s.accessSlug && s.status === "RUNNING" && (
+                    <>
+                      <Link
+                        href={`/server/${s.accessSlug}/console`}
+                        className="rounded-lg bg-amber-500/15 px-3 py-1.5 text-xs font-medium text-amber-400"
+                      >
+                        Console
+                      </Link>
+                      <Link
+                        href={`/server/${s.accessSlug}/files`}
+                        className="rounded-lg bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-300"
+                      >
+                        Dateien
+                      </Link>
+                    </>
+                  )}
                   {s.status === "STOPPED" && (
                     <button
                       onClick={() => action(s.id, "start")}
@@ -288,7 +304,7 @@ export default function ServersPage() {
                   {s.status === "RUNNING" && (
                     <button
                       onClick={() => action(s.id, "stop")}
-                      className="rounded-lg bg-amber-500/15 px-3 py-1.5 text-xs font-medium text-amber-400"
+                      className="rounded-lg bg-zinc-500/15 px-3 py-1.5 text-xs font-medium text-zinc-400"
                     >
                       Stop
                     </button>
@@ -319,7 +335,11 @@ function StatusPill({ status }: { status: string }) {
     ERROR: "bg-red-500/15 text-red-400",
   };
   return (
-    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${map[status] || "bg-zinc-500/15 text-zinc-400"}`}>
+    <span
+      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+        map[status] || "bg-zinc-500/15 text-zinc-400"
+      }`}
+    >
       {status}
     </span>
   );
