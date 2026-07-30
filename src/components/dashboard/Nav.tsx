@@ -40,6 +40,8 @@ function Icon({ type }: { type: string }) {
   return null;
 }
 
+const LOGO = "https://i.postimg.cc/25RvgMy6/sh-logo.png";
+
 export function DashboardNav({
   user,
 }: {
@@ -54,110 +56,108 @@ export function DashboardNav({
 
   return (
     <>
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[260px] flex-col bg-white lg:flex">
-        <div className="flex h-[70px] items-center gap-3 border-b border-slate-100 px-5">
-          <Image
-            src="https://i.postimg.cc/25RvgMy6/sh-logo.png"
-            alt="Stella Host"
-            width={40}
-            height={40}
-            className="h-10 w-10 object-contain"
-            unoptimized
-          />
-          <div>
-            <p className="text-[15px] font-bold text-slate-800 leading-tight">Stella Host</p>
-            <p className="text-[11px] text-slate-400">Customer Panel</p>
-          </div>
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[240px] flex-col border-r border-white/10 bg-[#0c0c0e] lg:flex">
+        <div className="flex h-16 items-center gap-2.5 border-b border-white/10 px-4">
+          <Image src={LOGO} alt="Stella Host" width={36} height={36} className="h-9 w-9 object-contain" unoptimized />
+          <span className="text-[15px] font-semibold tracking-tight text-white">
+            Stella <span className="text-amber-400">Host</span>
+          </span>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-5">
-          <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-            Home
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-5">
+          <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
+            Service
           </p>
-          <div className="space-y-1">
-            {links.map((l) => {
-              const active = isActive(l.href);
-              return (
-                <Link
-                  key={l.href}
-                  href={l.href}
-                  className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
-                    active
-                      ? "bg-[#3a57e8] text-white shadow-md shadow-blue-500/25"
-                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
-                  }`}
-                >
-                  <Icon type={l.icon} />
-                  {l.label}
-                </Link>
-              );
-            })}
-            {user.role === "ADMIN" && (
+          {links.map((l) => {
+            const active = isActive(l.href);
+            return (
+              <Link
+                key={l.href}
+                href={l.href}
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition ${
+                  active
+                    ? "bg-amber-500/15 font-medium text-amber-400 ring-1 ring-amber-500/25"
+                    : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-100"
+                }`}
+              >
+                <Icon type={l.icon} />
+                {l.label}
+              </Link>
+            );
+          })}
+          {user.role === "ADMIN" && (
+            <>
+              <p className="mb-2 mt-5 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
+                Admin
+              </p>
               <Link
                 href="/admin"
-                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
-                  pathname.startsWith("/admin")
-                    ? "bg-[#3a57e8] text-white shadow-md shadow-blue-500/25"
-                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition ${
+                  pathname === "/admin"
+                    ? "bg-amber-500/15 font-medium text-amber-400 ring-1 ring-amber-500/25"
+                    : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-100"
                 }`}
               >
                 <Icon type="admin" />
-                Admin
+                Overview
               </Link>
-            )}
-          </div>
+              <Link
+                href="/admin/users"
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition ${
+                  pathname.startsWith("/admin/users")
+                    ? "bg-amber-500/15 font-medium text-amber-400 ring-1 ring-amber-500/25"
+                    : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-100"
+                }`}
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                Nutzer
+              </Link>
+            </>
+          )}
         </nav>
 
-        <div className="border-t border-slate-100 p-4">
+        <div className="border-t border-white/10 p-4">
           <div className="mb-3 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#3a57e8]/10 text-sm font-bold text-[#3a57e8]">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-sm font-semibold text-amber-400 ring-1 ring-amber-500/25">
               {(user.name || user.email || "U")[0].toUpperCase()}
             </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-slate-800">
-                {user.name || "Kunde"}
-              </p>
-              <p className="truncate text-xs text-slate-400">{user.email}</p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-zinc-200">{user.name || "Kunde"}</p>
+              <p className="truncate text-[11px] text-zinc-500">{user.email}</p>
             </div>
           </div>
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
-            className="w-full rounded-xl border border-slate-200 py-2 text-xs font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition"
+            className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-zinc-400 transition hover:bg-white/5 hover:text-white"
           >
             Abmelden
           </button>
         </div>
       </aside>
 
-      <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-slate-200 bg-white/90 px-4 backdrop-blur lg:hidden">
+      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-white/10 bg-[#0c0c0e]/95 px-4 py-3 backdrop-blur lg:hidden">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <Image
-            src="https://i.postimg.cc/25RvgMy6/sh-logo.png"
-            alt="Stella Host"
-            width={28}
-            height={28}
-            className="h-7 w-7 object-contain"
-            unoptimized
-          />
-          <span className="text-sm font-bold text-slate-800">Stella Host</span>
+          <Image src={LOGO} alt="Stella Host" width={28} height={28} className="h-7 w-7 object-contain" unoptimized />
+          <span className="font-semibold text-white">
+            Stella <span className="text-amber-400">Host</span>
+          </span>
         </Link>
-        <button
-          onClick={() => signOut({ callbackUrl: "/" })}
-          className="text-xs text-slate-500"
-        >
+        <button onClick={() => signOut({ callbackUrl: "/" })} className="text-xs text-zinc-400">
           Abmelden
         </button>
       </header>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 flex h-14 border-t border-slate-200 bg-white lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-white/10 bg-[#0c0c0e]/95 backdrop-blur lg:hidden">
         {links.map((l) => {
           const active = isActive(l.href);
           return (
             <Link
               key={l.href}
               href={l.href}
-              className={`flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium ${
-                active ? "text-[#3a57e8]" : "text-slate-400"
+              className={`flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-[10px] ${
+                active ? "text-amber-400" : "text-zinc-500"
               }`}
             >
               <Icon type={l.icon} />
@@ -165,6 +165,17 @@ export function DashboardNav({
             </Link>
           );
         })}
+        {user.role === "ADMIN" && (
+          <Link
+            href="/admin/users"
+            className={`flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-[10px] ${
+              pathname.startsWith("/admin") ? "text-amber-400" : "text-zinc-500"
+            }`}
+          >
+            <Icon type="admin" />
+            Admin
+          </Link>
+        )}
       </nav>
     </>
   );
