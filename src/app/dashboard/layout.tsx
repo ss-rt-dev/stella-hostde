@@ -12,18 +12,10 @@ export default async function DashboardLayout({
   if (!session) redirect("/login");
 
   return (
-    <div className="min-h-screen bg-[#08080a] text-[#f0f0ec]">
-      {/* subtle bg glow */}
-      <div
-        className="pointer-events-none fixed inset-0 opacity-40"
-        style={{
-          background:
-            "radial-gradient(ellipse 60% 40% at 20% 0%, rgba(212,175,55,0.08), transparent), radial-gradient(ellipse 50% 30% at 80% 100%, rgba(212,175,55,0.05), transparent)",
-        }}
-      />
+    <div className="min-h-screen bg-[#0a0a0e] text-[#e8e8ec]">
       <DashboardNav user={session.user} />
-      <main className="relative lg:pl-[240px]">
-        <div className="mx-auto max-w-[1100px] px-4 py-5 pb-24 lg:px-7 lg:py-6 lg:pb-8">
+      <main className="lg:pl-[220px]">
+        <div className="mx-auto max-w-[1100px] px-4 py-5 pb-20 lg:px-6 lg:py-6 lg:pb-8">
           {children}
         </div>
       </main>

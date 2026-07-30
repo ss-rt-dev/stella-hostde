@@ -16,10 +16,6 @@ export default async function DashboardPage() {
         include: { package: true },
         orderBy: { createdAt: "desc" },
       },
-      transactions: {
-        orderBy: { createdAt: "desc" },
-        take: 5,
-      },
     },
   });
 
@@ -27,417 +23,329 @@ export default async function DashboardPage() {
 
   const running = user.servers.filter((s) => s.status === "RUNNING").length;
   const paused = user.servers.filter((s) => s.status === "STOPPED").length;
+  const stopped = user.servers.filter((s) => s.status === "ERROR").length;
   const total = user.servers.length;
-  const firstName = user.name?.split(" ")[0] || "Dev";
+  const totalCpu = user.servers.reduce((a, s) => a + s.package.cpu, 0);
+  const totalRam = Math.round(
+    user.servers.reduce((a, s) => a + s.package.ramMb, 0) / 1024
+  );
 
   function fakeCpu(id: string) {
     let h = 0;
     for (let i = 0; i < id.length; i++) h = (h + id.charCodeAt(i) * (i + 1)) % 100;
-    return 25 + (h % 70);
+    return 30 + (h % 65);
+  }
+
+  function dueDate(d: Date) {
+    const x = new Date(d);
+    x.setFullYear(x.getFullYear() + 1);
+    return x.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
   }
 
   return (
-    <div className="space-y-5 sm:space-y-6">
-      {/* Welcome banner */}
-      <div
-        className="relative overflow-hidden rounded-2xl border border-white/10 p-5 sm:p-7"
-        style={{
-          background:
-            "linear-gradient(135deg, rgba(212,175,55,0.18) 0%, rgba(20,18,10,0.9) 50%, rgba(12,12,14,0.95) 100%)",
-          backdropFilter: "blur(20px)",
-        }}
-      >
-        <div
-          className="pointer-events-none absolute inset-0 opacity-30"
-          style={{
-            background:
-              "radial-gradient(ellipse at top right, rgba(245,200,50,0.25), transparent 60%)",
-          }}
-        />
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-white sm:text-3xl">
-              👋 Hello {firstName}!
-            </h1>
-            <p className="mt-1.5 max-w-lg text-sm text-zinc-400">
-              Verwalte Server, Guthaben und Zahlungen an einem Ort.
-            </p>
-          </div>
+    <div className="space-y-5">
+      {/* Top bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5 text-[13px] text-zinc-500">
+          <span className="text-zinc-600">Dashboard</span>
+          <span className="text-zinc-700">/</span>
+          <span className="text-zinc-300">Overview</span>
+        </div>
+        <div className="flex items-center gap-2">
           <Link
-            href="/dashboard/servers"
-            className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-medium text-white backdrop-blur-md transition active:scale-[0.98] hover:bg-white/15"
+            href="/dashboard/deposit"
+            className="flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-[#121218] px-3 py-1.5 text-[13px] font-medium text-amber-400 hover:border-amber-500/30 transition"
           >
-            ⚡ Server erstellen
+            {formatCurrency(Number(user.balance))}
+            <span className="flex h-4 w-4 items-center justify-center rounded bg-amber-400 text-[10px] font-bold text-black">
+              +
+            </span>
           </Link>
+          <div className="hidden sm:flex items-center gap-2 rounded-lg border border-white/[0.08] bg-[#121218] px-2.5 py-1.5">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/20 text-[11px] font-semibold text-amber-400">
+              {(user.name || "U")[0].toUpperCase()}
+            </div>
+            <span className="text-[13px] text-zinc-300">
+              {user.name?.split(" ")[0] || "Account"}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Stat cards – 2 cols mobile, 4 desktop */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <StatCard
-          emoji="💰"
-          label="Guthaben"
-          value={formatCurrency(Number(user.balance))}
-          percent={Math.min(100, Math.round(Number(user.balance) / 10))}
-          color="amber"
-          href="/dashboard/deposit"
-        />
-        <StatCard
-          emoji="🖥️"
-          label="Server"
-          value={String(total)}
-          percent={total === 0 ? 0 : 100}
-          color="white"
+      {/* Title row */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-[22px] font-semibold tracking-tight text-white">
+          Overview
+        </h1>
+        <Link
           href="/dashboard/servers"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-amber-400 px-3.5 py-2 text-[13px] font-semibold text-black hover:bg-amber-300 transition"
+        >
+          Create New
+          <span className="text-base leading-none">+</span>
+        </Link>
+      </div>
+
+      {/* Resource cards – Arqion style */}
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        {/* Resources */}
+        <div className="col-span-2 sm:col-span-1 rounded-xl border border-white/[0.06] bg-[#121218] p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-[13px] font-medium text-zinc-300">Resources</span>
+            <Link href="/dashboard/servers" className="text-[11px] text-zinc-600 hover:text-amber-400">
+              View Details
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[13px]">
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Virtual</span>
+              <span className="font-medium text-zinc-200">{total}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-500">CPU</span>
+              <span className="font-medium text-zinc-200">{totalCpu}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Running</span>
+              <span className="font-medium text-emerald-400">{running}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-500">RAM</span>
+              <span className="font-medium text-zinc-200">{totalRam}G</span>
+            </div>
+          </div>
+        </div>
+
+        <StatusCard
+          label="Running"
+          count={running}
+          icon={
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400">
+              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </span>
+          }
         />
-        <StatCard
-          emoji="🟢"
-          label="Online"
-          value={String(running)}
-          percent={total === 0 ? 0 : Math.round((running / total) * 100)}
-          color="emerald"
-          href="/dashboard/servers"
+        <StatusCard
+          label="Paused"
+          count={paused}
+          icon={
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-500/10 text-amber-400">
+              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+              </svg>
+            </span>
+          }
         />
-        <StatCard
-          emoji="⏸️"
-          label="Gestoppt"
-          value={String(paused)}
-          percent={total === 0 ? 0 : Math.round((paused / total) * 100)}
-          color="zinc"
-          href="/dashboard/servers"
+        <StatusCard
+          label="Stopped"
+          count={stopped}
+          icon={
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-red-500/10 text-red-400">
+              <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M6 6h12v12H6z" />
+              </svg>
+            </span>
+          }
         />
       </div>
 
-      {/* Main content */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        {/* Active services */}
-        <section className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl lg:col-span-2">
-          <div className="flex items-center justify-between border-b border-white/8 px-4 py-3.5 sm:px-5">
-            <h2 className="text-sm font-semibold text-white">
-              📡 Active Services
-            </h2>
+      {/* Active Services */}
+      <section className="rounded-xl border border-white/[0.06] bg-[#121218] overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/[0.05]">
+          <h2 className="text-[13px] font-medium text-zinc-200 flex items-center gap-2">
+            <svg className="h-4 w-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2" />
+            </svg>
+            Active Services
+          </h2>
+        </div>
+
+        {user.servers.length === 0 ? (
+          <div className="px-4 py-14 text-center">
+            <p className="text-sm text-zinc-500">No active services</p>
             <Link
               href="/dashboard/servers"
-              className="rounded-lg bg-gradient-to-r from-amber-400 to-yellow-500 px-3 py-1.5 text-xs font-semibold text-black"
+              className="mt-2 inline-block text-[13px] text-amber-400 hover:underline"
             >
-              + Neu
+              Create your first server →
             </Link>
           </div>
-
-          {user.servers.length === 0 ? (
-            <div className="px-5 py-12 text-center">
-              <p className="text-3xl">📭</p>
-              <p className="mt-2 text-sm text-zinc-500">Noch keine Server</p>
-              <Link
-                href="/dashboard/servers"
-                className="mt-2 inline-block text-sm text-amber-400 hover:underline"
-              >
-                Ersten Server erstellen →
-              </Link>
-            </div>
-          ) : (
-            <>
-              {/* Mobile: cards */}
-              <div className="divide-y divide-white/5 sm:hidden">
-                {user.servers.map((s) => {
-                  const cpu = fakeCpu(s.id);
-                  return (
-                    <div key={s.id} className="px-4 py-3.5">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="font-medium text-zinc-200">{s.name}</p>
-                          <p className="text-xs text-zinc-500">
-                            {s.package.name} ·{" "}
-                            {formatCurrency(Number(s.package.pricePerHour))}/h
-                          </p>
-                          <p className="mt-0.5 font-mono text-[11px] text-zinc-600">
-                            {s.ipAddress || "keine IP"}
-                          </p>
-                        </div>
-                        <StatusBadge status={s.status} />
+        ) : (
+          <>
+            {/* Mobile cards */}
+            <div className="divide-y divide-white/[0.04] md:hidden">
+              {user.servers.map((s, i) => {
+                const cpu = fakeCpu(s.id);
+                return (
+                  <div key={s.id} className="px-4 py-3.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-[13px] font-medium text-zinc-200">
+                          <span className="text-zinc-600 mr-1.5">
+                            {String(i + 1).padStart(2, "0")}
+                          </span>
+                          {s.name}
+                        </p>
+                        <p className="text-[11px] text-zinc-500 mt-0.5">
+                          {s.package.name} · {s.ipAddress || "—"}
+                        </p>
                       </div>
-                      <div className="mt-2 flex items-center gap-2">
-                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
-                          <div
-                            className="h-full rounded-full bg-gradient-to-r from-amber-500 to-yellow-400"
-                            style={{ width: `${cpu}%` }}
-                          />
-                        </div>
-                        <span className="text-[11px] text-zinc-500">{cpu}%</span>
-                      </div>
+                      <StatusBadge status={s.status} />
                     </div>
-                  );
-                })}
-              </div>
-
-              {/* Desktop: table */}
-              <div className="hidden overflow-x-auto sm:block">
-                <table className="w-full min-w-[520px] text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-white/5 text-[11px] uppercase tracking-wider text-zinc-600">
-                      <th className="px-5 py-3 font-medium">Service</th>
-                      <th className="px-3 py-3 font-medium">IP</th>
-                      <th className="px-3 py-3 font-medium">CPU</th>
-                      <th className="px-3 py-3 font-medium">Preis</th>
-                      <th className="px-3 py-3 font-medium">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {user.servers.map((s) => {
-                      const cpu = fakeCpu(s.id);
-                      return (
-                        <tr key={s.id} className="hover:bg-white/[0.02]">
-                          <td className="px-5 py-3.5">
-                            <div className="flex items-center gap-2.5">
-                              <span className="text-base">🖥️</span>
-                              <div>
-                                <p className="font-medium text-zinc-200">
-                                  {s.name}
-                                </p>
-                                <p className="text-[11px] text-zinc-600">
-                                  {s.package.name}
-                                </p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-3 py-3.5 font-mono text-xs text-zinc-500">
-                            {s.ipAddress || "—"}
-                          </td>
-                          <td className="px-3 py-3.5">
-                            <div className="flex items-center gap-2">
-                              <div className="h-1.5 w-14 overflow-hidden rounded-full bg-white/10">
-                                <div
-                                  className="h-full rounded-full bg-gradient-to-r from-amber-500 to-yellow-400"
-                                  style={{ width: `${cpu}%` }}
-                                />
-                              </div>
-                              <span className="text-[11px] text-zinc-500">
-                                {cpu}%
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-3 py-3.5 text-zinc-300">
-                            {formatCurrency(Number(s.package.pricePerHour))}
-                            <span className="text-[11px] text-zinc-600">/h</span>
-                          </td>
-                          <td className="px-3 py-3.5">
-                            <StatusBadge status={s.status} />
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
-        </section>
-
-        {/* Side column */}
-        <div className="space-y-4">
-          <div
-            className="rounded-2xl border border-amber-500/20 p-5"
-            style={{
-              background:
-                "linear-gradient(145deg, rgba(212,175,55,0.15), rgba(20,18,10,0.8))",
-              backdropFilter: "blur(16px)",
-            }}
-          >
-            <p className="text-xs font-medium uppercase tracking-wider text-amber-400/70">
-              💎 Premium Account
-            </p>
-            <p className="mt-3 text-3xl font-bold tracking-tight text-white">
-              {formatCurrency(Number(user.balance))}
-            </p>
-            <p className="mt-1 text-xs text-zinc-500">Verfügbares Guthaben</p>
-            <Link
-              href="/dashboard/deposit"
-              className="mt-4 flex min-h-[44px] w-full items-center justify-center rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 py-2.5 text-sm font-semibold text-black shadow-lg shadow-amber-500/20 transition active:scale-[0.98] hover:from-amber-300 hover:to-yellow-400"
-            >
-              💳 Guthaben aufladen
-            </Link>
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl">
-            <div className="border-b border-white/8 px-4 py-3">
-              <h2 className="text-sm font-semibold text-white">
-                📋 Transaktionen
-              </h2>
-            </div>
-            {user.transactions.length === 0 ? (
-              <p className="px-4 py-8 text-center text-xs text-zinc-600">
-                Keine Bewegungen
-              </p>
-            ) : (
-              <div className="divide-y divide-white/5">
-                {user.transactions.map((t) => (
-                  <div
-                    key={t.id}
-                    className="flex items-center justify-between gap-2 px-4 py-2.5"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-xs text-zinc-300">
-                        {t.description || t.type}
-                      </p>
-                      <p className="text-[10px] text-zinc-600">
-                        {new Date(t.createdAt).toLocaleDateString("de-DE")}
-                      </p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <CpuBar percent={cpu} />
+                      <span className="text-[11px] text-zinc-500">{cpu}%</span>
                     </div>
-                    <span
-                      className={`shrink-0 text-xs font-medium ${
-                        Number(t.amount) >= 0
-                          ? "text-amber-400"
-                          : "text-red-400"
-                      }`}
-                    >
-                      {Number(t.amount) >= 0 ? "+" : ""}
-                      {formatCurrency(Number(t.amount))}
-                    </span>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+                );
+              })}
+            </div>
 
-      {/* Product cards */}
-      <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
-        <ProductCard
-          emoji="☁️"
-          title="Cloud Server"
-          desc="Skalierbare VMs an verschiedenen Standorten."
-          href="/dashboard/servers"
-        />
-        <ProductCard
-          emoji="🔒"
-          title="Dedicated Server"
-          desc="Maximale Performance und volle Kontrolle."
-          href="/dashboard/servers"
-        />
-        <ProductCard
-          emoji="💾"
-          title="Storage"
-          desc="Sicherer Speicher für große Datenmengen."
-          href="/dashboard/servers"
-        />
-      </div>
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-[13px]">
+                <thead>
+                  <tr className="border-b border-white/[0.04] text-[11px] uppercase tracking-wider text-zinc-600">
+                    <th className="px-4 py-2.5 font-medium">No</th>
+                    <th className="px-3 py-2.5 font-medium">Service Name</th>
+                    <th className="px-3 py-2.5 font-medium">Location</th>
+                    <th className="px-3 py-2.5 font-medium">IP</th>
+                    <th className="px-3 py-2.5 font-medium">Due Date</th>
+                    <th className="px-3 py-2.5 font-medium">CPU</th>
+                    <th className="px-3 py-2.5 font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.04]">
+                  {user.servers.map((s, i) => {
+                    const cpu = fakeCpu(s.id);
+                    return (
+                      <tr key={s.id} className="hover:bg-white/[0.015] transition">
+                        <td className="px-4 py-3 text-zinc-600 tabular-nums">
+                          {String(i + 1).padStart(2, "0")}
+                        </td>
+                        <td className="px-3 py-3">
+                          <div className="flex items-center gap-2.5">
+                            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#1a1a22] text-[11px] font-semibold text-amber-400 ring-1 ring-white/[0.06]">
+                              {s.package.name[0]}
+                            </span>
+                            <div>
+                              <p className="font-medium text-zinc-200">{s.name}</p>
+                              <p className="text-[11px] text-zinc-600">
+                                {s.package.name} · {s.package.cpu}vCPU
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-3 py-3">
+                          <span className="flex items-center gap-1.5 text-zinc-400">
+                            <span className="text-sm">🇩🇪</span> Germany
+                          </span>
+                        </td>
+                        <td className="px-3 py-3 font-mono text-[12px] text-zinc-500">
+                          {s.ipAddress || "—"}
+                        </td>
+                        <td className="px-3 py-3 text-zinc-500 text-[12px]">
+                          {dueDate(s.createdAt)}
+                        </td>
+                        <td className="px-3 py-3">
+                          <div className="flex items-center gap-2">
+                            <CpuBar percent={cpu} />
+                            <span className="text-[11px] text-zinc-500 tabular-nums">
+                              {cpu}%
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-3 py-3">
+                          <StatusBadge status={s.status} />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </section>
     </div>
   );
 }
 
-function StatCard({
-  emoji,
+function StatusCard({
   label,
-  value,
-  percent,
-  color,
-  href,
+  count,
+  icon,
 }: {
-  emoji: string;
   label: string;
-  value: string;
-  percent: number;
-  color: "amber" | "emerald" | "white" | "zinc";
-  href: string;
+  count: number;
+  icon: React.ReactNode;
 }) {
-  const stroke =
-    color === "amber"
-      ? "#f59e0b"
-      : color === "emerald"
-        ? "#34d399"
-        : color === "white"
-          ? "#e4e4e7"
-          : "#71717a";
-
-  const r = 16;
-  const c = 2 * Math.PI * r;
-  const offset = c - (Math.min(100, percent) / 100) * c;
-
   return (
     <Link
-      href={href}
-      className="flex min-h-[72px] items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3 backdrop-blur-xl transition active:scale-[0.98] hover:border-amber-500/25 sm:gap-4 sm:p-4"
+      href="/dashboard/servers"
+      className="rounded-xl border border-white/[0.06] bg-[#121218] p-4 hover:border-white/[0.1] transition"
     >
-      <div className="relative hidden h-11 w-11 shrink-0 sm:block">
-        <svg className="h-11 w-11 -rotate-90" viewBox="0 0 40 40">
-          <circle
-            cx="20"
-            cy="20"
-            r={r}
-            fill="none"
-            stroke="rgba(255,255,255,0.08)"
-            strokeWidth="3"
-          />
-          <circle
-            cx="20"
-            cy="20"
-            r={r}
-            fill="none"
-            stroke={stroke}
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeDasharray={c}
-            strokeDashoffset={offset}
-          />
-        </svg>
+      <div className="mb-3 flex items-center justify-between">
+        <span className="text-[13px] font-medium text-zinc-300">{label}</span>
+        <span className="text-[11px] text-zinc-600 opacity-0 group-hover:opacity-100">
+          View Details
+        </span>
       </div>
-      <div className="min-w-0">
-        <p className="text-[11px] text-zinc-500 sm:text-xs">
-          <span className="mr-1">{emoji}</span>
-          {label}
-        </p>
-        <p className="truncate text-base font-semibold tracking-tight text-white sm:text-lg">
-          {value}
-        </p>
+      <div className="flex items-end justify-between">
+        <div>
+          <p className="text-[28px] font-semibold leading-none tracking-tight text-white">
+            {count}
+          </p>
+          <p className="mt-1 text-[11px] text-zinc-600">Servers</p>
+        </div>
+        {icon}
       </div>
     </Link>
   );
 }
 
-function ProductCard({
-  emoji,
-  title,
-  desc,
-  href,
-}: {
-  emoji: string;
-  title: string;
-  desc: string;
-  href: string;
-}) {
+function CpuBar({ percent }: { percent: number }) {
+  const filled = Math.round(percent / 10);
   return (
-    <Link
-      href={href}
-      className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-xl transition active:scale-[0.98] hover:border-amber-500/25 sm:p-5"
-    >
-      <p className="mb-2 text-2xl">{emoji}</p>
-      <h3 className="font-medium text-zinc-100">{title}</h3>
-      <p className="mt-1 text-xs leading-relaxed text-zinc-500">{desc}</p>
-    </Link>
+    <div className="flex h-2 w-[56px] gap-px">
+      {Array.from({ length: 10 }).map((_, j) => (
+        <div
+          key={j}
+          className={`h-full flex-1 rounded-[1px] ${
+            j < filled ? "bg-amber-400" : "bg-white/[0.08]"
+          }`}
+        />
+      ))}
+    </div>
   );
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    RUNNING: "bg-emerald-500/15 text-emerald-400 ring-emerald-500/30",
-    STOPPED: "bg-zinc-500/15 text-zinc-400 ring-zinc-500/25",
-    CREATING: "bg-sky-500/15 text-sky-400 ring-sky-500/30",
-    ERROR: "bg-red-500/15 text-red-400 ring-red-500/30",
+  const styles: Record<string, string> = {
+    RUNNING: "bg-emerald-500/10 text-emerald-400",
+    STOPPED: "bg-zinc-500/10 text-zinc-400",
+    CREATING: "bg-sky-500/10 text-sky-400",
+    ERROR: "bg-red-500/10 text-red-400",
   };
-  const label: Record<string, string> = {
-    RUNNING: "🟢 Active",
-    STOPPED: "⏸️ Paused",
-    CREATING: "⏳ Creating",
-    ERROR: "🔴 Error",
+  const labels: Record<string, string> = {
+    RUNNING: "Active",
+    STOPPED: "Paused",
+    CREATING: "Creating",
+    ERROR: "Stopped",
   };
   return (
     <span
-      className={`inline-flex shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${
-        map[status] || "bg-zinc-500/15 text-zinc-400"
+      className={`inline-flex rounded-md px-2 py-0.5 text-[11px] font-medium ${
+        styles[status] || "bg-zinc-500/10 text-zinc-400"
       }`}
     >
-      {label[status] || status}
+      {labels[status] || status}
     </span>
   );
 }
