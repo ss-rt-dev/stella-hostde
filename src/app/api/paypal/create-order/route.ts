@@ -24,7 +24,6 @@ export async function POST(req: Request) {
         ? "https://api-m.paypal.com"
         : "https://api-m.sandbox.paypal.com";
 
-    // Access Token holen
     const tokenRes = await fetch(`${base}/v1/oauth2/token`, {
       method: "POST",
       headers: {
@@ -38,7 +37,6 @@ export async function POST(req: Request) {
 
     const { access_token } = await tokenRes.json();
 
-    // Order erstellen
     const orderRes = await fetch(`${base}/v2/checkout/orders`, {
       method: "POST",
       headers: {
@@ -53,20 +51,24 @@ export async function POST(req: Request) {
               currency_code: "EUR",
               value: amount.toFixed(2),
             },
-            description: `Guthaben-Aufladung ${amount}€`,
+            description: `Stella Host – Guthaben ${amount.toFixed(2)} €`,
+            soft_descriptor: "STELLA HOST",
             custom_id: session.user.id,
           },
         ],
         application_context: {
-          return_url: `${process.env.NEXTAUTH_URL}/dashboard?deposit=success`,
-          cancel_url: `${process.env.NEXTAUTH_URL}/dashboard?deposit=cancel`,
+          brand_name: "Stella Host",
+          shipping_preference: "NO_SHIPPING",
+          user_action: "PAY_NOW",
+          return_url: `${process.env.NEXTAUTH_URL}/dashboard/deposit?success=1`,
+          cancel_url: `${process.env.NEXTAUTH_URL}/dashboard/deposit?cancel=1`,
         },
       }),
     });
 
     const order = await orderRes.json();
 
-    if (order.error) {
+    if (!order.id) {
       console.error(order);
       return NextResponse.json(
         { error: "PayPal Fehler" },

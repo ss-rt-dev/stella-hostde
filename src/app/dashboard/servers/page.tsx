@@ -90,34 +90,41 @@ export default function ServersPage() {
   }
 
   if (loading) {
-    return <p className="text-zinc-500">Lade…</p>;
+    return <p className="text-zinc-500">Lade Server…</p>;
   }
 
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold">Meine Server</h1>
-        <p className="text-zinc-400">LXC-Container verwalten</p>
+        <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
+          Stella Host · Infrastruktur
+        </p>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+          Meine Server
+        </h1>
+        <p className="mt-1 text-sm text-zinc-400">
+          LXC-Container erstellen, starten und verwalten.
+        </p>
       </div>
 
       <form
         onSubmit={createServer}
-        className="rounded-xl border border-zinc-800 bg-zinc-900 p-6 space-y-4"
+        className="rounded-2xl border border-white/10 bg-[#111113] p-6 space-y-4"
       >
-        <h2 className="font-semibold">Neuen Server erstellen</h2>
+        <h2 className="font-medium">Neuen Server erstellen</h2>
 
         {error && (
-          <p className="rounded-lg bg-red-500/10 px-4 py-2 text-sm text-red-400">
+          <p className="rounded-xl bg-red-500/10 px-4 py-2.5 text-sm text-red-400">
             {error}
           </p>
         )}
 
         {rootPassword && (
-          <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-4 py-3 text-sm">
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm">
             <p className="font-medium text-emerald-400">Server erstellt!</p>
-            <p className="mt-1">
-              Root-Passwort (nur einmal angezeigt):{" "}
-              <code className="bg-zinc-950 px-2 py-0.5 rounded">
+            <p className="mt-1 text-zinc-300">
+              Root-Passwort (nur einmal sichtbar):{" "}
+              <code className="rounded bg-black/40 px-2 py-0.5 text-emerald-300">
                 {rootPassword}
               </code>
             </p>
@@ -133,7 +140,7 @@ export default function ServersPage() {
               value={hostname}
               onChange={(e) => setHostname(e.target.value.toLowerCase())}
               placeholder="mein-server"
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-4 py-2.5 outline-none focus:border-emerald-500"
+              className="w-full rounded-xl border border-white/10 bg-[#060607] px-4 py-2.5 outline-none focus:border-emerald-500/50"
             />
           </div>
           <div className="space-y-2">
@@ -141,7 +148,7 @@ export default function ServersPage() {
             <select
               value={packageId}
               onChange={(e) => setPackageId(e.target.value)}
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-4 py-2.5 outline-none focus:border-emerald-500"
+              className="w-full rounded-xl border border-white/10 bg-[#060607] px-4 py-2.5 outline-none focus:border-emerald-500/50"
             >
               {packages.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -156,42 +163,50 @@ export default function ServersPage() {
         <button
           type="submit"
           disabled={creating || !packages.length}
-          className="rounded-lg bg-emerald-600 px-6 py-2.5 font-medium hover:bg-emerald-500 disabled:opacity-50 transition"
+          className="rounded-full bg-emerald-500 px-6 py-2.5 text-sm font-medium text-black hover:bg-emerald-400 disabled:opacity-50 transition"
         >
           {creating ? "Wird erstellt…" : "Server erstellen"}
         </button>
+
+        {!packages.length && (
+          <p className="text-sm text-amber-400/90">
+            Keine Pakete in der Datenbank. Bitte Seed ausführen oder im Admin
+            Pakete anlegen.
+          </p>
+        )}
       </form>
 
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
-        <div className="border-b border-zinc-800 px-6 py-4">
-          <h2 className="font-semibold">Deine Server</h2>
+      <div className="rounded-2xl border border-white/10 bg-[#111113] overflow-hidden">
+        <div className="border-b border-white/10 px-6 py-4">
+          <h2 className="font-medium">Deine Server</h2>
         </div>
         {servers.length === 0 ? (
-          <p className="px-6 py-10 text-center text-zinc-500">
-            Noch keine Server vorhanden
+          <p className="px-6 py-12 text-center text-zinc-500">
+            Noch keine Server – erstelle oben deinen ersten Container.
           </p>
         ) : (
-          <div className="divide-y divide-zinc-800">
+          <div className="divide-y divide-white/5">
             {servers.map((s) => (
               <div
                 key={s.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 py-4"
+                className="flex flex-col gap-4 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{s.name}</span>
                     <StatusBadge status={s.status} />
                   </div>
-                  <p className="text-sm text-zinc-500 mt-0.5">
-                    {s.package.name} · VMID {s.proxmoxVmid}
+                  <p className="mt-0.5 text-sm text-zinc-500">
+                    {s.package.name}
+                    {s.proxmoxVmid != null && ` · VMID ${s.proxmoxVmid}`}
                     {s.ipAddress && ` · ${s.ipAddress}`}
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {s.status === "STOPPED" && (
                     <button
                       onClick={() => action(s.id, "start")}
-                      className="rounded-lg bg-emerald-600/20 text-emerald-400 px-3 py-1.5 text-sm hover:bg-emerald-600/30"
+                      className="rounded-full bg-emerald-500/15 px-3.5 py-1.5 text-sm text-emerald-400 hover:bg-emerald-500/25"
                     >
                       Start
                     </button>
@@ -199,7 +214,7 @@ export default function ServersPage() {
                   {s.status === "RUNNING" && (
                     <button
                       onClick={() => action(s.id, "stop")}
-                      className="rounded-lg bg-amber-600/20 text-amber-400 px-3 py-1.5 text-sm hover:bg-amber-600/30"
+                      className="rounded-full bg-amber-500/15 px-3.5 py-1.5 text-sm text-amber-400 hover:bg-amber-500/25"
                     >
                       Stop
                     </button>
@@ -209,7 +224,7 @@ export default function ServersPage() {
                       if (confirm("Server wirklich löschen?"))
                         action(s.id, "delete");
                     }}
-                    className="rounded-lg bg-red-600/20 text-red-400 px-3 py-1.5 text-sm hover:bg-red-600/30"
+                    className="rounded-full bg-red-500/15 px-3.5 py-1.5 text-sm text-red-400 hover:bg-red-500/25"
                   >
                     Löschen
                   </button>
@@ -227,13 +242,13 @@ function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
     RUNNING: "bg-emerald-500/20 text-emerald-400",
     STOPPED: "bg-zinc-500/20 text-zinc-400",
-    CREATING: "bg-blue-500/20 text-blue-400",
+    CREATING: "bg-sky-500/20 text-sky-400",
     ERROR: "bg-red-500/20 text-red-400",
   };
   return (
     <span
       className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-        colors[status] || "bg-zinc-500/20"
+        colors[status] || "bg-zinc-500/20 text-zinc-400"
       }`}
     >
       {status}
