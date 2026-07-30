@@ -6,6 +6,8 @@ import { createLxc, getNextVmid } from "@/lib/proxmox";
 import { z } from "zod";
 import { randomBytes } from "crypto";
 
+export const maxDuration = 60;
+
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
   if (!session?.user || (session.user as any).role !== "ADMIN") {
@@ -47,7 +49,17 @@ export async function POST(req: Request) {
       );
     }
 
-    const vmid = await getNextVmid();
+    let vmid: number;
+    try {
+      vmid = await getNextVmid();
+    } catch (e: any) {
+      console.error("getNextVmid", e);
+      return NextResponse.json(
+        { error: e.message || "Proxmox nicht erreichbar" },
+        { status: 502 }
+      );
+    }
+
     const password = randomBytes(12).toString("base64url");
 
     const server = await prisma.server.create({
@@ -115,10 +127,20 @@ export async function POST(req: Request) {
         where: { id: server.id },
         data: { status: "ERROR" },
       });
-      throw err;
+      console.error("createLxc", err);
+      return NextResponse.json(
+        { error: err.message || "LXC-Erstellung fehlgeschlagen" },
+        { status: 502 }
+      );
     }
   } catch (e: any) {
     console.error(e);
+    if (e?.name === "ZodError") {
+      return NextResponse.json(
+        { error: "Ungültige Eingabe (Hostname: a-z, 0-9, -, 3–32 Zeichen)" },
+        { status: 400 }
+      );
+    }
     return NextResponse.json(
       { error: e.message || "Serverfehler" },
       { status: 500 }

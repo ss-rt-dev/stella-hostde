@@ -6,6 +6,8 @@ import { createLxc, getNextVmid } from "@/lib/proxmox";
 import { z } from "zod";
 import { randomBytes } from "crypto";
 
+export const maxDuration = 60;
+
 const createSchema = z.object({
   packageId: z.string(),
   hostname: z.string().min(3).max(32).regex(/^[a-z0-9-]+$/),
@@ -49,7 +51,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "User nicht gefunden" }, { status: 404 });
     }
 
-    // Mindestens 1 Stunde Guthaben prüfen
     if (Number(user.balance) < Number(pkg.pricePerHour)) {
       return NextResponse.json(
         { error: "Nicht genug Guthaben. Bitte zuerst aufladen." },
@@ -57,10 +58,19 @@ export async function POST(req: Request) {
       );
     }
 
-    const vmid = await getNextVmid();
+    let vmid: number;
+    try {
+      vmid = await getNextVmid();
+    } catch (e: any) {
+      console.error("getNextVmid", e);
+      return NextResponse.json(
+        { error: e.message || "Proxmox nicht erreichbar" },
+        { status: 502 }
+      );
+    }
+
     const password = randomBytes(12).toString("base64url");
 
-    // Server in DB anlegen
     const server = await prisma.server.create({
       data: {
         userId: session.user.id,
@@ -89,7 +99,6 @@ export async function POST(req: Request) {
         data: { status: "RUNNING" },
       });
 
-      // Erste Stunde abziehen
       await prisma.$transaction([
         prisma.user.update({
           where: { id: session.user.id },
@@ -109,7 +118,6 @@ export async function POST(req: Request) {
         id: server.id,
         vmid,
         hostname,
-        // Passwort nur einmal zurückgeben!
         rootPassword: password,
       });
     } catch (err: any) {
@@ -117,10 +125,20 @@ export async function POST(req: Request) {
         where: { id: server.id },
         data: { status: "ERROR" },
       });
-      throw err;
+      console.error("createLxc", err);
+      return NextResponse.json(
+        { error: err.message || "LXC-Erstellung fehlgeschlagen" },
+        { status: 502 }
+      );
     }
   } catch (e: any) {
     console.error(e);
+    if (e?.name === "ZodError") {
+      return NextResponse.json(
+        { error: "Ungültige Eingabe (Hostname: a-z, 0-9, -, 3–32 Zeichen)" },
+        { status: 400 }
+      );
+    }
     return NextResponse.json(
       { error: e.message || "Serverfehler" },
       { status: 500 }

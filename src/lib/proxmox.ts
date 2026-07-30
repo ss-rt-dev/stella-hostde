@@ -1,48 +1,112 @@
 /**
  * Proxmox API Client für LXC-Container
- * Benötigt: PROXMOX_HOST, PROXMOX_TOKEN_ID, PROXMOX_TOKEN_SECRET
+ * Env: PROXMOX_HOST, PROXMOX_TOKEN_ID, PROXMOX_TOKEN_SECRET
+ * Optional: PROXMOX_INSECURE=true bei selbstsigniertem Zertifikat
  * Token-Format: user@pam!tokenid
  */
 
-const PROXMOX_HOST = process.env.PROXMOX_HOST || "";
+import https from "https";
+import { URL } from "url";
+
+const PROXMOX_HOST = (process.env.PROXMOX_HOST || "").replace(/\/$/, "");
 const TOKEN_ID = process.env.PROXMOX_TOKEN_ID || "";
 const TOKEN_SECRET = process.env.PROXMOX_TOKEN_SECRET || "";
+const INSECURE =
+  process.env.PROXMOX_INSECURE === "true" ||
+  process.env.PROXMOX_INSECURE === "1";
 
-function getAuthHeader() {
-  return {
-    Authorization: `PVEAPIToken=${TOKEN_ID}=${TOKEN_SECRET}`,
-  };
+function assertConfig() {
+  if (!PROXMOX_HOST) {
+    throw new Error(
+      "PROXMOX_HOST fehlt in den Environment Variables (z.B. https://dein-host:8006)"
+    );
+  }
+  if (!TOKEN_ID || !TOKEN_SECRET) {
+    throw new Error(
+      "PROXMOX_TOKEN_ID oder PROXMOX_TOKEN_SECRET fehlt in den Environment Variables"
+    );
+  }
 }
 
-async function proxmoxFetch(path: string, options: RequestInit = {}) {
-  if (!PROXMOX_HOST) {
-    throw new Error("PROXMOX_HOST ist nicht gesetzt");
-  }
+/**
+ * fetch-ähnlicher Request über Node https –
+ * unterstützt selbstsignierte Zertifikate (PROXMOX_INSECURE=true)
+ */
+function proxmoxRequest(
+  path: string,
+  options: {
+    method?: string;
+    body?: string;
+    contentType?: string;
+  } = {}
+): Promise<any> {
+  assertConfig();
 
-  const url = `${PROXMOX_HOST.replace(/\/$/, "")}/api2/json${path}`;
+  const method = options.method || "GET";
+  const full = `${PROXMOX_HOST}/api2/json${path}`;
+  const u = new URL(full);
 
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      ...getAuthHeader(),
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
-    // Proxmox oft selbstsigniertes Zertifikat
-    // In Produktion idealerweise gültiges Zertifikat nutzen
+  return new Promise((resolve, reject) => {
+    const req = https.request(
+      {
+        hostname: u.hostname,
+        port: u.port || 8006,
+        path: u.pathname + u.search,
+        method,
+        headers: {
+          Authorization: `PVEAPIToken=${TOKEN_ID}=${TOKEN_SECRET}`,
+          "Content-Type": options.contentType || "application/json",
+          ...(options.body
+            ? { "Content-Length": Buffer.byteLength(options.body) }
+            : {}),
+        },
+        rejectUnauthorized: !INSECURE,
+        timeout: 55000,
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on("data", (c) => chunks.push(c));
+        res.on("end", () => {
+          const text = Buffer.concat(chunks).toString("utf8");
+          if (res.statusCode && res.statusCode >= 400) {
+            reject(
+              new Error(
+                `Proxmox API ${res.statusCode}: ${text.slice(0, 500)}`
+              )
+            );
+            return;
+          }
+          try {
+            const json = JSON.parse(text);
+            resolve(json.data !== undefined ? json.data : json);
+          } catch {
+            reject(new Error(`Ungültige Proxmox-Antwort: ${text.slice(0, 200)}`));
+          }
+        });
+      }
+    );
+
+    req.on("error", (err) => {
+      reject(
+        new Error(
+          `Proxmox nicht erreichbar (${u.hostname}): ${err.message}. ` +
+            `Prüfe PROXMOX_HOST, Firewall und PROXMOX_INSECURE=true bei SSL-Fehlern.`
+        )
+      );
+    });
+
+    req.on("timeout", () => {
+      req.destroy();
+      reject(new Error("Proxmox Timeout (55s) – Host nicht erreichbar oder zu langsam"));
+    });
+
+    if (options.body) req.write(options.body);
+    req.end();
   });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Proxmox API Fehler ${res.status}: ${text}`);
-  }
-
-  const data = await res.json();
-  return data.data;
 }
 
 export async function getNextVmid(): Promise<number> {
-  const data = await proxmoxFetch("/cluster/nextid");
+  const data = await proxmoxRequest("/cluster/nextid");
   return Number(data);
 }
 
@@ -51,12 +115,11 @@ export interface CreateLxcOptions {
   hostname: string;
   password: string;
   cores: number;
-  memory: number; // MB
-  disk: string; // z.B. "local-lvm:8"
+  memory: number;
+  disk: string;
   ostemplate: string;
   node: string;
-  storage?: string;
-  net0?: string; // z.B. "name=eth0,bridge=vmbr0,ip=dhcp"
+  net0?: string;
 }
 
 export async function createLxc(opts: CreateLxcOptions) {
@@ -69,51 +132,34 @@ export async function createLxc(opts: CreateLxcOptions) {
   body.set("rootfs", opts.disk);
   body.set("ostemplate", opts.ostemplate);
   body.set("net0", opts.net0 || "name=eth0,bridge=vmbr0,ip=dhcp");
-  body.set("start", "1"); // direkt starten
+  body.set("start", "1");
   body.set("unprivileged", "1");
 
-  const url = `${PROXMOX_HOST.replace(/\/$/, "")}/api2/json/nodes/${opts.node}/lxc`;
-
-  const res = await fetch(url, {
+  return proxmoxRequest(`/nodes/${opts.node}/lxc`, {
     method: "POST",
-    headers: {
-      ...getAuthHeader(),
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
     body: body.toString(),
+    contentType: "application/x-www-form-urlencoded",
   });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`LXC erstellen fehlgeschlagen: ${text}`);
-  }
-
-  const data = await res.json();
-  return data.data; // UPID
 }
 
 export async function startLxc(node: string, vmid: number) {
-  return proxmoxFetch(`/nodes/${node}/lxc/${vmid}/status/start`, {
+  return proxmoxRequest(`/nodes/${node}/lxc/${vmid}/status/start`, {
     method: "POST",
   });
 }
 
 export async function stopLxc(node: string, vmid: number) {
-  return proxmoxFetch(`/nodes/${node}/lxc/${vmid}/status/stop`, {
+  return proxmoxRequest(`/nodes/${node}/lxc/${vmid}/status/stop`, {
     method: "POST",
   });
 }
 
 export async function deleteLxc(node: string, vmid: number) {
-  return proxmoxFetch(`/nodes/${node}/lxc/${vmid}`, {
+  return proxmoxRequest(`/nodes/${node}/lxc/${vmid}`, {
     method: "DELETE",
   });
 }
 
 export async function getLxcStatus(node: string, vmid: number) {
-  return proxmoxFetch(`/nodes/${node}/lxc/${vmid}/status/current`);
-}
-
-export async function getLxcConfig(node: string, vmid: number) {
-  return proxmoxFetch(`/nodes/${node}/lxc/${vmid}/config`);
+  return proxmoxRequest(`/nodes/${node}/lxc/${vmid}/status/current`);
 }
