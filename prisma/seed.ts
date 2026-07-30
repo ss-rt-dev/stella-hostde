@@ -4,7 +4,6 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  // Beispiel-Pakete
   await prisma.package.createMany({
     data: [
       {
@@ -47,11 +46,13 @@ async function main() {
     skipDuplicates: true,
   });
 
-  // Admin-User (Passwort: admin123456)
   const hash = await bcrypt.hash("Jopo23%?06", 12);
   await prisma.user.upsert({
-    where: { email: "justin@stella-host.de },
-    update: {},
+    where: { email: "justin@stella-host.de" },
+    update: {
+      passwordHash: hash,
+      role: "ADMIN",
+    },
     create: {
       email: "justin@stella-host.de",
       name: "Justin | Owner",
@@ -62,7 +63,6 @@ async function main() {
   });
 
   console.log("Seed fertig.");
-  console.log("Justin wurde eingeloggt!");
 }
 
 main()
