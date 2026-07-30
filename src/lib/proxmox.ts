@@ -1,8 +1,7 @@
 /**
  * Proxmox API Client für LXC-Container
  * Env: PROXMOX_HOST, PROXMOX_TOKEN_ID, PROXMOX_TOKEN_SECRET
- * Optional: PROXMOX_INSECURE=true bei selbstsigniertem Zertifikat
- * Token-Format: user@pam!tokenid
+ * Optional: PROXMOX_INSECURE=true, PROXMOX_NODE=dein-node-name
  */
 
 import https from "https";
@@ -28,10 +27,6 @@ function assertConfig() {
   }
 }
 
-/**
- * fetch-ähnlicher Request über Node https –
- * unterstützt selbstsignierte Zertifikate (PROXMOX_INSECURE=true)
- */
 function proxmoxRequest(
   path: string,
   options: {
@@ -70,9 +65,7 @@ function proxmoxRequest(
           const text = Buffer.concat(chunks).toString("utf8");
           if (res.statusCode && res.statusCode >= 400) {
             reject(
-              new Error(
-                `Proxmox API ${res.statusCode}: ${text.slice(0, 500)}`
-              )
+              new Error(`Proxmox API ${res.statusCode}: ${text.slice(0, 500)}`)
             );
             return;
           }
@@ -103,6 +96,42 @@ function proxmoxRequest(
     if (options.body) req.write(options.body);
     req.end();
   });
+}
+
+/** Liste aller Nodes im Cluster */
+export async function listNodes(): Promise<{ node: string; status: string }[]> {
+  const data = await proxmoxRequest("/nodes");
+  if (!Array.isArray(data)) return [];
+  return data.map((n: any) => ({
+    node: String(n.node),
+    status: String(n.status || ""),
+  }));
+}
+
+/**
+ * Ermittelt den zu nutzenden Node-Namen:
+ * 1. PROXMOX_NODE aus Env
+ * 2. Übergebener Name, wenn er existiert und nicht der Default "pve" ist
+ * 3. Erster online Node aus der API
+ */
+export async function resolveNode(preferred?: string | null): Promise<string> {
+  const fromEnv = process.env.PROXMOX_NODE?.trim();
+  if (fromEnv) return fromEnv;
+
+  const nodes = await listNodes();
+  if (!nodes.length) {
+    throw new Error(
+      "Keine Proxmox-Nodes gefunden. Prüfe Token-Rechte (Sys.Audit / Datastore)."
+    );
+  }
+
+  if (preferred && preferred !== "pve") {
+    const match = nodes.find((n) => n.node === preferred);
+    if (match) return match.node;
+  }
+
+  const online = nodes.find((n) => n.status === "online") || nodes[0];
+  return online.node;
 }
 
 export async function getNextVmid(): Promise<number> {

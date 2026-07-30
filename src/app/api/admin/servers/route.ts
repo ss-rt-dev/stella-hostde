@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { createLxc, getNextVmid } from "@/lib/proxmox";
+import { createLxc, getNextVmid, resolveNode } from "@/lib/proxmox";
 import { z } from "zod";
 import { randomBytes } from "crypto";
 
@@ -50,10 +50,12 @@ export async function POST(req: Request) {
     }
 
     let vmid: number;
+    let node: string;
     try {
+      node = await resolveNode(pkg.node);
       vmid = await getNextVmid();
     } catch (e: any) {
-      console.error("getNextVmid", e);
+      console.error("proxmox resolve", e);
       return NextResponse.json(
         { error: e.message || "Proxmox nicht erreichbar" },
         { status: 502 }
@@ -82,7 +84,7 @@ export async function POST(req: Request) {
         memory: pkg.ramMb,
         disk: `${pkg.storage}:${pkg.diskGb}`,
         ostemplate: pkg.proxmoxTemplateId,
-        node: pkg.node,
+        node,
       });
 
       await prisma.server.update({
@@ -120,6 +122,7 @@ export async function POST(req: Request) {
         id: server.id,
         vmid,
         hostname,
+        node,
         rootPassword: password,
       });
     } catch (err: any) {
