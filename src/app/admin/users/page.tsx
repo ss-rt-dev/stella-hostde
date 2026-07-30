@@ -7,6 +7,9 @@ interface Server {
   name: string;
   status: string;
   proxmoxVmid: number | null;
+  cpu?: number | null;
+  ramMb?: number | null;
+  diskGb?: number | null;
   package: { id: string; name: string; pricePerHour: string };
 }
 
@@ -20,39 +23,27 @@ interface User {
   servers: Server[];
 }
 
-interface Package {
-  id: string;
-  name: string;
-  cpu: number;
-  ramMb: number;
-  diskGb: number;
-  pricePerHour: string;
-}
-
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
-  const [packages, setPackages] = useState<Package[]>([]);
   const [selected, setSelected] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
 
-  // forms
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [creditAmount, setCreditAmount] = useState("10");
   const [hostname, setHostname] = useState("");
-  const [packageId, setPackageId] = useState("");
+  const [cpu, setCpu] = useState(2);
+  const [ramMb, setRamMb] = useState(2048);
+  const [diskGb, setDiskGb] = useState(20);
   const [free, setFree] = useState(true);
   const [busy, setBusy] = useState(false);
   const [rootPw, setRootPw] = useState<string | null>(null);
 
   async function load() {
-    const [uRes, pRes] = await Promise.all([
-      fetch("/api/admin/users"),
-      fetch("/api/packages"),
-    ]);
+    const uRes = await fetch("/api/admin/users");
     if (uRes.ok) {
       const list = await uRes.json();
       setUsers(list);
@@ -64,11 +55,6 @@ export default function AdminUsersPage() {
           setEmail(updated.email);
         }
       }
-    }
-    if (pRes.ok) {
-      const pkgs = await pRes.json();
-      setPackages(pkgs);
-      if (pkgs.length && !packageId) setPackageId(pkgs[0].id);
     }
     setLoading(false);
   }
@@ -157,8 +143,10 @@ export default function AdminUsersPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         userId: selected.id,
-        packageId,
         hostname,
+        cpu,
+        ramMb,
+        diskGb,
         free,
       }),
     });
@@ -202,7 +190,6 @@ export default function AdminUsersPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
-        {/* User list – left */}
         <div className="rounded-2xl border border-white/10 bg-[#121214] overflow-hidden max-h-[70vh] flex flex-col">
           <div className="border-b border-white/5 px-4 py-3 text-sm font-semibold text-zinc-300">
             Kunden ({users.length})
@@ -232,7 +219,6 @@ export default function AdminUsersPage() {
           </div>
         </div>
 
-        {/* Detail panel */}
         <div className="space-y-4">
           {!selected ? (
             <div className="rounded-2xl border border-white/10 bg-[#121214] px-6 py-16 text-center text-sm text-zinc-500">
@@ -261,7 +247,6 @@ export default function AdminUsersPage() {
                 </div>
               )}
 
-              {/* Profile */}
               <section className="rounded-2xl border border-white/10 bg-[#121214] p-5 space-y-3">
                 <h2 className="font-semibold text-white">Profil</h2>
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -293,7 +278,6 @@ export default function AdminUsersPage() {
                 </button>
               </section>
 
-              {/* Password */}
               <section className="rounded-2xl border border-white/10 bg-[#121214] p-5 space-y-3">
                 <h2 className="font-semibold text-white">Passwort ändern</h2>
                 <input
@@ -313,7 +297,6 @@ export default function AdminUsersPage() {
                 </button>
               </section>
 
-              {/* Credit */}
               <section className="rounded-2xl border border-white/10 bg-[#121214] p-5 space-y-3">
                 <h2 className="font-semibold text-white">
                   Guthaben{" "}
@@ -346,35 +329,55 @@ export default function AdminUsersPage() {
                 </div>
               </section>
 
-              {/* Assign server */}
               <section className="rounded-2xl border border-white/10 bg-[#121214] p-5 space-y-3">
-                <h2 className="font-semibold text-white">Server zuweisen</h2>
+                <h2 className="font-semibold text-white">Server zuweisen (Debian 11)</h2>
                 <form onSubmit={assignServer} className="space-y-3">
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-xs text-zinc-500">Hostname</label>
+                    <input
+                      required
+                      pattern="[a-z0-9-]+"
+                      value={hostname}
+                      onChange={(e) => setHostname(e.target.value.toLowerCase())}
+                      placeholder="kunde-server"
+                      className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-amber-500/50"
+                    />
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-3">
                     <div>
-                      <label className="mb-1 block text-xs text-zinc-500">Hostname</label>
+                      <label className="mb-1 block text-xs text-zinc-500">vCPU</label>
                       <input
-                        required
-                        pattern="[a-z0-9-]+"
-                        value={hostname}
-                        onChange={(e) => setHostname(e.target.value.toLowerCase())}
-                        placeholder="kunde-server"
+                        type="number"
+                        min={1}
+                        max={16}
+                        value={cpu}
+                        onChange={(e) => setCpu(Number(e.target.value))}
                         className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-amber-500/50"
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs text-zinc-500">Paket</label>
-                      <select
-                        value={packageId}
-                        onChange={(e) => setPackageId(e.target.value)}
+                      <label className="mb-1 block text-xs text-zinc-500">RAM (MB)</label>
+                      <input
+                        type="number"
+                        min={512}
+                        max={32768}
+                        step={512}
+                        value={ramMb}
+                        onChange={(e) => setRamMb(Number(e.target.value))}
                         className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-amber-500/50"
-                      >
-                        {packages.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name} ({p.cpu}vCPU)
-                          </option>
-                        ))}
-                      </select>
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-zinc-500">SSD (GB)</label>
+                      <input
+                        type="number"
+                        min={10}
+                        max={500}
+                        step={10}
+                        value={diskGb}
+                        onChange={(e) => setDiskGb(Number(e.target.value))}
+                        className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-amber-500/50"
+                      />
                     </div>
                   </div>
                   <label className="flex items-center gap-2 text-sm text-zinc-400">
@@ -384,11 +387,11 @@ export default function AdminUsersPage() {
                       onChange={(e) => setFree(e.target.checked)}
                       className="rounded border-white/20"
                     />
-                    Kostenlos zuweisen (kein Guthaben abziehen)
+                    Kostenlos zuweisen
                   </label>
                   <button
                     type="submit"
-                    disabled={busy || !packages.length}
+                    disabled={busy}
                     className="rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
                   >
                     Server zuweisen
@@ -396,7 +399,6 @@ export default function AdminUsersPage() {
                 </form>
               </section>
 
-              {/* Servers of user */}
               <section className="rounded-2xl border border-white/10 bg-[#121214] overflow-hidden">
                 <div className="border-b border-white/5 px-5 py-3 font-semibold text-white">
                   Server dieses Nutzers
@@ -416,7 +418,7 @@ export default function AdminUsersPage() {
                             <span className="text-xs text-zinc-500">({s.status})</span>
                           </p>
                           <p className="text-xs text-zinc-500">
-                            {s.package.name}
+                            {s.cpu ?? "?"}vCPU · {s.ramMb ?? "?"}MB · {s.diskGb ?? "?"}GB
                             {s.proxmoxVmid != null && ` · VMID ${s.proxmoxVmid}`}
                           </p>
                         </div>
