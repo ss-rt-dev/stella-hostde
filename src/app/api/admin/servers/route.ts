@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { createLxc, getNextVmid, resolveNode } from "@/lib/proxmox";
+import { createLxc, getNextVmid, resolveNode, resolveStorage } from "@/lib/proxmox";
 import { calcPricePerHour, clampConfig, PRICING } from "@/lib/pricing";
+import { randomAccessSlug } from "@/lib/slug";
 import { z } from "zod";
 import { randomBytes } from "crypto";
 
@@ -60,8 +61,10 @@ export async function POST(req: Request) {
 
     let vmid: number;
     let node: string;
+    let storage: string;
     try {
       node = await resolveNode(basePkg.node);
+      storage = await resolveStorage(node, basePkg.storage);
       vmid = await getNextVmid();
     } catch (e: any) {
       return NextResponse.json(
@@ -71,6 +74,7 @@ export async function POST(req: Request) {
     }
 
     const password = randomBytes(12).toString("base64url");
+    const accessSlug = randomAccessSlug(16);
 
     const server = await prisma.server.create({
       data: {
@@ -78,6 +82,7 @@ export async function POST(req: Request) {
         packageId: basePkg.id,
         name: hostname,
         hostname,
+        accessSlug,
         proxmoxVmid: vmid,
         status: "CREATING",
         cpu,
@@ -94,7 +99,7 @@ export async function POST(req: Request) {
         password,
         cores: cpu,
         memory: ramMb,
-        disk: `${basePkg.storage}:${diskGb}`,
+        disk: `${storage}:${diskGb}`,
         ostemplate: basePkg.proxmoxTemplateId,
         node,
       });
@@ -132,10 +137,14 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         id: server.id,
+        accessSlug,
         vmid,
         hostname,
         node,
+        storage,
         rootPassword: password,
+        consoleUrl: `/server/${accessSlug}/console`,
+        filesUrl: `/server/${accessSlug}/files`,
       });
     } catch (err: any) {
       await prisma.server.update({
