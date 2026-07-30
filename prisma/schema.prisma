@@ -71,7 +71,7 @@ model Package {
   pricePerHour       Decimal  @db.Decimal(10, 4)
   proxmoxTemplateId  String
   node               String   @default("pve")
-  storage            String   @default("local-lvm")
+  storage            String   @default("local")
   active             Boolean  @default(true)
   createdAt          DateTime @default(now())
   servers            Server[]
@@ -79,6 +79,7 @@ model Package {
 
 model Server {
   id            String       @id @default(cuid())
+  accessSlug    String       @unique @default(cuid())
   userId        String
   packageId     String
   proxmoxVmid   Int?

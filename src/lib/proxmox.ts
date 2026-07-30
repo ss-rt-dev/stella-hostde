@@ -1,7 +1,7 @@
 /**
  * Proxmox API Client für LXC-Container
  * Env: PROXMOX_HOST, PROXMOX_TOKEN_ID, PROXMOX_TOKEN_SECRET
- * Optional: PROXMOX_INSECURE=true, PROXMOX_NODE=dein-node-name
+ * Optional: PROXMOX_INSECURE, PROXMOX_NODE, PROXMOX_STORAGE
  */
 
 import https from "https";
@@ -25,6 +25,10 @@ function assertConfig() {
       "PROXMOX_TOKEN_ID oder PROXMOX_TOKEN_SECRET fehlt in den Environment Variables"
     );
   }
+}
+
+export function getProxmoxHost() {
+  return PROXMOX_HOST;
 }
 
 function proxmoxRequest(
@@ -90,7 +94,7 @@ function proxmoxRequest(
 
     req.on("timeout", () => {
       req.destroy();
-      reject(new Error("Proxmox Timeout (55s) – Host nicht erreichbar oder zu langsam"));
+      reject(new Error("Proxmox Timeout (55s)"));
     });
 
     if (options.body) req.write(options.body);
@@ -98,7 +102,6 @@ function proxmoxRequest(
   });
 }
 
-/** Liste aller Nodes im Cluster */
 export async function listNodes(): Promise<{ node: string; status: string }[]> {
   const data = await proxmoxRequest("/nodes");
   if (!Array.isArray(data)) return [];
@@ -108,21 +111,13 @@ export async function listNodes(): Promise<{ node: string; status: string }[]> {
   }));
 }
 
-/**
- * Ermittelt den zu nutzenden Node-Namen:
- * 1. PROXMOX_NODE aus Env
- * 2. Übergebener Name, wenn er existiert und nicht der Default "pve" ist
- * 3. Erster online Node aus der API
- */
 export async function resolveNode(preferred?: string | null): Promise<string> {
   const fromEnv = process.env.PROXMOX_NODE?.trim();
   if (fromEnv) return fromEnv;
 
   const nodes = await listNodes();
   if (!nodes.length) {
-    throw new Error(
-      "Keine Proxmox-Nodes gefunden. Prüfe Token-Rechte (Sys.Audit / Datastore)."
-    );
+    throw new Error("Keine Proxmox-Nodes gefunden.");
   }
 
   if (preferred && preferred !== "pve") {
@@ -132,6 +127,41 @@ export async function resolveNode(preferred?: string | null): Promise<string> {
 
   const online = nodes.find((n) => n.status === "online") || nodes[0];
   return online.node;
+}
+
+/** Storage mit rootdir (LXC-Disks) finden */
+export async function resolveStorage(
+  node: string,
+  preferred?: string | null
+): Promise<string> {
+  const fromEnv = process.env.PROXMOX_STORAGE?.trim();
+  if (fromEnv) return fromEnv;
+
+  const data = await proxmoxRequest(`/nodes/${node}/storage`);
+  if (!Array.isArray(data) || !data.length) {
+    throw new Error("Kein Storage auf dem Node gefunden.");
+  }
+
+  const active = data.filter((s: any) => s.enabled !== 0 && s.active !== 0);
+
+  if (preferred && preferred !== "local-lvm") {
+    const match = active.find((s: any) => s.storage === preferred);
+    if (match) return String(match.storage);
+  }
+
+  // Bevorzugt Storage mit rootdir (Container-Disks)
+  const withRoot =
+    active.find((s: any) => String(s.content || "").includes("rootdir")) ||
+    active.find((s: any) => String(s.content || "").includes("images")) ||
+    active[0];
+
+  if (!withRoot) {
+    throw new Error(
+      `Kein nutzbares Storage. Verfügbar: ${data.map((s: any) => s.storage).join(", ")}`
+    );
+  }
+
+  return String(withRoot.storage);
 }
 
 export async function getNextVmid(): Promise<number> {
@@ -191,4 +221,28 @@ export async function deleteLxc(node: string, vmid: number) {
 
 export async function getLxcStatus(node: string, vmid: number) {
   return proxmoxRequest(`/nodes/${node}/lxc/${vmid}/status/current`);
+}
+
+export async function getLxcConfig(node: string, vmid: number) {
+  return proxmoxRequest(`/nodes/${node}/lxc/${vmid}/config`);
+}
+
+/** Terminal-Proxy Ticket für xterm.js Console */
+export async function createTermProxy(node: string, vmid: number) {
+  return proxmoxRequest(`/nodes/${node}/lxc/${vmid}/termproxy`, {
+    method: "POST",
+  });
+}
+
+/** VNC/Term WebSocket-URL (Browser verbindet direkt zu Proxmox) */
+export function buildTermWebsocketUrl(
+  node: string,
+  vmid: number,
+  port: string | number,
+  ticket: string
+) {
+  const u = new URL(PROXMOX_HOST);
+  const proto = u.protocol === "https:" ? "wss:" : "ws:";
+  const ticketEnc = encodeURIComponent(ticket);
+  return `${proto}//${u.host}/api2/json/nodes/${node}/lxc/${vmid}/vncwebsocket?port=${port}&vncticket=${ticketEnc}`;
 }
