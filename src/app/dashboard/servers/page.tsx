@@ -1,18 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatCurrency } from "@/lib/utils";
-
-interface Package {
-  id: string;
-  name: string;
-  description?: string | null;
-  cpu: number;
-  ramMb: number;
-  diskGb: number;
-  pricePerHour: string;
-  proxmoxTemplateId?: string;
-}
+import { calcPricePerHour, PRICING } from "@/lib/pricing";
 
 interface Server {
   id: string;
@@ -20,32 +10,34 @@ interface Server {
   status: string;
   ipAddress: string | null;
   proxmoxVmid: number | null;
-  package: Package;
+  cpu: number | null;
+  ramMb: number | null;
+  diskGb: number | null;
+  pricePerHour: string | null;
+  package: { name: string };
   createdAt: string;
 }
 
 export default function ServersPage() {
   const [servers, setServers] = useState<Server[]>([]);
-  const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [hostname, setHostname] = useState("");
-  const [packageId, setPackageId] = useState("");
+  const [cpu, setCpu] = useState(2);
+  const [ramMb, setRamMb] = useState(2048);
+  const [diskGb, setDiskGb] = useState(20);
   const [rootPassword, setRootPassword] = useState<string | null>(null);
   const [error, setError] = useState("");
 
+  const price = useMemo(
+    () => calcPricePerHour(cpu, ramMb, diskGb),
+    [cpu, ramMb, diskGb]
+  );
+
   async function load() {
     try {
-      const [sRes, pRes] = await Promise.all([
-        fetch("/api/servers"),
-        fetch("/api/packages"),
-      ]);
+      const sRes = await fetch("/api/servers");
       if (sRes.ok) setServers(await sRes.json());
-      if (pRes.ok) {
-        const pkgs = await pRes.json();
-        setPackages(pkgs);
-        if (pkgs.length && !packageId) setPackageId(pkgs[0].id);
-      }
     } catch {
       setError("API nicht erreichbar");
     }
@@ -66,14 +58,14 @@ export default function ServersPage() {
       const res = await fetch("/api/servers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packageId, hostname }),
+        body: JSON.stringify({ hostname, cpu, ramMb, diskGb }),
       });
 
       let data: any = {};
       try {
         data = await res.json();
       } catch {
-        data = { error: `Server antwortete mit Status ${res.status}` };
+        data = { error: `Status ${res.status}` };
       }
 
       if (!res.ok) {
@@ -87,7 +79,7 @@ export default function ServersPage() {
     } catch (err: any) {
       setError(
         err?.message === "Failed to fetch"
-          ? "Verbindung abgebrochen – oft Proxmox-Timeout oder fehlende Env-Vars. Prüfe Vercel-Logs."
+          ? "Verbindung abgebrochen – Timeout oder Proxmox-Fehler."
           : err?.message || "Netzwerkfehler"
       );
     } finally {
@@ -121,14 +113,16 @@ export default function ServersPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-bold text-white sm:text-2xl">Server</h1>
-        <p className="text-sm text-zinc-500">LXC-Container erstellen und verwalten</p>
+        <p className="text-sm text-zinc-500">
+          Debian 11 – CPU, RAM und SSD selbst konfigurieren
+        </p>
       </div>
 
       <form
         onSubmit={createServer}
-        className="rounded-2xl border border-white/10 bg-[#121214] p-5 space-y-4"
+        className="rounded-2xl border border-white/10 bg-[#121214] p-5 space-y-5"
       >
-        <h2 className="font-semibold text-white">Neuen Server erstellen</h2>
+        <h2 className="font-semibold text-white">Server konfigurieren</h2>
 
         {error && (
           <p className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">
@@ -148,70 +142,106 @@ export default function ServersPage() {
           </div>
         )}
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {packages.map((p) => {
-            const selected = packageId === p.id;
-            return (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setPackageId(p.id)}
-                className={`rounded-xl border p-4 text-left transition ${
-                  selected
-                    ? "border-amber-400/50 bg-amber-500/10 ring-1 ring-amber-500/30"
-                    : "border-white/10 bg-black/20 hover:border-white/20"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className={`font-semibold ${selected ? "text-amber-400" : "text-zinc-200"}`}>
-                    {p.name}
-                  </span>
-                  <span className="text-sm font-bold text-white">
-                    {formatCurrency(Number(p.pricePerHour))}
-                    <span className="text-xs font-normal text-zinc-500">/h</span>
-                  </span>
-                </div>
-                {p.description && (
-                  <p className="mt-1 text-xs text-zinc-500">{p.description}</p>
-                )}
-                <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-zinc-500">
-                  <span className="rounded-md bg-white/5 px-2 py-0.5">{p.cpu} vCPU</span>
-                  <span className="rounded-md bg-white/5 px-2 py-0.5">
-                    {p.ramMb >= 1024 ? `${p.ramMb / 1024} GB` : `${p.ramMb} MB`}
-                  </span>
-                  <span className="rounded-md bg-white/5 px-2 py-0.5">{p.diskGb} GB</span>
-                </div>
-              </button>
-            );
-          })}
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-zinc-500">Hostname</label>
+          <input
+            required
+            pattern="[a-z0-9-]+"
+            value={hostname}
+            onChange={(e) => setHostname(e.target.value.toLowerCase())}
+            placeholder="mein-server"
+            className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/50"
+          />
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        {/* CPU */}
+        <div>
+          <div className="mb-2 flex items-center justify-between text-sm">
+            <span className="text-zinc-400">vCPU</span>
+            <span className="font-semibold text-amber-400">{cpu} Kerne</span>
+          </div>
+          <input
+            type="range"
+            min={PRICING.minCpu}
+            max={PRICING.maxCpu}
+            step={1}
+            value={cpu}
+            onChange={(e) => setCpu(Number(e.target.value))}
+            className="w-full accent-amber-400"
+          />
+          <div className="mt-1 flex justify-between text-[10px] text-zinc-600">
+            <span>{PRICING.minCpu}</span>
+            <span>{PRICING.maxCpu}</span>
+          </div>
+        </div>
+
+        {/* RAM */}
+        <div>
+          <div className="mb-2 flex items-center justify-between text-sm">
+            <span className="text-zinc-400">RAM</span>
+            <span className="font-semibold text-amber-400">
+              {ramMb >= 1024 ? `${(ramMb / 1024).toFixed(ramMb % 1024 === 0 ? 0 : 1)} GB` : `${ramMb} MB`}
+            </span>
+          </div>
+          <input
+            type="range"
+            min={PRICING.minRamMb}
+            max={PRICING.maxRamMb}
+            step={512}
+            value={ramMb}
+            onChange={(e) => setRamMb(Number(e.target.value))}
+            className="w-full accent-amber-400"
+          />
+          <div className="mt-1 flex justify-between text-[10px] text-zinc-600">
+            <span>512 MB</span>
+            <span>32 GB</span>
+          </div>
+        </div>
+
+        {/* Disk */}
+        <div>
+          <div className="mb-2 flex items-center justify-between text-sm">
+            <span className="text-zinc-400">SSD</span>
+            <span className="font-semibold text-amber-400">{diskGb} GB</span>
+          </div>
+          <input
+            type="range"
+            min={PRICING.minDiskGb}
+            max={PRICING.maxDiskGb}
+            step={10}
+            value={diskGb}
+            onChange={(e) => setDiskGb(Number(e.target.value))}
+            className="w-full accent-amber-400"
+          />
+          <div className="mt-1 flex justify-between text-[10px] text-zinc-600">
+            <span>10 GB</span>
+            <span>500 GB</span>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-zinc-500">Hostname</label>
-            <input
-              required
-              pattern="[a-z0-9-]+"
-              value={hostname}
-              onChange={(e) => setHostname(e.target.value.toLowerCase())}
-              placeholder="mein-server"
-              className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/50"
-            />
+            <p className="text-xs text-zinc-500">Preis pro Stunde</p>
+            <p className="text-2xl font-bold text-amber-400">
+              {formatCurrency(price)}
+              <span className="text-sm font-normal text-zinc-500">/h</span>
+            </p>
+            <p className="text-[11px] text-zinc-600">
+              ≈ {formatCurrency(price * 24 * 30)}/Monat (ca.)
+            </p>
           </div>
-          <div className="flex items-end">
-            <button
-              type="submit"
-              disabled={creating || !packages.length}
-              className="w-full rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 py-2.5 text-sm font-semibold text-black disabled:opacity-50"
-            >
-              {creating ? "Wird erstellt…" : "Server erstellen"}
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={creating || !hostname}
+            className="rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-6 py-2.5 text-sm font-semibold text-black disabled:opacity-50"
+          >
+            {creating ? "Wird erstellt…" : "Server erstellen"}
+          </button>
         </div>
 
-        {!packages.length && (
-          <p className="text-sm text-amber-400">Keine Pakete – bitte Seed ausführen.</p>
-        )}
+        <p className="text-[11px] text-zinc-600">
+          OS: <span className="text-zinc-400">Debian 11</span> · Abrechnung stündlich nach Konfiguration
+        </p>
       </form>
 
       <div className="rounded-2xl border border-white/10 bg-[#121214] overflow-hidden">
@@ -233,7 +263,15 @@ export default function ServersPage() {
                     <StatusPill status={s.status} />
                   </div>
                   <p className="mt-0.5 text-sm text-zinc-500">
-                    {s.package.name}
+                    {s.cpu ?? "?"} vCPU ·{" "}
+                    {s.ramMb
+                      ? s.ramMb >= 1024
+                        ? `${s.ramMb / 1024} GB`
+                        : `${s.ramMb} MB`
+                      : "?"}{" "}
+                    RAM · {s.diskGb ?? "?"} GB SSD
+                    {s.pricePerHour != null &&
+                      ` · ${formatCurrency(Number(s.pricePerHour))}/h`}
                     {s.proxmoxVmid != null && ` · VMID ${s.proxmoxVmid}`}
                     {s.ipAddress && ` · ${s.ipAddress}`}
                   </p>

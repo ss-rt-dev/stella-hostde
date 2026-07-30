@@ -1,16 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { stopLxc } from "@/lib/proxmox";
+import { stopLxc, resolveNode } from "@/lib/proxmox";
 
-/**
- * Vercel Cron Job – stündlich aufrufen
- * In vercel.json:
- * {
- *   "crons": [{ "path": "/api/cron/billing", "schedule": "0 * * * *" }]
- * }
- *
- * Zusätzlich CRON_SECRET in den Env-Vars setzen und im Header prüfen.
- */
 export async function GET(req: Request) {
   const authHeader = req.headers.get("authorization");
   if (
@@ -32,9 +23,12 @@ export async function GET(req: Request) {
     const hoursSinceLastBill =
       (Date.now() - server.lastBilledAt.getTime()) / (1000 * 60 * 60);
 
-    if (hoursSinceLastBill < 0.95) continue; // noch keine volle Stunde
+    if (hoursSinceLastBill < 0.95) continue;
 
-    const price = Number(server.package.pricePerHour);
+    const price =
+      server.pricePerHour != null
+        ? Number(server.pricePerHour)
+        : Number(server.package.pricePerHour);
     const balance = Number(server.user.balance);
 
     if (balance >= price) {
@@ -58,9 +52,11 @@ export async function GET(req: Request) {
       ]);
       charged++;
     } else {
-      // Guthaben aufgebraucht → stoppen
       try {
-        await stopLxc(server.package.node, server.proxmoxVmid!);
+        if (server.proxmoxVmid) {
+          const node = await resolveNode(server.package.node);
+          await stopLxc(node, server.proxmoxVmid);
+        }
         await prisma.server.update({
           where: { id: server.id },
           data: { status: "STOPPED" },

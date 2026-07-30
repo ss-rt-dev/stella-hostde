@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { createLxc, getNextVmid, resolveNode } from "@/lib/proxmox";
+import { calcPricePerHour, clampConfig } from "@/lib/pricing";
 import { z } from "zod";
 import { randomBytes } from "crypto";
 
@@ -18,8 +19,10 @@ async function requireAdmin() {
 
 const assignSchema = z.object({
   userId: z.string(),
-  packageId: z.string(),
   hostname: z.string().min(3).max(32).regex(/^[a-z0-9-]+$/),
+  cpu: z.number().int().min(1).max(16),
+  ramMb: z.number().int().min(512).max(32768),
+  diskGb: z.number().int().min(10).max(500),
   free: z.boolean().optional(),
 });
 
@@ -30,11 +33,17 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { userId, packageId, hostname, free } = assignSchema.parse(body);
+    const parsed = assignSchema.parse(body);
+    const { cpu, ramMb, diskGb } = clampConfig(parsed.cpu, parsed.ramMb, parsed.diskGb);
+    const { userId, hostname, free } = parsed;
+    const pricePerHour = free ? 0 : calcPricePerHour(cpu, ramMb, diskGb);
 
-    const pkg = await prisma.package.findUnique({ where: { id: packageId } });
-    if (!pkg || !pkg.active) {
-      return NextResponse.json({ error: "Paket nicht gefunden" }, { status: 404 });
+    const basePkg = await prisma.package.findFirst({
+      where: { active: true },
+      orderBy: { createdAt: "asc" },
+    });
+    if (!basePkg) {
+      return NextResponse.json({ error: "Kein Basis-Paket" }, { status: 404 });
     }
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -42,7 +51,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "User nicht gefunden" }, { status: 404 });
     }
 
-    if (!free && Number(user.balance) < Number(pkg.pricePerHour)) {
+    if (!free && Number(user.balance) < pricePerHour) {
       return NextResponse.json(
         { error: "Kunde hat nicht genug Guthaben (oder 'Kostenlos' wählen)" },
         { status: 400 }
@@ -52,10 +61,9 @@ export async function POST(req: Request) {
     let vmid: number;
     let node: string;
     try {
-      node = await resolveNode(pkg.node);
+      node = await resolveNode(basePkg.node);
       vmid = await getNextVmid();
     } catch (e: any) {
-      console.error("proxmox resolve", e);
       return NextResponse.json(
         { error: e.message || "Proxmox nicht erreichbar" },
         { status: 502 }
@@ -67,11 +75,15 @@ export async function POST(req: Request) {
     const server = await prisma.server.create({
       data: {
         userId,
-        packageId: pkg.id,
+        packageId: basePkg.id,
         name: hostname,
         hostname,
         proxmoxVmid: vmid,
         status: "CREATING",
+        cpu,
+        ramMb,
+        diskGb,
+        pricePerHour,
       },
     });
 
@@ -80,10 +92,10 @@ export async function POST(req: Request) {
         vmid,
         hostname,
         password,
-        cores: pkg.cpu,
-        memory: pkg.ramMb,
-        disk: `${pkg.storage}:${pkg.diskGb}`,
-        ostemplate: pkg.proxmoxTemplateId,
+        cores: cpu,
+        memory: ramMb,
+        disk: `${basePkg.storage}:${diskGb}`,
+        ostemplate: basePkg.proxmoxTemplateId,
         node,
       });
 
@@ -92,17 +104,17 @@ export async function POST(req: Request) {
         data: { status: "RUNNING" },
       });
 
-      if (!free) {
+      if (!free && pricePerHour > 0) {
         await prisma.$transaction([
           prisma.user.update({
             where: { id: userId },
-            data: { balance: { decrement: pkg.pricePerHour } },
+            data: { balance: { decrement: pricePerHour } },
           }),
           prisma.transaction.create({
             data: {
               userId,
               type: "PURCHASE",
-              amount: -Number(pkg.pricePerHour),
+              amount: -pricePerHour,
               description: `Admin: Server ${hostname} zugewiesen`,
             },
           }),
@@ -130,7 +142,6 @@ export async function POST(req: Request) {
         where: { id: server.id },
         data: { status: "ERROR" },
       });
-      console.error("createLxc", err);
       return NextResponse.json(
         { error: err.message || "LXC-Erstellung fehlgeschlagen" },
         { status: 502 }
@@ -139,10 +150,7 @@ export async function POST(req: Request) {
   } catch (e: any) {
     console.error(e);
     if (e?.name === "ZodError") {
-      return NextResponse.json(
-        { error: "Ungültige Eingabe (Hostname: a-z, 0-9, -, 3–32 Zeichen)" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Ungültige Eingabe" }, { status: 400 });
     }
     return NextResponse.json(
       { error: e.message || "Serverfehler" },

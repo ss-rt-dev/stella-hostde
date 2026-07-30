@@ -3,14 +3,17 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { createLxc, getNextVmid, resolveNode } from "@/lib/proxmox";
+import { calcPricePerHour, clampConfig } from "@/lib/pricing";
 import { z } from "zod";
 import { randomBytes } from "crypto";
 
 export const maxDuration = 60;
 
 const createSchema = z.object({
-  packageId: z.string(),
   hostname: z.string().min(3).max(32).regex(/^[a-z0-9-]+$/),
+  cpu: z.number().int().min(1).max(16),
+  ramMb: z.number().int().min(512).max(32768),
+  diskGb: z.number().int().min(10).max(500),
 });
 
 export async function GET() {
@@ -39,11 +42,20 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { packageId, hostname } = createSchema.parse(body);
+    const parsed = createSchema.parse(body);
+    const { cpu, ramMb, diskGb } = clampConfig(parsed.cpu, parsed.ramMb, parsed.diskGb);
+    const hostname = parsed.hostname;
+    const pricePerHour = calcPricePerHour(cpu, ramMb, diskGb);
 
-    const pkg = await prisma.package.findUnique({ where: { id: packageId } });
-    if (!pkg || !pkg.active) {
-      return NextResponse.json({ error: "Paket nicht gefunden" }, { status: 404 });
+    const basePkg = await prisma.package.findFirst({
+      where: { active: true },
+      orderBy: { createdAt: "asc" },
+    });
+    if (!basePkg) {
+      return NextResponse.json(
+        { error: "Kein Basis-Paket (Debian 11) – bitte Seed ausführen" },
+        { status: 404 }
+      );
     }
 
     const user = await prisma.user.findUnique({ where: { id: session.user.id } });
@@ -51,9 +63,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "User nicht gefunden" }, { status: 404 });
     }
 
-    if (Number(user.balance) < Number(pkg.pricePerHour)) {
+    if (Number(user.balance) < pricePerHour) {
       return NextResponse.json(
-        { error: "Nicht genug Guthaben. Bitte zuerst aufladen." },
+        { error: "Nicht genug Guthaben für die erste Stunde." },
         { status: 400 }
       );
     }
@@ -61,7 +73,7 @@ export async function POST(req: Request) {
     let vmid: number;
     let node: string;
     try {
-      node = await resolveNode(pkg.node);
+      node = await resolveNode(basePkg.node);
       vmid = await getNextVmid();
     } catch (e: any) {
       console.error("proxmox resolve", e);
@@ -76,11 +88,15 @@ export async function POST(req: Request) {
     const server = await prisma.server.create({
       data: {
         userId: session.user.id,
-        packageId: pkg.id,
+        packageId: basePkg.id,
         name: hostname,
         hostname,
         proxmoxVmid: vmid,
         status: "CREATING",
+        cpu,
+        ramMb,
+        diskGb,
+        pricePerHour,
       },
     });
 
@@ -89,10 +105,10 @@ export async function POST(req: Request) {
         vmid,
         hostname,
         password,
-        cores: pkg.cpu,
-        memory: pkg.ramMb,
-        disk: `${pkg.storage}:${pkg.diskGb}`,
-        ostemplate: pkg.proxmoxTemplateId,
+        cores: cpu,
+        memory: ramMb,
+        disk: `${basePkg.storage}:${diskGb}`,
+        ostemplate: basePkg.proxmoxTemplateId,
         node,
       });
 
@@ -104,14 +120,14 @@ export async function POST(req: Request) {
       await prisma.$transaction([
         prisma.user.update({
           where: { id: session.user.id },
-          data: { balance: { decrement: pkg.pricePerHour } },
+          data: { balance: { decrement: pricePerHour } },
         }),
         prisma.transaction.create({
           data: {
             userId: session.user.id,
             type: "PURCHASE",
-            amount: -Number(pkg.pricePerHour),
-            description: `Server ${hostname} erstellt`,
+            amount: -pricePerHour,
+            description: `Server ${hostname} (${cpu}vCPU/${ramMb}MB/${diskGb}GB)`,
           },
         }),
       ]);
@@ -121,6 +137,10 @@ export async function POST(req: Request) {
         vmid,
         hostname,
         node,
+        cpu,
+        ramMb,
+        diskGb,
+        pricePerHour,
         rootPassword: password,
       });
     } catch (err: any) {
@@ -138,7 +158,7 @@ export async function POST(req: Request) {
     console.error(e);
     if (e?.name === "ZodError") {
       return NextResponse.json(
-        { error: "Ungültige Eingabe (Hostname: a-z, 0-9, -, 3–32 Zeichen)" },
+        { error: "Ungültige Eingabe – prüfe Hostname und Ressourcen" },
         { status: 400 }
       );
     }
