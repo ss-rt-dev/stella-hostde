@@ -5,9 +5,9 @@ import { signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 
 const links = [
-  { href: "/dashboard", label: "Dashboard", icon: "▦" },
-  { href: "/dashboard/servers", label: "Server", icon: "▣" },
-  { href: "/dashboard/deposit", label: "Billing", icon: "◎" },
+  { href: "/dashboard", label: "Dashboard", emoji: "🏠" },
+  { href: "/dashboard/servers", label: "Server", emoji: "🖥️" },
+  { href: "/dashboard/deposit", label: "Billing", emoji: "💳" },
 ];
 
 export function DashboardNav({
@@ -24,7 +24,6 @@ export function DashboardNav({
 
   return (
     <>
-      {/* Sidebar */}
       <aside
         className="fixed inset-y-0 left-0 z-40 hidden w-[240px] flex-col border-r border-white/10 lg:flex"
         style={{
@@ -57,7 +56,7 @@ export function DashboardNav({
                     : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-100"
                 }`}
               >
-                <span className="text-sm">{l.icon}</span>
+                <span className="text-base">{l.emoji}</span>
                 {l.label}
               </Link>
             );
@@ -71,7 +70,7 @@ export function DashboardNav({
                   : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-100"
               }`}
             >
-              <span className="text-sm">★</span>
+              <span className="text-base">👑</span>
               Admin
             </Link>
           )}
@@ -91,14 +90,13 @@ export function DashboardNav({
           </div>
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
-            className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-zinc-400 backdrop-blur transition hover:bg-white/5 hover:text-white"
+            className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-zinc-400 transition hover:bg-white/5 hover:text-white"
           >
-            Abmelden
+            🚪 Abmelden
           </button>
         </div>
       </aside>
 
-      {/* Mobile header */}
       <header
         className="sticky top-0 z-40 flex items-center justify-between border-b border-white/10 px-4 py-3 lg:hidden"
         style={{
@@ -116,17 +114,16 @@ export function DashboardNav({
         </Link>
         <button
           onClick={() => signOut({ callbackUrl: "/" })}
-          className="rounded-full border border-white/10 px-3 py-1 text-xs text-zinc-400"
+          className="min-h-[36px] rounded-full border border-white/10 px-3 py-1 text-xs text-zinc-400"
         >
-          Abmelden
+          🚪
         </button>
       </header>
 
-      {/* Mobile bottom nav */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 flex border-t border-white/10 lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 flex border-t border-white/10 safe-area-pb lg:hidden"
         style={{
-          background: "rgba(10,10,12,0.92)",
+          background: "rgba(10,10,12,0.95)",
           backdropFilter: "blur(20px)",
         }}
       >
@@ -136,15 +133,28 @@ export function DashboardNav({
             <Link
               key={l.href}
               href={l.href}
-              className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px] ${
+              className={`flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-[10px] transition active:scale-95 ${
                 active ? "text-amber-400" : "text-zinc-500"
               }`}
             >
-              <span className="text-base">{l.icon}</span>
+              <span className="text-lg">{l.emoji}</span>
               {l.label}
             </Link>
           );
         })}
+        {user.role === "ADMIN" && (
+          <Link
+            href="/admin"
+            className={`flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-[10px] ${
+              pathname.startsWith("/admin")
+                ? "text-amber-400"
+                : "text-zinc-500"
+            }`}
+          >
+            <span className="text-lg">👑</span>
+            Admin
+          </Link>
+        )}
       </nav>
     </>
   );
