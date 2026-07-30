@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { startLxc, stopLxc, deleteLxc } from "@/lib/proxmox";
+import { startLxc, stopLxc, deleteLxc, resolveNode } from "@/lib/proxmox";
 
 export async function PATCH(
   req: Request,
@@ -25,9 +25,9 @@ export async function PATCH(
     return NextResponse.json({ error: "Server nicht gefunden" }, { status: 404 });
   }
 
-  const node = server.package.node;
-
   try {
+    const node = await resolveNode(server.package.node);
+
     if (action === "start") {
       await startLxc(node, server.proxmoxVmid);
       await prisma.server.update({
@@ -72,7 +72,8 @@ export async function DELETE(
   }
 
   try {
-    await deleteLxc(server.package.node, server.proxmoxVmid);
+    const node = await resolveNode(server.package.node);
+    await deleteLxc(node, server.proxmoxVmid);
     await prisma.server.update({
       where: { id },
       data: { status: "DELETED" },

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { deleteLxc, startLxc, stopLxc } from "@/lib/proxmox";
+import { deleteLxc, startLxc, stopLxc, resolveNode } from "@/lib/proxmox";
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
@@ -33,11 +33,13 @@ export async function PATCH(
   }
 
   try {
+    const node = await resolveNode(server.package.node);
+
     if (action === "start") {
-      await startLxc(server.package.node, server.proxmoxVmid);
+      await startLxc(node, server.proxmoxVmid);
       await prisma.server.update({ where: { id }, data: { status: "RUNNING" } });
     } else if (action === "stop") {
-      await stopLxc(server.package.node, server.proxmoxVmid);
+      await stopLxc(node, server.proxmoxVmid);
       await prisma.server.update({ where: { id }, data: { status: "STOPPED" } });
     } else {
       return NextResponse.json({ error: "Ungültige Aktion" }, { status: 400 });
@@ -70,7 +72,8 @@ export async function DELETE(
   try {
     if (server.proxmoxVmid) {
       try {
-        await deleteLxc(server.package.node, server.proxmoxVmid);
+        const node = await resolveNode(server.package.node);
+        await deleteLxc(node, server.proxmoxVmid);
       } catch (e) {
         console.error("Proxmox delete:", e);
       }
