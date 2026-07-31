@@ -8,7 +8,7 @@ import { applyDiscount, validateDiscountCode } from "@/lib/discounts";
 import {
   MINECRAFT_VARIANTS,
   DISCORD_VARIANTS,
-} from "@/lib/software-setup";
+} from "@/lib/software-variants";
 
 interface Server {
   id: string;
