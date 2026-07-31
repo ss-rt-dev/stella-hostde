@@ -1,7 +1,6 @@
 /**
  * Monatspreise (EUR / Monat)
  * Zielspanne: ca. 2,50 € (Minimum) bis 20 € (Maximum)
- * Limits: 8 vCPU, 32 GB RAM, 250 GB SSD
  */
 export const PRICING = {
   minPrice: 2.5,
@@ -12,14 +11,9 @@ export const PRICING = {
   maxRamMb: 32768,
   minDiskGb: 10,
   maxDiskGb: 250,
-  /** Tage bis zur nächsten Monatsabrechnung */
   billingDays: 30,
 } as const;
 
-/**
- * Monatspreis aus Ressourcen, skaliert linear auf 2,50–20 €.
- * Gewichtung: CPU 40 %, RAM 40 %, Disk 20 %.
- */
 export function calcPricePerMonth(
   cpu: number,
   ramMb: number,
@@ -42,7 +36,6 @@ export function calcPricePerMonth(
   return Math.round(raw * 100) / 100;
 }
 
-/** Alias – DB-Feld heißt noch pricePerHour, Inhalt = Monatspreis */
 export function calcPricePerHour(
   cpu: number,
   ramMb: number,

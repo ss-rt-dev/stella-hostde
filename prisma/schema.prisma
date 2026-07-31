@@ -78,24 +78,31 @@ model Package {
 }
 
 model Server {
-  id            String       @id @default(cuid())
-  // optional, damit db push bei bestehenden Zeilen nicht scheitert
-  accessSlug    String?      @unique
-  userId        String
-  packageId     String
-  proxmoxVmid   Int?
-  name          String
-  status        ServerStatus @default(CREATING)
-  ipAddress     String?
-  hostname      String?
-  cpu           Int?
-  ramMb         Int?
-  diskGb        Int?
-  pricePerHour  Decimal?     @db.Decimal(10, 4)
-  createdAt     DateTime     @default(now())
-  lastBilledAt  DateTime     @default(now())
-  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  package       Package      @relation(fields: [packageId], references: [id])
+  id              String       @id @default(cuid())
+  accessSlug      String?      @unique
+  userId          String
+  packageId       String
+  proxmoxVmid     Int?
+  name            String
+  status          ServerStatus @default(CREATING)
+  ipAddress       String?
+  hostname        String?
+  cpu             Int?
+  ramMb           Int?
+  diskGb          Int?
+  pricePerHour    Decimal?     @db.Decimal(10, 4)
+  // DEBIAN | MINECRAFT | DISCORD_BOT
+  serverType      String       @default("DEBIAN")
+  // paper | vanilla | purpur | fabric | spigot | python | nodejs
+  softwareVariant String?
+  softwareVersion String?
+  discountCode    String?
+  setupStatus     String?      // pending | running | done | failed | skipped
+  setupNote       String?
+  createdAt       DateTime     @default(now())
+  lastBilledAt    DateTime     @default(now())
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  package         Package      @relation(fields: [packageId], references: [id])
 }
 
 enum ServerStatus {
