@@ -2,6 +2,7 @@
  * SSH zum Proxmox-Host + pct exec im LXC.
  * Env: PROXMOX_SSH_HOST, PROXMOX_SSH_USER, PROXMOX_SSH_PASSWORD
  * (optional PROXMOX_SSH_PORT, PROXMOX_SSH_PRIVATE_KEY)
+ * PROXMOX_SSH_PRIVATE_KEY darf Roh-Key ODER base64(Key) sein (besser für Vercel).
  * Fallback-Passwort: PROXMOX_PASSWORD
  */
 
@@ -17,7 +18,6 @@ function shellEscape(s: string): string {
   return `'${s.replace(/'/g, `'"'"'`)}'`;
 }
 
-/** Host ohne https:// und ohne Port-Suffix */
 function normalizeSshHost(raw: string): string {
   let h = raw.trim();
   h = h.replace(/^https?:\/\//i, "");
@@ -32,24 +32,38 @@ function normalizeSshHost(raw: string): string {
 }
 
 /**
- * Vercel speichert mehrzeilige Env-Vars manchmal mit \\n oder als eine Zeile.
- * Stellt einen gültigen OpenSSH/PEM Private Key wieder her.
+ * Akzeptiert:
+ * - normalen OpenSSH/PEM Key (mehrzeilig oder mit \\n)
+ * - base64-kodierten Key (eine Zeile, ideal für Vercel)
  */
 function normalizePrivateKey(raw: string): string {
   if (!raw) return "";
   let k = raw.trim();
 
-  // Anführungszeichen entfernen falls versehentlich gesetzt
   if (
     (k.startsWith('"') && k.endsWith('"')) ||
     (k.startsWith("'") && k.endsWith("'"))
   ) {
-    k = k.slice(1, -1);
+    k = k.slice(1, -1).trim();
   }
 
-  // Literal \n → echte Newlines
   k = k.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   k = k.replace(/\\n/g, "\n");
+
+  // Base64 ohne BEGIN → dekodieren
+  if (!k.includes("BEGIN")) {
+    const compact = k.replace(/\s+/g, "");
+    if (/^[A-Za-z0-9+/=]+$/.test(compact) && compact.length > 80) {
+      try {
+        const decoded = Buffer.from(compact, "base64").toString("utf8");
+        if (decoded.includes("BEGIN")) {
+          k = decoded;
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+  }
 
   const match = k.match(
     /-----BEGIN ([^-]+)-----([\s\S]*?)-----END \1-----/
@@ -59,17 +73,13 @@ function normalizePrivateKey(raw: string): string {
   }
 
   const type = match[1].trim();
-  // Body: alle Whitespace entfernen, dann alle 70 Zeichen umbrechen
   const body = match[2].replace(/\s+/g, "");
   if (!body) return k;
 
-  const wrapped =
-    body.match(/.{1,70}/g)?.join("\n") ?? body;
-
+  const wrapped = body.match(/.{1,70}/g)?.join("\n") ?? body;
   return `-----BEGIN ${type}-----\n${wrapped}\n-----END ${type}-----\n`;
 }
 
-/** Sichere absolute Pfade – kein .., kein leerer Pfad */
 export function sanitizePath(raw: string): string {
   let p = (raw || "/").replace(/\\/g, "/");
   if (!p.startsWith("/")) p = "/" + p;
@@ -121,7 +131,7 @@ export function runSsh(
   if (privateKey && !privateKey.includes("BEGIN")) {
     return Promise.resolve({
       ok: false,
-      out: "PROXMOX_SSH_PRIVATE_KEY sieht ungültig aus (kein BEGIN … KEY)",
+      out: "PROXMOX_SSH_PRIVATE_KEY ungültig – Roh-Key oder base64(Key) erwarten",
       code: -1,
     });
   }
@@ -148,12 +158,11 @@ export function runSsh(
       host,
       port,
       username: user,
-      tryKeyboard: Boolean(password),
+      tryKeyboard: Boolean(password) && !privateKey,
       readyTimeout: 25000,
       hostVerifier: () => true,
     };
 
-    // Key bevorzugt – Passwort nur wenn kein Key
     if (privateKey) {
       connectOpts.privateKey = privateKey;
     } else if (password) {
@@ -186,17 +195,15 @@ export function runSsh(
         });
       })
       .on("keyboard-interactive", (_name, _instructions, _lang, prompts, finishKb) => {
-        const answers = prompts.map(() => password);
-        finishKb(answers);
+        finishKb(prompts.map(() => password));
       })
       .on("error", (err) => {
         clearTimeout(timer);
         let msg = err.message || String(err);
         if (/authentication methods failed/i.test(msg)) {
-          msg +=
-            privateKey
-              ? " (Key-Auth fehlgeschlagen – Key in Vercel prüfen, Redeploy, authorized_keys auf dem Host)"
-              : " (Passwort-Auth fehlgeschlagen)";
+          msg += privateKey
+            ? " (Key-Auth fehlgeschlagen – base64-Key in Vercel prüfen + Redeploy)"
+            : " (Passwort-Auth fehlgeschlagen)";
         }
         finish({ ok: false, out: msg, code: -1 });
       })
@@ -204,7 +211,6 @@ export function runSsh(
   });
 }
 
-/** Befehl im LXC ausführen */
 export async function pctExec(
   vmid: number,
   innerCmd: string,
