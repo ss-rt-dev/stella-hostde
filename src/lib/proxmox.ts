@@ -129,39 +129,78 @@ export async function resolveNode(preferred?: string | null): Promise<string> {
   return online.node;
 }
 
-/** Storage mit rootdir (LXC-Disks) finden */
+function storageContent(s: any): string {
+  return String(s.content || "");
+}
+
+function isUsableForLxc(s: any): boolean {
+  const name = String(s.storage || "");
+  if (!name || name === "local-lvm") return false;
+  // enabled/active: 1, true oder fehlend = ok
+  if (s.enabled === 0 || s.enabled === false) return false;
+  if (s.active === 0 || s.active === false) return false;
+  const c = storageContent(s);
+  return c.includes("rootdir") || c.includes("images");
+}
+
+/**
+ * Storage für LXC-rootfs ermitteln.
+ * Niemals local-lvm, wenn es nicht in der API-Liste existiert.
+ */
 export async function resolveStorage(
   node: string,
-  preferred?: string | null
+  _preferred?: string | null
 ): Promise<string> {
-  const fromEnv = process.env.PROXMOX_STORAGE?.trim();
-  if (fromEnv) return fromEnv;
-
   const data = await proxmoxRequest(`/nodes/${node}/storage`);
   if (!Array.isArray(data) || !data.length) {
     throw new Error("Kein Storage auf dem Node gefunden.");
   }
 
-  const active = data.filter((s: any) => s.enabled !== 0 && s.active !== 0);
+  const names = data.map((s: any) => String(s.storage));
+  const available = names.join(", ");
 
-  if (preferred && preferred !== "local-lvm") {
-    const match = active.find((s: any) => s.storage === preferred);
-    if (match) return String(match.storage);
+  const fromEnv = process.env.PROXMOX_STORAGE?.trim();
+  if (fromEnv) {
+    if (fromEnv === "local-lvm" && !names.includes("local-lvm")) {
+      // Env zeigt auf nicht existierendes Storage → ignorieren
+    } else if (names.includes(fromEnv)) {
+      return fromEnv;
+    } else {
+      throw new Error(
+        `PROXMOX_STORAGE="${fromEnv}" existiert nicht. Verfügbar: ${available}`
+      );
+    }
   }
 
-  // Bevorzugt Storage mit rootdir (Container-Disks)
-  const withRoot =
-    active.find((s: any) => String(s.content || "").includes("rootdir")) ||
-    active.find((s: any) => String(s.content || "").includes("images")) ||
-    active[0];
+  const usable = data.filter(isUsableForLxc);
 
-  if (!withRoot) {
-    throw new Error(
-      `Kein nutzbares Storage. Verfügbar: ${data.map((s: any) => s.storage).join(", ")}`
-    );
-  }
+  // rootdir bevorzugen
+  const rootdir = usable.find((s: any) =>
+    storageContent(s).includes("rootdir")
+  );
+  if (rootdir) return String(rootdir.storage);
 
-  return String(withRoot.storage);
+  const images = usable.find((s: any) =>
+    storageContent(s).includes("images")
+  );
+  if (images) return String(images.storage);
+
+  // Fallback: irgendein Storage außer local-lvm und backup-only
+  const any = data.find((s: any) => {
+    const name = String(s.storage || "");
+    if (name === "local-lvm") return false;
+    if (s.enabled === 0 || s.enabled === false) return false;
+    const c = storageContent(s);
+    if (c === "backup" || c === "iso" || c === "vztmpl") return false;
+    return true;
+  });
+
+  if (any) return String(any.storage);
+
+  throw new Error(
+    `Kein Storage für LXC-Disks (rootdir). Verfügbar: ${available}. ` +
+      `In Proxmox unter Datacenter → Storage prüfen und ggf. PROXMOX_STORAGE setzen.`
+  );
 }
 
 export async function getNextVmid(): Promise<number> {
@@ -182,6 +221,14 @@ export interface CreateLxcOptions {
 }
 
 export async function createLxc(opts: CreateLxcOptions) {
+  // Safety: nie local-lvm hardcoden
+  if (opts.disk.startsWith("local-lvm:")) {
+    throw new Error(
+      "Storage local-lvm ist ungültig. PROXMOX_STORAGE auf ein existierendes Storage setzen " +
+        "(z.B. local oder der Name unter Datacenter → Storage)."
+    );
+  }
+
   const body = new URLSearchParams();
   body.set("vmid", String(opts.vmid));
   body.set("hostname", opts.hostname);
@@ -227,14 +274,12 @@ export async function getLxcConfig(node: string, vmid: number) {
   return proxmoxRequest(`/nodes/${node}/lxc/${vmid}/config`);
 }
 
-/** Terminal-Proxy Ticket für xterm.js Console */
 export async function createTermProxy(node: string, vmid: number) {
   return proxmoxRequest(`/nodes/${node}/lxc/${vmid}/termproxy`, {
     method: "POST",
   });
 }
 
-/** VNC/Term WebSocket-URL (Browser verbindet direkt zu Proxmox) */
 export function buildTermWebsocketUrl(
   node: string,
   vmid: number,

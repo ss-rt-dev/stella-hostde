@@ -4,8 +4,8 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 /**
- * Basis-Paket – Storage wird zur Laufzeit per API ermittelt (nicht local-lvm hardcoden).
- * Template z.B.:
+ * Storage wird zur Laufzeit per Proxmox-API gewählt – hier nur Platzhalter.
+ * Template muss existieren, z.B.:
  *   pveam download local debian-11-standard_11.7-1_amd64.tar.zst
  */
 const BASE_PACKAGE = {
@@ -17,10 +17,15 @@ const BASE_PACKAGE = {
   pricePerHour: 0.02,
   proxmoxTemplateId: "local:vztmpl/debian-11-standard_11.7-1_amd64.tar.zst",
   node: "pve",
-  storage: "local",
+  storage: "auto",
 };
 
 async function main() {
+  // Alle alten local-lvm Pakete bereinigen
+  await prisma.package.updateMany({
+    data: { storage: "auto" },
+  });
+
   await prisma.package.updateMany({
     where: { name: { not: BASE_PACKAGE.name } },
     data: { active: false },
