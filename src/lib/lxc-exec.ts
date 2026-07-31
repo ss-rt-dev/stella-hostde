@@ -21,17 +21,52 @@ function shellEscape(s: string): string {
 function normalizeSshHost(raw: string): string {
   let h = raw.trim();
   h = h.replace(/^https?:\/\//i, "");
-  // trailing slash / path entfernen
   h = h.split("/")[0];
-  // host:port → host (Port separat)
   if (h.includes(":") && !h.includes("]")) {
-    // IPv4 host:port
     const parts = h.split(":");
     if (parts.length === 2 && /^\d+$/.test(parts[1])) {
       return parts[0];
     }
   }
   return h;
+}
+
+/**
+ * Vercel speichert mehrzeilige Env-Vars manchmal mit \\n oder als eine Zeile.
+ * Stellt einen gültigen OpenSSH/PEM Private Key wieder her.
+ */
+function normalizePrivateKey(raw: string): string {
+  if (!raw) return "";
+  let k = raw.trim();
+
+  // Anführungszeichen entfernen falls versehentlich gesetzt
+  if (
+    (k.startsWith('"') && k.endsWith('"')) ||
+    (k.startsWith("'") && k.endsWith("'"))
+  ) {
+    k = k.slice(1, -1);
+  }
+
+  // Literal \n → echte Newlines
+  k = k.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  k = k.replace(/\\n/g, "\n");
+
+  const match = k.match(
+    /-----BEGIN ([^-]+)-----([\s\S]*?)-----END \1-----/
+  );
+  if (!match) {
+    return k;
+  }
+
+  const type = match[1].trim();
+  // Body: alle Whitespace entfernen, dann alle 70 Zeichen umbrechen
+  const body = match[2].replace(/\s+/g, "");
+  if (!body) return k;
+
+  const wrapped =
+    body.match(/.{1,70}/g)?.join("\n") ?? body;
+
+  return `-----BEGIN ${type}-----\n${wrapped}\n-----END ${type}-----\n`;
 }
 
 /** Sichere absolute Pfade – kein .., kein leerer Pfad */
@@ -58,14 +93,12 @@ export function runSsh(
   const hostRaw = process.env.PROXMOX_SSH_HOST?.trim() || "";
   const host = normalizeSshHost(hostRaw);
   const user = process.env.PROXMOX_SSH_USER?.trim() || "root";
-  // Passwort: SSH-spezifisch, sonst Proxmox-Root-Passwort
   const password =
     process.env.PROXMOX_SSH_PASSWORD ||
     process.env.PROXMOX_PASSWORD ||
     "";
-  const privateKey = (process.env.PROXMOX_SSH_PRIVATE_KEY || "").replace(
-    /\\n/g,
-    "\n"
+  const privateKey = normalizePrivateKey(
+    process.env.PROXMOX_SSH_PRIVATE_KEY || ""
   );
   const port = Number(process.env.PROXMOX_SSH_PORT || 22);
 
@@ -81,6 +114,14 @@ export function runSsh(
     return Promise.resolve({
       ok: false,
       out: "Weder PROXMOX_SSH_PASSWORD noch PROXMOX_SSH_PRIVATE_KEY gesetzt",
+      code: -1,
+    });
+  }
+
+  if (privateKey && !privateKey.includes("BEGIN")) {
+    return Promise.resolve({
+      ok: false,
+      out: "PROXMOX_SSH_PRIVATE_KEY sieht ungültig aus (kein BEGIN … KEY)",
       code: -1,
     });
   }
@@ -102,6 +143,22 @@ export function runSsh(
     const timer = setTimeout(() => {
       finish({ ok: false, out: "SSH Timeout", code: -1 });
     }, timeoutMs);
+
+    const connectOpts: Record<string, unknown> = {
+      host,
+      port,
+      username: user,
+      tryKeyboard: Boolean(password),
+      readyTimeout: 25000,
+      hostVerifier: () => true,
+    };
+
+    // Key bevorzugt – Passwort nur wenn kein Key
+    if (privateKey) {
+      connectOpts.privateKey = privateKey;
+    } else if (password) {
+      connectOpts.password = password;
+    }
 
     conn
       .on("ready", () => {
@@ -128,26 +185,22 @@ export function runSsh(
           });
         });
       })
-      // Viele Server (Debian/Proxmox) wollen keyboard-interactive statt "password"
       .on("keyboard-interactive", (_name, _instructions, _lang, prompts, finishKb) => {
         const answers = prompts.map(() => password);
         finishKb(answers);
       })
       .on("error", (err) => {
         clearTimeout(timer);
-        finish({ ok: false, out: err.message, code: -1 });
+        let msg = err.message || String(err);
+        if (/authentication methods failed/i.test(msg)) {
+          msg +=
+            privateKey
+              ? " (Key-Auth fehlgeschlagen – Key in Vercel prüfen, Redeploy, authorized_keys auf dem Host)"
+              : " (Passwort-Auth fehlgeschlagen)";
+        }
+        finish({ ok: false, out: msg, code: -1 });
       })
-      .connect({
-        host,
-        port,
-        username: user,
-        password: password || undefined,
-        privateKey: privateKey || undefined,
-        tryKeyboard: true,
-        readyTimeout: 20000,
-        // Host-Key-Prüfung für Serverless überspringen (wie StrictHostKeyChecking=no)
-        hostVerifier: () => true,
-      });
+      .connect(connectOpts as any);
   });
 }
 
