@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import "@xterm/xterm/css/xterm.css";
 
 export default function ServerConsolePage() {
   const params = useParams();
@@ -21,7 +22,9 @@ export default function ServerConsolePage() {
 
     async function connect() {
       try {
-        const res = await fetch(`/api/server/${slug}/console`, { method: "POST" });
+        const res = await fetch(`/api/server/${slug}/console`, {
+          method: "POST",
+        });
         const data = await res.json();
         if (!res.ok) {
           setError(data.error || "Console nicht verfügbar");
@@ -31,10 +34,8 @@ export default function ServerConsolePage() {
         if (disposed) return;
         setServerName(data.name || "");
 
-        // Dynamisch xterm laden
         const xtermMod = await import("@xterm/xterm");
         const fitMod = await import("@xterm/addon-fit");
-        await import("@xterm/xterm/css/xterm.css");
 
         if (disposed || !termRef.current) return;
 
@@ -55,13 +56,11 @@ export default function ServerConsolePage() {
 
         setStatus("WebSocket…");
 
-        // Proxmox erwartet oft zuerst eine Auth-Message
         ws = new WebSocket(data.wsUrl);
         ws.binaryType = "arraybuffer";
 
         ws.onopen = () => {
           setStatus("Verbunden");
-          // Proxmox term protocol: first message is username:ticket
           const auth = `${data.user}:${data.ticket}\n`;
           ws?.send(auth);
           term.focus();
@@ -118,7 +117,10 @@ export default function ServerConsolePage() {
     <div className="flex min-h-screen flex-col bg-[#0a0a0c] text-zinc-100">
       <header className="flex items-center justify-between border-b border-white/10 px-4 py-3">
         <div className="flex items-center gap-3">
-          <Link href="/dashboard/servers" className="text-sm text-zinc-500 hover:text-amber-400">
+          <Link
+            href="/dashboard/servers"
+            className="text-sm text-zinc-500 hover:text-amber-400"
+          >
             ← Server
           </Link>
           <span className="text-sm font-medium text-white">
