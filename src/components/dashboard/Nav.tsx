@@ -99,6 +99,7 @@ export function DashboardNav({
   const impersonating = Boolean(user.impersonatedBy);
   const onAdmin = pathname.startsWith("/admin") && !impersonating;
   const logo = onAdmin ? LOGO_ADMIN : LOGO_USER;
+  const isAdminRole = user.role === "ADMIN" && !impersonating;
 
   function isActive(href: string, exact?: boolean) {
     if (exact) return pathname === href;
@@ -205,12 +206,28 @@ export function DashboardNav({
 
         <div className="border-t border-white/10 p-4">
           <div className="mb-3 flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-sm font-semibold text-amber-400 ring-1 ring-amber-500/25">
-              {(user.name || user.email || "U")[0].toUpperCase()}
-            </div>
+            {isAdminRole ? (
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/10 ring-1 ring-amber-500/30">
+                <Image
+                  src={LOGO_ADMIN}
+                  alt="Admin"
+                  width={28}
+                  height={28}
+                  className="h-7 w-7 object-contain"
+                  unoptimized
+                />
+              </div>
+            ) : (
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-sm font-semibold text-amber-400 ring-1 ring-amber-500/25">
+                {(user.name || user.email || "U")[0].toUpperCase()}
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-zinc-200">
                 {user.name || "Kunde"}
+                {isAdminRole && (
+                  <span className="ml-1.5 text-[10px] font-semibold text-amber-400">ADMIN</span>
+                )}
               </p>
               <p className="truncate text-[11px] text-zinc-500">{user.email}</p>
             </div>
