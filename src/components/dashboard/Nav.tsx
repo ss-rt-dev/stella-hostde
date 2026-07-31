@@ -54,8 +54,8 @@ function Icon({ type }: { type: string }) {
   return null;
 }
 
-/** emoji.gg – Nutzer Dashboard (gelb) */
-const LOGO_USER = "https://cdn3.emoji.gg/emojis/36006-yellow.png";
+/** emoji.gg – Nutzer Dashboard (dark yellow) */
+const LOGO_USER = "https://cdn3.emoji.gg/emojis/40642-darkyellow.png";
 /** emoji.gg – Admin Dashboard (weiß) */
 const LOGO_ADMIN = "https://cdn3.emoji.gg/emojis/18092-white.png";
 

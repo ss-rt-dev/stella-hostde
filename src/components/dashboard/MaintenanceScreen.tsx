@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { getMaintenanceConfig } from "@/lib/settings";
 
-const LOGO = "https://cdn3.emoji.gg/emojis/36006-yellow.png";
+const LOGO = "https://cdn3.emoji.gg/emojis/40642-darkyellow.png";
 
 export async function MaintenanceScreen() {
   const config = await getMaintenanceConfig();
