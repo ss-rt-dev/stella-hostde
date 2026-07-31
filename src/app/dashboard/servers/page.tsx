@@ -119,7 +119,7 @@ export default function ServersPage() {
       <div>
         <h1 className="text-xl font-bold text-white sm:text-2xl">Server</h1>
         <p className="text-sm text-zinc-500">
-          Debian 11 – CPU, RAM und SSD selbst konfigurieren · Abrechnung pro Monat
+          Debian 12 – CPU, RAM und SSD selbst konfigurieren · Abrechnung pro Monat
         </p>
       </div>
 
