@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { calcPricePerMonth, PRICING } from "@/lib/pricing";
-import { applyDiscount, validateDiscountCode } from "@/lib/discounts";
+import { applyDiscountSync } from "@/lib/discounts";
 import {
   MINECRAFT_VARIANTS,
   DISCORD_VARIANTS,
@@ -43,6 +43,11 @@ export default function ServersPage() {
   const [mcVariant, setMcVariant] = useState("paper");
   const [botVariant, setBotVariant] = useState("python");
   const [discountCode, setDiscountCode] = useState("");
+  const [discountInfo, setDiscountInfo] = useState<{
+    valid: boolean;
+    percent: number;
+    message: string;
+  }>({ valid: false, percent: 0, message: "" });
   const [rootPassword, setRootPassword] = useState<string | null>(null);
   const [createdSlug, setCreatedSlug] = useState<string | null>(null);
   const [setupNote, setSetupNote] = useState<string | null>(null);
@@ -52,14 +57,35 @@ export default function ServersPage() {
     () => calcPricePerMonth(cpu, ramMb, diskGb),
     [cpu, ramMb, diskGb]
   );
-  const discountInfo = useMemo(
-    () => validateDiscountCode(discountCode),
-    [discountCode]
-  );
-  const { price, percent } = useMemo(
-    () => applyDiscount(basePrice, discountCode),
-    [basePrice, discountCode]
-  );
+  const percent = discountInfo.valid ? discountInfo.percent : 0;
+  const price = applyDiscountSync(basePrice, percent);
+
+  useEffect(() => {
+    const code = discountCode.trim();
+    if (!code) {
+      setDiscountInfo({ valid: false, percent: 0, message: "" });
+      return;
+    }
+    const t = setTimeout(() => {
+      fetch(`/api/discounts/validate?code=${encodeURIComponent(code)}`)
+        .then((r) => r.json())
+        .then((d) =>
+          setDiscountInfo({
+            valid: Boolean(d.valid),
+            percent: Number(d.percent) || 0,
+            message: d.message || "",
+          })
+        )
+        .catch(() =>
+          setDiscountInfo({
+            valid: false,
+            percent: 0,
+            message: "Prüfung fehlgeschlagen",
+          })
+        );
+    }, 300);
+    return () => clearTimeout(t);
+  }, [discountCode]);
 
   async function load() {
     try {
@@ -185,9 +211,7 @@ export default function ServersPage() {
                 {rootPassword}
               </code>
             </p>
-            {setupNote && (
-              <p className="text-xs text-zinc-400">{setupNote}</p>
-            )}
+            {setupNote && <p className="text-xs text-zinc-400">{setupNote}</p>}
             {createdSlug && (
               <div className="flex flex-wrap gap-2 pt-1">
                 <Link
@@ -207,7 +231,6 @@ export default function ServersPage() {
           </div>
         )}
 
-        {/* Server-Typ */}
         <div>
           <label className="mb-2 block text-xs font-medium text-zinc-500">
             Server-Typ
@@ -257,10 +280,6 @@ export default function ServersPage() {
                 </button>
               ))}
             </div>
-            <p className="mt-2 text-xs text-zinc-600">
-              Java wird installiert, Server-JAR automatisch geladen, eula
-              akzeptiert, systemd-Service gestartet.
-            </p>
           </div>
         )}
 
@@ -285,11 +304,6 @@ export default function ServersPage() {
                 </button>
               ))}
             </div>
-            <p className="mt-2 text-xs text-zinc-600">
-              Vorlage + Dependencies. Danach in der Console{" "}
-              <code className="text-zinc-500">DISCORD_TOKEN</code> in{" "}
-              <code className="text-zinc-500">/opt/discord-bot/.env</code> setzen.
-            </p>
           </div>
         )}
 
@@ -366,7 +380,7 @@ export default function ServersPage() {
           <input
             value={discountCode}
             onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
-            placeholder="z.B. NEXUS-10"
+            placeholder="z.B. STELLA20"
             className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/50"
           />
           {discountCode && (
@@ -410,9 +424,7 @@ export default function ServersPage() {
           <h2 className="font-semibold text-white">Deine Server</h2>
         </div>
         {servers.length === 0 ? (
-          <p className="px-5 py-12 text-center text-sm text-zinc-500">
-            Noch keine Server
-          </p>
+          <p className="px-5 py-12 text-center text-sm text-zinc-500">Noch keine Server</p>
         ) : (
           <div className="divide-y divide-white/5">
             {servers.map((s) => (

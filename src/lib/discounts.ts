@@ -11,6 +11,10 @@ const FALLBACK: Record<string, { percent: number; label: string }> = {
   "NEXUS-10": { percent: 10, label: "10 % Rabatt" },
 };
 
+export function applyDiscountSync(price: number, percent: number): number {
+  return Math.round(price * (1 - percent / 100) * 100) / 100;
+}
+
 export async function findActiveDiscount(code: string | null | undefined) {
   if (!code?.trim()) return null;
   const key = code.trim().toUpperCase();
@@ -27,7 +31,7 @@ export async function findActiveDiscount(code: string | null | undefined) {
         code: row.code,
         percent: row.percent,
         label: row.label || `${row.percent} % Rabatt`,
-        id: row.id,
+        id: row.id as string | null,
       };
     }
   } catch {
@@ -36,14 +40,12 @@ export async function findActiveDiscount(code: string | null | undefined) {
 
   const fb = FALLBACK[key];
   if (!fb) return null;
-  return { code: key, percent: fb.percent, label: fb.label, id: null as string | null };
-}
-
-export function applyDiscountSync(
-  price: number,
-  percent: number
-): number {
-  return Math.round(price * (1 - percent / 100) * 100) / 100;
+  return {
+    code: key,
+    percent: fb.percent,
+    label: fb.label,
+    id: null as string | null,
+  };
 }
 
 export async function applyDiscount(
