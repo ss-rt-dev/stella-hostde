@@ -2,6 +2,9 @@
  * Proxmox API Client für LXC-Container
  * Env: PROXMOX_HOST, PROXMOX_TOKEN_ID, PROXMOX_TOKEN_SECRET
  * Optional: PROXMOX_INSECURE, PROXMOX_NODE, PROXMOX_STORAGE
+ *
+ * Wichtig: Proxmox erwartet bei POST/PUT meist x-www-form-urlencoded.
+ * Content-Type: application/json OHNE Body → "malformed JSON string".
  */
 
 import https from "https";
@@ -41,9 +44,26 @@ function proxmoxRequest(
 ): Promise<any> {
   assertConfig();
 
-  const method = options.method || "GET";
+  const method = (options.method || "GET").toUpperCase();
   const full = `${PROXMOX_HOST}/api2/json${path}`;
   const u = new URL(full);
+
+  // Proxmox: nie application/json ohne Body senden
+  const headers: Record<string, string> = {
+    Authorization: `PVEAPIToken=${TOKEN_ID}=${TOKEN_SECRET}`,
+  };
+
+  let body = options.body;
+  if (body != null && body !== "") {
+    headers["Content-Type"] =
+      options.contentType || "application/x-www-form-urlencoded";
+    headers["Content-Length"] = String(Buffer.byteLength(body));
+  } else if (method === "POST" || method === "PUT") {
+    // Leerer Form-Body statt JSON – vermeidet malformed JSON
+    body = "";
+    headers["Content-Type"] = "application/x-www-form-urlencoded";
+    headers["Content-Length"] = "0";
+  }
 
   return new Promise((resolve, reject) => {
     const req = https.request(
@@ -52,13 +72,7 @@ function proxmoxRequest(
         port: u.port || 8006,
         path: u.pathname + u.search,
         method,
-        headers: {
-          Authorization: `PVEAPIToken=${TOKEN_ID}=${TOKEN_SECRET}`,
-          "Content-Type": options.contentType || "application/json",
-          ...(options.body
-            ? { "Content-Length": Buffer.byteLength(options.body) }
-            : {}),
-        },
+        headers,
         rejectUnauthorized: !INSECURE,
         timeout: 55000,
       },
@@ -73,11 +87,17 @@ function proxmoxRequest(
             );
             return;
           }
+          if (!text || !text.trim()) {
+            resolve(null);
+            return;
+          }
           try {
             const json = JSON.parse(text);
             resolve(json.data !== undefined ? json.data : json);
           } catch {
-            reject(new Error(`Ungültige Proxmox-Antwort: ${text.slice(0, 200)}`));
+            reject(
+              new Error(`Ungültige Proxmox-Antwort: ${text.slice(0, 200)}`)
+            );
           }
         });
       }
@@ -97,7 +117,7 @@ function proxmoxRequest(
       reject(new Error("Proxmox Timeout (55s)"));
     });
 
-    if (options.body) req.write(options.body);
+    if (body != null) req.write(body);
     req.end();
   });
 }
@@ -142,10 +162,6 @@ function isUsableForLxc(s: any): boolean {
   return c.includes("rootdir") || c.includes("images");
 }
 
-/**
- * Storage für LXC-rootfs ermitteln.
- * Niemals local-lvm, wenn es nicht existiert.
- */
 export async function resolveStorage(
   node: string,
   preferred?: string | null
@@ -190,7 +206,6 @@ export async function resolveStorage(
   );
   if (images) return String(images.storage);
 
-  // Häufig: "local" mit dir/rootdir
   if (names.includes("local")) return "local";
 
   const any = data.find((s: any) => {
@@ -206,9 +221,7 @@ export async function resolveStorage(
 
   throw new Error(
     `Kein Storage für LXC-Disks gefunden. Verfügbar: ${available}. ` +
-      `In Vercel PROXMOX_STORAGE auf einen existierenden Namen setzen ` +
-      `(Datacenter → Storage in Proxmox, z.B. "local"). ` +
-      `Nicht "local-lvm" verwenden, wenn es nicht existiert.`
+      `In Vercel PROXMOX_STORAGE setzen (z.B. local).`
   );
 }
 
@@ -232,9 +245,7 @@ export interface CreateLxcOptions {
 export async function createLxc(opts: CreateLxcOptions) {
   if (opts.disk.startsWith("local-lvm:")) {
     throw new Error(
-      "Storage local-lvm ist ungültig auf diesem Host. " +
-        "In Vercel PROXMOX_STORAGE setzen (z.B. local) oder in Proxmox prüfen, " +
-        "welche Storages existieren (Datacenter → Storage)."
+      "Storage local-lvm ist ungültig. PROXMOX_STORAGE auf ein existierendes Storage setzen."
     );
   }
 
@@ -270,7 +281,7 @@ export async function stopLxc(node: string, vmid: number) {
 }
 
 export async function deleteLxc(node: string, vmid: number) {
-  return proxmoxRequest(`/nodes/${node}/lxc/${vmid}`, {
+  return proxmoxRequest(`/nodes/${node}/lxc/${vmid}?purge=1&destroy-unreferenced-disks=1`, {
     method: "DELETE",
   });
 }
