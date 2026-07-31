@@ -62,7 +62,7 @@ export default function LoginPage() {
             <span className="text-xl font-bold text-black">S</span>
           </div>
           <h1 className="text-xl font-semibold tracking-tight text-white">
-            stella<span className="text-amber-400">host</span>
+            Stella<span className="text-amber-400">Host</span>
           </h1>
           <p className="mt-1 text-sm text-zinc-500">Willkommen zurück</p>
         </div>
