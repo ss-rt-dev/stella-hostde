@@ -1,16 +1,28 @@
 /**
- * SSH zum Proxmox-Host + pct exec im LXC.
- * Env: PROXMOX_SSH_HOST, PROXMOX_SSH_USER
- * PROXMOX_SSH_PRIVATE_KEY = base64(cat private_key)  ← empfohlen für Vercel
- * oder Roh-Key; optional PROXMOX_SSH_PASSWORD / PROXMOX_PASSWORD
+ * SSH zum Proxmox-Host + pct exec im LXC (Dateimanager).
+ *
+ * Vercel Env (mindestens):
+ *   PROXMOX_SSH_HOST=176.9.164.43
+ *   PROXMOX_SSH_USER=root
+ *   PROXMOX_SSH_PASSWORD=dein-root-passwort
+ *
+ * Oder Key (eine Zeile Base64):
+ *   PROXMOX_SSH_PRIVATE_KEY=...
+ *
+ * Port 22 muss von außen erreichbar sein (Firewall).
  */
 
-import { Client } from "ssh2";
+import type { ConnectConfig } from "ssh2";
 
 const MAX_OUT = 2 * 1024 * 1024;
 
 export function hasSshConfig(): boolean {
-  return Boolean(process.env.PROXMOX_SSH_HOST?.trim());
+  const host = process.env.PROXMOX_SSH_HOST?.trim();
+  const password =
+    process.env.PROXMOX_SSH_PASSWORD?.trim() ||
+    process.env.PROXMOX_PASSWORD?.trim();
+  const key = process.env.PROXMOX_SSH_PRIVATE_KEY?.trim();
+  return Boolean(host && (password || key));
 }
 
 function shellEscape(s: string): string {
@@ -20,42 +32,31 @@ function shellEscape(s: string): string {
 function normalizeSshHost(raw: string): string {
   let h = raw.trim();
   h = h.replace(/^https?:\/\//i, "");
-  h = h.split("/")[0];
-  if (h.includes(":") && !h.includes("]")) {
+  h = h.split("/")[0] || h;
+  // host:port → nur host (Port separat)
+  if (h.includes(":") && !h.startsWith("[")) {
     const parts = h.split(":");
-    if (parts.length === 2 && /^\d+$/.test(parts[1])) return parts[0];
+    if (parts.length === 2 && /^\d+$/.test(parts[1]!)) return parts[0]!;
   }
   return h;
 }
 
-/**
- * Liefert den Private Key als UTF-8-String.
- * Bevorzugt: base64-kodierte Datei (eine Zeile in Vercel).
- * Kein Re-Wrapping – OpenSSH-Keys sonst kaputt.
- */
 function normalizePrivateKey(raw: string): string {
   if (!raw) return "";
   let k = raw.trim();
-
   if (
     (k.startsWith('"') && k.endsWith('"')) ||
     (k.startsWith("'") && k.endsWith("'"))
   ) {
     k = k.slice(1, -1);
   }
-
-  // Literal \n aus manchen UI-Pastes
-  if (k.includes("\\n")) {
-    k = k.replace(/\\n/g, "\n");
-  }
+  if (k.includes("\\n")) k = k.replace(/\\n/g, "\n");
   k = k.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
 
-  // Schon ein Key?
   if (k.includes("BEGIN") && k.includes("PRIVATE KEY")) {
     return k.endsWith("\n") ? k : k + "\n";
   }
 
-  // Sonst als Base64 der Key-Datei behandeln
   const compact = k.replace(/\s+/g, "");
   if (compact.length > 80 && /^[A-Za-z0-9+/=]+$/.test(compact)) {
     try {
@@ -67,7 +68,6 @@ function normalizePrivateKey(raw: string): string {
       /* ignore */
     }
   }
-
   return k;
 }
 
@@ -87,6 +87,11 @@ export function sanitizePath(raw: string): string {
   return "/" + out.join("/") || "/";
 }
 
+function loadSsh2(): typeof import("ssh2") {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  return require("ssh2") as typeof import("ssh2");
+}
+
 export function runSsh(
   command: string,
   timeoutMs = 45000
@@ -94,31 +99,41 @@ export function runSsh(
   const host = normalizeSshHost(process.env.PROXMOX_SSH_HOST?.trim() || "");
   const user = process.env.PROXMOX_SSH_USER?.trim() || "root";
   const password =
-    process.env.PROXMOX_SSH_PASSWORD || process.env.PROXMOX_PASSWORD || "";
+    process.env.PROXMOX_SSH_PASSWORD?.trim() ||
+    process.env.PROXMOX_PASSWORD?.trim() ||
+    "";
   const keyStr = normalizePrivateKey(process.env.PROXMOX_SSH_PRIVATE_KEY || "");
   const port = Number(process.env.PROXMOX_SSH_PORT || 22);
 
   if (!host) {
     return Promise.resolve({
       ok: false,
-      out: "PROXMOX_SSH_HOST ist nicht gesetzt",
+      out: "PROXMOX_SSH_HOST fehlt in Vercel",
       code: -1,
     });
   }
-
   if (!password && !keyStr) {
     return Promise.resolve({
       ok: false,
-      out: "Weder PROXMOX_SSH_PASSWORD noch PROXMOX_SSH_PRIVATE_KEY gesetzt",
+      out: "PROXMOX_SSH_PASSWORD oder PROXMOX_SSH_PRIVATE_KEY in Vercel setzen",
+      code: -1,
+    });
+  }
+  if (keyStr && (!keyStr.includes("BEGIN") || !keyStr.includes("PRIVATE KEY"))) {
+    return Promise.resolve({
+      ok: false,
+      out: "PROXMOX_SSH_PRIVATE_KEY ungültig (kein BEGIN PRIVATE KEY). Besser: PROXMOX_SSH_PASSWORD nutzen.",
       code: -1,
     });
   }
 
-  if (keyStr && (!keyStr.includes("BEGIN") || !keyStr.includes("PRIVATE KEY"))) {
+  let Client: typeof import("ssh2").Client;
+  try {
+    Client = loadSsh2().Client;
+  } catch (e: any) {
     return Promise.resolve({
       ok: false,
-      out:
-        "PROXMOX_SSH_PRIVATE_KEY ungültig. Auf dem Host: base64 -w0 /root/stella-vercel  und die eine Zeile in Vercel setzen.",
+      out: `ssh2-Modul nicht geladen: ${e.message}. Redeploy nach npm install ssh2.`,
       code: -1,
     });
   }
@@ -138,22 +153,39 @@ export function runSsh(
     };
 
     const timer = setTimeout(() => {
-      finish({ ok: false, out: "SSH Timeout", code: -1 });
+      finish({
+        ok: false,
+        out: `SSH Timeout (${timeoutMs / 1000}s) – Host ${host}:${port} nicht erreichbar (Firewall Port 22?).`,
+        code: -1,
+      });
     }, timeoutMs);
 
-    const connectOpts: Record<string, unknown> = {
+    const connectOpts: ConnectConfig = {
       host,
       port,
       username: user,
-      tryKeyboard: Boolean(password) && !keyStr,
-      readyTimeout: 25000,
+      readyTimeout: 20000,
+      // Kein System-ssh / kein Agent → verhindert spawn ssh ENOENT auf Vercel
+      agent: undefined,
+      tryKeyboard: Boolean(password && !keyStr),
+      // Selbstsignierte / unbekannte Host-Keys akzeptieren
       hostVerifier: () => true,
+      algorithms: {
+        serverHostKey: [
+          "ssh-ed25519",
+          "ecdsa-sha2-nistp256",
+          "ecdsa-sha2-nistp384",
+          "ecdsa-sha2-nistp521",
+          "rsa-sha2-512",
+          "rsa-sha2-256",
+          "ssh-rsa",
+        ],
+      },
     };
 
     if (keyStr) {
-      // Buffer ist für ssh2 oft zuverlässiger
       connectOpts.privateKey = Buffer.from(keyStr, "utf8");
-    } else if (password) {
+    } else {
       connectOpts.password = password;
     }
 
@@ -188,17 +220,21 @@ export function runSsh(
       .on("error", (err) => {
         clearTimeout(timer);
         let msg = err.message || String(err);
-        if (/Unsupported key format|Cannot parse privateKey/i.test(msg)) {
-          msg +=
-            " – Key neu setzen: auf Host `base64 -w0 /root/stella-vercel`, Ausgabe 1:1 nach PROXMOX_SSH_PRIVATE_KEY, Redeploy.";
-        } else if (/authentication methods failed/i.test(msg)) {
-          msg += keyStr
-            ? " (Key abgelehnt – authorized_keys / User prüfen)"
-            : " (Passwort abgelehnt)";
+        if (/ENOENT|spawn.*ssh/i.test(msg)) {
+          msg =
+            "SSH-Fehler (spawn ENOENT). Auf Vercel darf kein System-ssh genutzt werden. " +
+            "Bitte PROXMOX_SSH_PASSWORD setzen (einfacher als Key) und Redeploy. " +
+            "Original: " +
+            msg;
+        } else if (/ECONNREFUSED|ETIMEDOUT|ENETUNREACH/i.test(msg)) {
+          msg = `Keine Verbindung zu ${host}:${port} – Firewall/SSH-Dienst prüfen. (${msg})`;
+        } else if (/authentication methods failed|All configured authentication methods failed/i.test(msg)) {
+          msg =
+            "SSH-Login abgelehnt – User/Passwort (PROXMOX_SSH_PASSWORD) oder Key prüfen.";
         }
         finish({ ok: false, out: msg, code: -1 });
       })
-      .connect(connectOpts as any);
+      .connect(connectOpts);
   });
 }
 
@@ -207,7 +243,9 @@ export async function pctExec(
   innerCmd: string,
   timeoutMs = 45000
 ): Promise<{ ok: boolean; out: string; code: number }> {
-  return runSsh(`pct exec ${vmid} -- bash -c ${shellEscape(innerCmd)}`, timeoutMs);
+  // pct muss auf dem Proxmox-Host existieren
+  const wrapped = `pct exec ${vmid} -- bash -lc ${shellEscape(innerCmd)}`;
+  return runSsh(wrapped, timeoutMs);
 }
 
 export type FileEntry = {
@@ -219,16 +257,18 @@ export type FileEntry = {
 
 export async function listDir(vmid: number, path: string): Promise<FileEntry[]> {
   const p = sanitizePath(path);
+  // Ohne Python: reines bash (robuster auf minimalen Containern)
   const script = `
+set -e
+P=${shellEscape(p)}
+if [ ! -d "$P" ]; then echo '{"error":"not a directory"}'; exit 2; fi
+python3 - "$P" <<'PY'
 import os, json, stat, sys
-path = ${JSON.stringify(p)}
-if not os.path.isdir(path):
-    print(json.dumps({"error": "not a directory"}))
-    sys.exit(2)
+path = sys.argv[1]
 entries = []
 try:
     names = sorted(os.listdir(path), key=lambda n: (not os.path.isdir(os.path.join(path, n)), n.lower()))
-except PermissionError as e:
+except Exception as e:
     print(json.dumps({"error": str(e)}))
     sys.exit(3)
 for name in names:
@@ -243,19 +283,29 @@ for name in names:
     except OSError:
         entries.append({"name": name, "type": "other", "size": 0, "mtime": 0})
 print(json.dumps(entries))
+PY
 `.trim();
-  const b64 = Buffer.from(script, "utf8").toString("base64");
-  const r = await pctExec(vmid, `echo ${b64} | base64 -d | python3`);
-  if (!r.ok) throw new Error(r.out.trim() || "Verzeichnis konnte nicht gelesen werden");
+  const r = await pctExec(vmid, script);
+  if (!r.ok) {
+    throw new Error(
+      r.out.trim() ||
+        "Verzeichnis konnte nicht gelesen werden (pct exec / SSH)"
+    );
+  }
   const raw = r.out.trim();
+  // Manchmal hängt Login-Banner vor dem JSON
+  const jsonStart = raw.indexOf("[") >= 0 && (raw.indexOf("{") < 0 || raw.indexOf("[") < raw.indexOf("{"))
+    ? raw.indexOf("[")
+    : raw.indexOf("{");
+  const slice = jsonStart >= 0 ? raw.slice(jsonStart) : raw;
   try {
-    const parsed = JSON.parse(raw);
+    const parsed = JSON.parse(slice);
     if (parsed?.error) throw new Error(parsed.error);
     if (!Array.isArray(parsed)) throw new Error("Ungültige Antwort");
     return parsed as FileEntry[];
   } catch (e: any) {
-    if (e.message && !e.message.includes("JSON")) throw e;
-    throw new Error("Parse-Fehler: " + raw.slice(0, 200));
+    if (e.message && !/JSON|Unexpected/.test(e.message)) throw e;
+    throw new Error("Parse-Fehler: " + raw.slice(0, 300));
   }
 }
 
@@ -266,9 +316,10 @@ export async function readFile(
 ): Promise<{ content: string; size: number; truncated: boolean }> {
   const p = sanitizePath(path);
   const script = `
+python3 - ${shellEscape(p)} ${maxBytes} <<'PY'
 import os, json, sys
-path = ${JSON.stringify(p)}
-max_b = ${maxBytes}
+path = sys.argv[1]
+max_b = int(sys.argv[2])
 if not os.path.isfile(path):
     print(json.dumps({"error": "not a file"}))
     sys.exit(2)
@@ -277,14 +328,18 @@ with open(path, "rb") as f:
     data = f.read(max_b + 1)
 truncated = len(data) > max_b
 data = data[:max_b]
-try: text = data.decode("utf-8")
-except Exception: text = data.decode("latin-1", errors="replace")
+try:
+    text = data.decode("utf-8")
+except Exception:
+    text = data.decode("latin-1", errors="replace")
 print(json.dumps({"content": text, "size": size, "truncated": truncated}))
+PY
 `.trim();
-  const b64 = Buffer.from(script, "utf8").toString("base64");
-  const r = await pctExec(vmid, `echo ${b64} | base64 -d | python3`);
+  const r = await pctExec(vmid, script);
   if (!r.ok) throw new Error(r.out.trim() || "Datei konnte nicht gelesen werden");
-  const parsed = JSON.parse(r.out.trim());
+  const raw = r.out.trim();
+  const i = raw.indexOf("{");
+  const parsed = JSON.parse(i >= 0 ? raw.slice(i) : raw);
   if (parsed.error) throw new Error(parsed.error);
   return parsed;
 }
@@ -313,7 +368,7 @@ export async function mkdir(vmid: number, path: string): Promise<void> {
 
 export async function removePath(vmid: number, path: string): Promise<void> {
   const p = sanitizePath(path);
-  if (["/", "/root", "/etc", "/bin", "/usr"].includes(p)) {
+  if (["/", "/root", "/etc", "/bin", "/usr", "/var", "/home"].includes(p)) {
     throw new Error("Dieser Pfad darf nicht gelöscht werden");
   }
   const r = await pctExec(vmid, `rm -rf ${shellEscape(p)}`);
@@ -330,4 +385,11 @@ export async function renamePath(
   if (a === "/" || b === "/") throw new Error("Ungültiger Pfad");
   const r = await pctExec(vmid, `mv ${shellEscape(a)} ${shellEscape(b)}`);
   if (!r.ok) throw new Error(r.out.trim() || "Umbenennen fehlgeschlagen");
+}
+
+/** Verbindungstest (ohne pct) */
+export async function testSsh(): Promise<{ ok: boolean; message: string }> {
+  const r = await runSsh("echo stella-ssh-ok && hostname && which pct || true", 20000);
+  if (!r.ok) return { ok: false, message: r.out.trim() || "SSH fehlgeschlagen" };
+  return { ok: true, message: r.out.trim() };
 }

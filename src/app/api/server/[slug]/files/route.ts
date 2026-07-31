@@ -13,6 +13,8 @@ import {
   sanitizePath,
 } from "@/lib/lxc-exec";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 async function getAuthorizedServer(slug: string, sessionUser: any) {
@@ -34,7 +36,7 @@ async function getAuthorizedServer(slug: string, sessionUser: any) {
   if (!hasSshConfig()) {
     return {
       error:
-        "Dateimanager nicht konfiguriert: PROXMOX_SSH_HOST (und Passwort/Key) in Vercel setzen",
+        "Dateimanager: In Vercel setzen – PROXMOX_SSH_HOST (nur IP, z.B. 176.9.164.43), PROXMOX_SSH_USER=root, PROXMOX_SSH_PASSWORD=… und Port 22 in der Firewall öffnen. Danach Redeploy.",
       status: 503 as const,
     };
   }
