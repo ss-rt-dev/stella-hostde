@@ -10,27 +10,26 @@ async function requireAdmin() {
   if (!session?.user || (session.user as any).role !== "ADMIN") {
     return null;
   }
+  if ((session.user as any).impersonatedBy) return null;
   return session;
 }
 
 const patchSchema = z.object({
-  action: z.enum([
-    "update",
-    "credit",
-    "set_password",
-  ]),
+  action: z.enum(["update", "credit", "set_password", "set_role"]),
   name: z.string().min(1).max(100).optional(),
   email: z.string().email().optional(),
   password: z.string().min(6).max(100).optional(),
   amount: z.number().optional(),
   description: z.string().optional(),
+  role: z.enum(["CUSTOMER", "ADMIN"]).optional(),
 });
 
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  if (!(await requireAdmin())) {
+  const session = await requireAdmin();
+  if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -79,6 +78,23 @@ export async function PATCH(
       return NextResponse.json({ success: true });
     }
 
+    if (data.action === "set_role") {
+      if (!data.role) {
+        return NextResponse.json({ error: "Rolle fehlt" }, { status: 400 });
+      }
+      if (id === session.user.id && data.role !== "ADMIN") {
+        return NextResponse.json(
+          { error: "Du kannst dir selbst nicht die Admin-Rolle entziehen" },
+          { status: 400 }
+        );
+      }
+      const updated = await prisma.user.update({
+        where: { id },
+        data: { role: data.role },
+      });
+      return NextResponse.json({ role: updated.role });
+    }
+
     if (data.action === "credit") {
       if (data.amount === undefined || Number.isNaN(data.amount)) {
         return NextResponse.json({ error: "Betrag fehlt" }, { status: 400 });
@@ -111,4 +127,37 @@ export async function PATCH(
     console.error(e);
     return NextResponse.json({ error: e.message || "Fehler" }, { status: 500 });
   }
+}
+
+export async function DELETE(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await requireAdmin();
+  if (!session) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { id } = await params;
+
+  if (id === session.user.id) {
+    return NextResponse.json(
+      { error: "Du kannst dich nicht selbst löschen" },
+      { status: 400 }
+    );
+  }
+
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user) {
+    return NextResponse.json({ error: "User nicht gefunden" }, { status: 404 });
+  }
+
+  // Server soft-delete, User hard-delete (Cascade löscht Transaktionen etc.)
+  await prisma.server.updateMany({
+    where: { userId: id },
+    data: { status: "DELETED" },
+  });
+  await prisma.user.delete({ where: { id } });
+
+  return NextResponse.json({ success: true });
 }

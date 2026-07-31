@@ -2,7 +2,41 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
+import { createHmac, timingSafeEqual } from "crypto";
 import { prisma } from "./db";
+
+function getSecret() {
+  return process.env.NEXTAUTH_SECRET || "dev-secret";
+}
+
+/** Signiertes Impersonation-Token (kurzlebig) */
+export function createImpersonateToken(adminId: string, userId: string) {
+  const exp = Date.now() + 60_000; // 60s
+  const payload = `${adminId}.${userId}.${exp}`;
+  const sig = createHmac("sha256", getSecret()).update(payload).digest("hex");
+  return Buffer.from(`${payload}.${sig}`).toString("base64url");
+}
+
+export function verifyImpersonateToken(token: string): {
+  adminId: string;
+  userId: string;
+} | null {
+  try {
+    const raw = Buffer.from(token, "base64url").toString("utf8");
+    const parts = raw.split(".");
+    if (parts.length !== 4) return null;
+    const [adminId, userId, expStr, sig] = parts;
+    const payload = `${adminId}.${userId}.${expStr}`;
+    const expected = createHmac("sha256", getSecret()).update(payload).digest("hex");
+    const a = Buffer.from(sig);
+    const b = Buffer.from(expected);
+    if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+    if (Date.now() > Number(expStr)) return null;
+    return { adminId, userId };
+  } catch {
+    return null;
+  }
+}
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
@@ -18,8 +52,37 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "E-Mail", type: "email" },
         password: { label: "Passwort", type: "password" },
+        impersonateToken: { label: "Impersonate", type: "text" },
       },
       async authorize(credentials) {
+        // Admin → als Nutzer anmelden (oder zurück)
+        if (credentials?.impersonateToken) {
+          const data = verifyImpersonateToken(credentials.impersonateToken);
+          if (!data) return null;
+
+          const target = await prisma.user.findUnique({
+            where: { id: data.userId },
+          });
+          if (!target) return null;
+
+          const admin = await prisma.user.findUnique({
+            where: { id: data.adminId },
+          });
+          if (!admin || admin.role !== "ADMIN") return null;
+
+          // Wenn target der Admin selbst ist → Impersonation beenden
+          const impersonatedBy =
+            target.id === data.adminId ? undefined : data.adminId;
+
+          return {
+            id: target.id,
+            email: target.email,
+            name: target.name,
+            role: target.role,
+            impersonatedBy,
+          } as any;
+        }
+
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
@@ -51,6 +114,13 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.role = (user as any).role;
         token.id = user.id;
+        token.name = user.name;
+        token.email = user.email;
+        if ((user as any).impersonatedBy) {
+          token.impersonatedBy = (user as any).impersonatedBy;
+        } else {
+          delete token.impersonatedBy;
+        }
       }
       return token;
     },
@@ -58,6 +128,9 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as any).role = token.role;
         (session.user as any).id = token.id;
+        (session.user as any).impersonatedBy = token.impersonatedBy;
+        session.user.name = token.name as string | null | undefined;
+        session.user.email = token.email as string | null | undefined;
       }
       return session;
     },
