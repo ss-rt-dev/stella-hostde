@@ -4,7 +4,7 @@
  * Braucht SSH zum Proxmox: PROXMOX_SSH_HOST + PROXMOX_SSH_USER + PROXMOX_SSH_PASSWORD
  * (oder Key via PROXMOX_SSH_KEY). Ohne SSH → Setup-Script wird nur als Note gespeichert.
  *
- * Server-only: child_process / SSH. Client-sichere Konstanten liegen in software-variants.ts.
+ * Server-only: uses child_process. Client code must import variants from software-variants.ts.
  */
 
 import { spawn } from "child_process";
