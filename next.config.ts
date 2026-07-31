@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // ssh2 native – nicht bundlen (sonst spawn/ENOENT-Probleme auf Vercel)
   serverExternalPackages: ["ssh2", "cpu-features", "nan"],
   eslint: {
     ignoreDuringBuilds: true,
@@ -11,6 +10,14 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "i.postimg.cc",
+      },
+      {
+        protocol: "https",
+        hostname: "cdn3.emoji.gg",
+      },
+      {
+        protocol: "https",
+        hostname: "cdn.emoji.gg",
       },
     ],
   },

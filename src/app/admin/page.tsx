@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/utils";
 import Link from "next/link";
+import { MaintenanceToggle } from "@/components/admin/MaintenanceToggle";
 
 export default async function AdminPage() {
   const [userCount, packages, serverCount, running, transactions] = await Promise.all([
@@ -29,6 +30,8 @@ export default async function AdminPage() {
           Nutzer verwalten →
         </Link>
       </div>
+
+      <MaintenanceToggle />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Card title="Kunden" value={userCount} />

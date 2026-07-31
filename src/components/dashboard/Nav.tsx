@@ -54,7 +54,8 @@ function Icon({ type }: { type: string }) {
   return null;
 }
 
-const LOGO = "https://i.postimg.cc/25RvgMy6/sh-logo.png";
+/** emoji.gg – Pixel Star (animiert) */
+const LOGO = "https://cdn3.emoji.gg/emojis/847706-pixelstar.gif";
 
 export function DashboardNav({
   user,

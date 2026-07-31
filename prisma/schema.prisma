@@ -91,13 +91,11 @@ model Server {
   ramMb           Int?
   diskGb          Int?
   pricePerHour    Decimal?     @db.Decimal(10, 4)
-  // DEBIAN | MINECRAFT | DISCORD_BOT
   serverType      String       @default("DEBIAN")
-  // paper | vanilla | purpur | fabric | spigot | python | nodejs
   softwareVariant String?
   softwareVersion String?
   discountCode    String?
-  setupStatus     String?      // pending | running | done | failed | skipped
+  setupStatus     String?
   setupNote       String?
   createdAt       DateTime     @default(now())
   lastBilledAt    DateTime     @default(now())
@@ -129,4 +127,11 @@ enum TransactionType {
   PURCHASE
   HOURLY_CHARGE
   REFUND
+}
+
+/** Key-Value Einstellungen (z.B. maintenance_mode) */
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }
