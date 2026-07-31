@@ -132,3 +132,41 @@ body {
   will-change: transform;
   transition: transform 0.15s ease-out;
 }
+
+/* Seitenwechsel: Slide + Fade */
+@keyframes page-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes page-slide-back {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.page-slide-in {
+  animation: page-slide-in 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.page-slide-back {
+  animation: page-slide-back 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-slide-in,
+  .page-slide-back {
+    animation: none;
+  }
+}

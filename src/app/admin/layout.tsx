@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { DashboardNav } from "@/components/dashboard/Nav";
+import { PageTransition } from "@/components/dashboard/PageTransition";
 
 export const metadata: Metadata = {
   title: "Stella Host Dashboard",
@@ -23,7 +24,7 @@ export default async function AdminLayout({
       <DashboardNav user={session.user as any} />
       <main className="lg:pl-[240px]">
         <div className="mx-auto max-w-[1200px] px-4 py-5 pb-20 lg:px-6 lg:py-6 lg:pb-8">
-          {children}
+          <PageTransition>{children}</PageTransition>
         </div>
       </main>
     </div>
