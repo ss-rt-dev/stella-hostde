@@ -327,7 +327,7 @@ export async function createLxc(opts: CreateLxcOptions) {
   body.set("memory", String(opts.memory));
   body.set("rootfs", opts.disk);
   body.set("ostemplate", opts.ostemplate);
-  body.set("net0", opts.net0 || "name=eth0,bridge=vmbr0,ip=dhcp");
+  body.set("net0", opts.net0 || "name=eth0,bridge=vmbr2,ip=dhcp");
   body.set("start", "1");
   body.set("unprivileged", "1");
 
