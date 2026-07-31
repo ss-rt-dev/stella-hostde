@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { getMaintenanceMode, setMaintenanceMode } from "@/lib/settings";
+import { getMaintenanceConfig, setMaintenanceConfig } from "@/lib/settings";
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
@@ -14,8 +14,8 @@ export async function GET() {
   if (!(await requireAdmin())) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  const enabled = await getMaintenanceMode();
-  return NextResponse.json({ enabled });
+  const config = await getMaintenanceConfig();
+  return NextResponse.json(config);
 }
 
 export async function POST(req: Request) {
@@ -25,8 +25,14 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const enabled = Boolean(body.enabled);
-    await setMaintenanceMode(enabled);
-    return NextResponse.json({ enabled });
+    const schedule = {
+      dateFrom: body.dateFrom ?? body.schedule?.dateFrom ?? null,
+      dateTo: body.dateTo ?? body.schedule?.dateTo ?? null,
+      timeFrom: body.timeFrom ?? body.schedule?.timeFrom ?? null,
+      timeTo: body.timeTo ?? body.schedule?.timeTo ?? null,
+    };
+    const config = await setMaintenanceConfig({ enabled, schedule });
+    return NextResponse.json(config);
   } catch (e: any) {
     return NextResponse.json({ error: e.message || "Fehler" }, { status: 500 });
   }
