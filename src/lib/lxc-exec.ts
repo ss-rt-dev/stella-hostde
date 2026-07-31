@@ -1,14 +1,13 @@
 /**
  * SSH zum Proxmox-Host + pct exec im LXC.
- * Env: PROXMOX_SSH_HOST, PROXMOX_SSH_USER, PROXMOX_SSH_PASSWORD
- * (optional PROXMOX_SSH_PORT, PROXMOX_SSH_PRIVATE_KEY)
- * PROXMOX_SSH_PRIVATE_KEY darf Roh-Key ODER base64(Key) sein (besser für Vercel).
- * Fallback-Passwort: PROXMOX_PASSWORD
+ * Env: PROXMOX_SSH_HOST, PROXMOX_SSH_USER
+ * PROXMOX_SSH_PRIVATE_KEY = base64(cat private_key)  ← empfohlen für Vercel
+ * oder Roh-Key; optional PROXMOX_SSH_PASSWORD / PROXMOX_PASSWORD
  */
 
 import { Client } from "ssh2";
 
-const MAX_OUT = 2 * 1024 * 1024; // 2 MB
+const MAX_OUT = 2 * 1024 * 1024;
 
 export function hasSshConfig(): boolean {
   return Boolean(process.env.PROXMOX_SSH_HOST?.trim());
@@ -24,17 +23,15 @@ function normalizeSshHost(raw: string): string {
   h = h.split("/")[0];
   if (h.includes(":") && !h.includes("]")) {
     const parts = h.split(":");
-    if (parts.length === 2 && /^\d+$/.test(parts[1])) {
-      return parts[0];
-    }
+    if (parts.length === 2 && /^\d+$/.test(parts[1])) return parts[0];
   }
   return h;
 }
 
 /**
- * Akzeptiert:
- * - normalen OpenSSH/PEM Key (mehrzeilig oder mit \\n)
- * - base64-kodierten Key (eine Zeile, ideal für Vercel)
+ * Liefert den Private Key als UTF-8-String.
+ * Bevorzugt: base64-kodierte Datei (eine Zeile in Vercel).
+ * Kein Re-Wrapping – OpenSSH-Keys sonst kaputt.
  */
 function normalizePrivateKey(raw: string): string {
   if (!raw) return "";
@@ -44,40 +41,34 @@ function normalizePrivateKey(raw: string): string {
     (k.startsWith('"') && k.endsWith('"')) ||
     (k.startsWith("'") && k.endsWith("'"))
   ) {
-    k = k.slice(1, -1).trim();
+    k = k.slice(1, -1);
   }
 
-  k = k.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-  k = k.replace(/\\n/g, "\n");
+  // Literal \n aus manchen UI-Pastes
+  if (k.includes("\\n")) {
+    k = k.replace(/\\n/g, "\n");
+  }
+  k = k.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
 
-  // Base64 ohne BEGIN → dekodieren
-  if (!k.includes("BEGIN")) {
-    const compact = k.replace(/\s+/g, "");
-    if (/^[A-Za-z0-9+/=]+$/.test(compact) && compact.length > 80) {
-      try {
-        const decoded = Buffer.from(compact, "base64").toString("utf8");
-        if (decoded.includes("BEGIN")) {
-          k = decoded;
-        }
-      } catch {
-        /* ignore */
+  // Schon ein Key?
+  if (k.includes("BEGIN") && k.includes("PRIVATE KEY")) {
+    return k.endsWith("\n") ? k : k + "\n";
+  }
+
+  // Sonst als Base64 der Key-Datei behandeln
+  const compact = k.replace(/\s+/g, "");
+  if (compact.length > 80 && /^[A-Za-z0-9+/=]+$/.test(compact)) {
+    try {
+      const decoded = Buffer.from(compact, "base64").toString("utf8").trim();
+      if (decoded.includes("BEGIN") && decoded.includes("PRIVATE KEY")) {
+        return decoded.endsWith("\n") ? decoded : decoded + "\n";
       }
+    } catch {
+      /* ignore */
     }
   }
 
-  const match = k.match(
-    /-----BEGIN ([^-]+)-----([\s\S]*?)-----END \1-----/
-  );
-  if (!match) {
-    return k;
-  }
-
-  const type = match[1].trim();
-  const body = match[2].replace(/\s+/g, "");
-  if (!body) return k;
-
-  const wrapped = body.match(/.{1,70}/g)?.join("\n") ?? body;
-  return `-----BEGIN ${type}-----\n${wrapped}\n-----END ${type}-----\n`;
+  return k;
 }
 
 export function sanitizePath(raw: string): string {
@@ -100,16 +91,11 @@ export function runSsh(
   command: string,
   timeoutMs = 45000
 ): Promise<{ ok: boolean; out: string; code: number }> {
-  const hostRaw = process.env.PROXMOX_SSH_HOST?.trim() || "";
-  const host = normalizeSshHost(hostRaw);
+  const host = normalizeSshHost(process.env.PROXMOX_SSH_HOST?.trim() || "");
   const user = process.env.PROXMOX_SSH_USER?.trim() || "root";
   const password =
-    process.env.PROXMOX_SSH_PASSWORD ||
-    process.env.PROXMOX_PASSWORD ||
-    "";
-  const privateKey = normalizePrivateKey(
-    process.env.PROXMOX_SSH_PRIVATE_KEY || ""
-  );
+    process.env.PROXMOX_SSH_PASSWORD || process.env.PROXMOX_PASSWORD || "";
+  const keyStr = normalizePrivateKey(process.env.PROXMOX_SSH_PRIVATE_KEY || "");
   const port = Number(process.env.PROXMOX_SSH_PORT || 22);
 
   if (!host) {
@@ -120,7 +106,7 @@ export function runSsh(
     });
   }
 
-  if (!password && !privateKey) {
+  if (!password && !keyStr) {
     return Promise.resolve({
       ok: false,
       out: "Weder PROXMOX_SSH_PASSWORD noch PROXMOX_SSH_PRIVATE_KEY gesetzt",
@@ -128,10 +114,11 @@ export function runSsh(
     });
   }
 
-  if (privateKey && !privateKey.includes("BEGIN")) {
+  if (keyStr && (!keyStr.includes("BEGIN") || !keyStr.includes("PRIVATE KEY"))) {
     return Promise.resolve({
       ok: false,
-      out: "PROXMOX_SSH_PRIVATE_KEY ungültig – Roh-Key oder base64(Key) erwarten",
+      out:
+        "PROXMOX_SSH_PRIVATE_KEY ungültig. Auf dem Host: base64 -w0 /root/stella-vercel  und die eine Zeile in Vercel setzen.",
       code: -1,
     });
   }
@@ -158,13 +145,14 @@ export function runSsh(
       host,
       port,
       username: user,
-      tryKeyboard: Boolean(password) && !privateKey,
+      tryKeyboard: Boolean(password) && !keyStr,
       readyTimeout: 25000,
       hostVerifier: () => true,
     };
 
-    if (privateKey) {
-      connectOpts.privateKey = privateKey;
+    if (keyStr) {
+      // Buffer ist für ssh2 oft zuverlässiger
+      connectOpts.privateKey = Buffer.from(keyStr, "utf8");
     } else if (password) {
       connectOpts.password = password;
     }
@@ -194,16 +182,19 @@ export function runSsh(
           });
         });
       })
-      .on("keyboard-interactive", (_name, _instructions, _lang, prompts, finishKb) => {
+      .on("keyboard-interactive", (_n, _i, _l, prompts, finishKb) => {
         finishKb(prompts.map(() => password));
       })
       .on("error", (err) => {
         clearTimeout(timer);
         let msg = err.message || String(err);
-        if (/authentication methods failed/i.test(msg)) {
-          msg += privateKey
-            ? " (Key-Auth fehlgeschlagen – base64-Key in Vercel prüfen + Redeploy)"
-            : " (Passwort-Auth fehlgeschlagen)";
+        if (/Unsupported key format|Cannot parse privateKey/i.test(msg)) {
+          msg +=
+            " – Key neu setzen: auf Host `base64 -w0 /root/stella-vercel`, Ausgabe 1:1 nach PROXMOX_SSH_PRIVATE_KEY, Redeploy.";
+        } else if (/authentication methods failed/i.test(msg)) {
+          msg += keyStr
+            ? " (Key abgelehnt – authorized_keys / User prüfen)"
+            : " (Passwort abgelehnt)";
         }
         finish({ ok: false, out: msg, code: -1 });
       })
@@ -216,8 +207,7 @@ export async function pctExec(
   innerCmd: string,
   timeoutMs = 45000
 ): Promise<{ ok: boolean; out: string; code: number }> {
-  const remote = `pct exec ${vmid} -- bash -c ${shellEscape(innerCmd)}`;
-  return runSsh(remote, timeoutMs);
+  return runSsh(`pct exec ${vmid} -- bash -c ${shellEscape(innerCmd)}`, timeoutMs);
 }
 
 export type FileEntry = {
@@ -245,29 +235,22 @@ for name in names:
     full = os.path.join(path, name)
     try:
         st = os.lstat(full)
-        if stat.S_ISDIR(st.st_mode):
-            t = "dir"
-        elif stat.S_ISLNK(st.st_mode):
-            t = "link"
-        elif stat.S_ISREG(st.st_mode):
-            t = "file"
-        else:
-            t = "other"
+        if stat.S_ISDIR(st.st_mode): t = "dir"
+        elif stat.S_ISLNK(st.st_mode): t = "link"
+        elif stat.S_ISREG(st.st_mode): t = "file"
+        else: t = "other"
         entries.append({"name": name, "type": t, "size": st.st_size, "mtime": int(st.st_mtime)})
     except OSError:
         entries.append({"name": name, "type": "other", "size": 0, "mtime": 0})
 print(json.dumps(entries))
 `.trim();
-
   const b64 = Buffer.from(script, "utf8").toString("base64");
   const r = await pctExec(vmid, `echo ${b64} | base64 -d | python3`);
-  if (!r.ok) {
-    throw new Error(r.out.trim() || "Verzeichnis konnte nicht gelesen werden");
-  }
+  if (!r.ok) throw new Error(r.out.trim() || "Verzeichnis konnte nicht gelesen werden");
   const raw = r.out.trim();
   try {
     const parsed = JSON.parse(raw);
-    if (parsed && parsed.error) throw new Error(parsed.error);
+    if (parsed?.error) throw new Error(parsed.error);
     if (!Array.isArray(parsed)) throw new Error("Ungültige Antwort");
     return parsed as FileEntry[];
   } catch (e: any) {
@@ -294,13 +277,10 @@ with open(path, "rb") as f:
     data = f.read(max_b + 1)
 truncated = len(data) > max_b
 data = data[:max_b]
-try:
-    text = data.decode("utf-8")
-except Exception:
-    text = data.decode("latin-1", errors="replace")
+try: text = data.decode("utf-8")
+except Exception: text = data.decode("latin-1", errors="replace")
 print(json.dumps({"content": text, "size": size, "truncated": truncated}))
 `.trim();
-
   const b64 = Buffer.from(script, "utf8").toString("base64");
   const r = await pctExec(vmid, `echo ${b64} | base64 -d | python3`);
   if (!r.ok) throw new Error(r.out.trim() || "Datei konnte nicht gelesen werden");
@@ -317,9 +297,7 @@ export async function writeFile(
   const p = sanitizePath(path);
   if (p === "/") throw new Error("Root kann nicht überschrieben werden");
   const contentB64 = Buffer.from(content, "utf8").toString("base64");
-  if (contentB64.length > 1_500_000) {
-    throw new Error("Datei zu groß (max. ~1 MB)");
-  }
+  if (contentB64.length > 1_500_000) throw new Error("Datei zu groß (max. ~1 MB)");
   const dir = p.substring(0, p.lastIndexOf("/")) || "/";
   const cmd = `mkdir -p ${shellEscape(dir)} && echo ${shellEscape(contentB64)} | base64 -d > ${shellEscape(p)}`;
   const r = await pctExec(vmid, cmd);
@@ -335,7 +313,7 @@ export async function mkdir(vmid: number, path: string): Promise<void> {
 
 export async function removePath(vmid: number, path: string): Promise<void> {
   const p = sanitizePath(path);
-  if (p === "/" || p === "/root" || p === "/etc" || p === "/bin" || p === "/usr") {
+  if (["/", "/root", "/etc", "/bin", "/usr"].includes(p)) {
     throw new Error("Dieser Pfad darf nicht gelöscht werden");
   }
   const r = await pctExec(vmid, `rm -rf ${shellEscape(p)}`);
