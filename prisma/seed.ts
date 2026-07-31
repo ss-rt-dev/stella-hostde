@@ -4,15 +4,20 @@ import { randomBytes } from "crypto";
 
 const prisma = new PrismaClient();
 
-/** pricePerHour in DB = Monatspreis (2,50–20 €) */
+/**
+ * pricePerHour in DB = Monatspreis (2,50–20 €)
+ * Template muss auf Proxmox liegen, z.B.:
+ *   pveam download local debian-12-standard_12.7-1_amd64.tar.zst
+ */
 const BASE_PACKAGE = {
-  name: "Debian 11",
-  description: "Konfigurierbarer LXC – Debian 11 · 2,50–20 €/Monat",
+  name: "Debian 12",
+  description: "Konfigurierbarer LXC – Debian 12 · 2,50–20 €/Monat",
   cpu: 1,
   ramMb: 1024,
   diskGb: 10,
   pricePerHour: 2.5,
-  proxmoxTemplateId: "local:vztmpl/debian-11-standard_11.7-1_amd64.tar.zst",
+  proxmoxTemplateId:
+    "local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst",
   node: "pve",
   storage: "auto",
 };
@@ -22,6 +27,7 @@ async function main() {
     data: { storage: "auto" },
   });
 
+  // Altes Debian-11-Paket deaktivieren
   await prisma.package.updateMany({
     where: { name: { not: BASE_PACKAGE.name } },
     data: { active: false },
@@ -36,10 +42,10 @@ async function main() {
       where: { id: existing.id },
       data: { ...BASE_PACKAGE, active: true },
     });
-    console.log("  ↻ Basis-Paket Debian 11 aktualisiert");
+    console.log("  ↻ Basis-Paket Debian 12 aktualisiert");
   } else {
     await prisma.package.create({ data: { ...BASE_PACKAGE, active: true } });
-    console.log("  ✓ Basis-Paket Debian 11 angelegt");
+    console.log("  ✓ Basis-Paket Debian 12 angelegt");
   }
 
   const withoutSlug = await prisma.server.findMany({
