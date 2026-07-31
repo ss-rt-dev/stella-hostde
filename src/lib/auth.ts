@@ -4,14 +4,14 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { createHmac, timingSafeEqual } from "crypto";
 import { prisma } from "./db";
+import { recordLogin, logActivity } from "./activity";
 
 function getSecret() {
   return process.env.NEXTAUTH_SECRET || "dev-secret";
 }
 
-/** Signiertes Impersonation-Token (kurzlebig) */
 export function createImpersonateToken(adminId: string, userId: string) {
-  const exp = Date.now() + 60_000; // 60s
+  const exp = Date.now() + 60_000;
   const payload = `${adminId}.${userId}.${exp}`;
   const sig = createHmac("sha256", getSecret()).update(payload).digest("hex");
   return Buffer.from(`${payload}.${sig}`).toString("base64url");
@@ -55,7 +55,6 @@ export const authOptions: NextAuthOptions = {
         impersonateToken: { label: "Impersonate", type: "text" },
       },
       async authorize(credentials) {
-        // Admin → als Nutzer anmelden (oder zurück)
         if (credentials?.impersonateToken) {
           const data = verifyImpersonateToken(credentials.impersonateToken);
           if (!data) return null;
@@ -70,9 +69,17 @@ export const authOptions: NextAuthOptions = {
           });
           if (!admin || admin.role !== "ADMIN") return null;
 
-          // Wenn target der Admin selbst ist → Impersonation beenden
           const impersonatedBy =
             target.id === data.adminId ? undefined : data.adminId;
+
+          if (impersonatedBy) {
+            await logActivity({
+              userId: target.id,
+              action: "admin_impersonate",
+              detail: `Admin-Login als Nutzer (${admin.email})`,
+              meta: { adminId: admin.id },
+            });
+          }
 
           return {
             id: target.id,
@@ -99,6 +106,9 @@ export const authOptions: NextAuthOptions = {
         );
 
         if (!valid) return null;
+
+        // lastLoginAt + Activity (ohne await blockieren – fire and forget ok in authorize)
+        await recordLogin(user.id);
 
         return {
           id: user.id,

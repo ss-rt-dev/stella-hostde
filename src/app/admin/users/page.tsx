@@ -14,6 +14,15 @@ interface Server {
   package: { id: string; name: string; pricePerHour: string };
 }
 
+interface Activity {
+  id: string;
+  action: string;
+  label: string;
+  detail: string | null;
+  ip: string | null;
+  createdAt: string;
+}
+
 interface User {
   id: string;
   email: string;
@@ -21,7 +30,39 @@ interface User {
   role: string;
   balance: number;
   createdAt: string;
+  lastLoginAt: string | null;
   servers: Server[];
+  activities?: Activity[];
+  activityCount?: number;
+}
+
+function fmtDate(iso: string | null | undefined) {
+  if (!iso) return "Noch nie";
+  try {
+    return new Date(iso).toLocaleString("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "—";
+  }
+}
+
+function relativeLogin(iso: string | null | undefined) {
+  if (!iso) return "nie";
+  const d = new Date(iso).getTime();
+  const diff = Date.now() - d;
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "gerade eben";
+  if (m < 60) return `vor ${m} Min.`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `vor ${h} Std.`;
+  const days = Math.floor(h / 24);
+  if (days < 14) return `vor ${days} Tag${days === 1 ? "" : "en"}`;
+  return fmtDate(iso);
 }
 
 export default function AdminUsersPage() {
@@ -43,7 +84,6 @@ export default function AdminUsersPage() {
   const [busy, setBusy] = useState(false);
   const [rootPw, setRootPw] = useState<string | null>(null);
 
-  // Neuer Nutzer
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -293,7 +333,7 @@ export default function AdminUsersPage() {
         <div>
           <h1 className="text-xl font-bold text-white sm:text-2xl">Nutzer</h1>
           <p className="text-sm text-zinc-500">
-            Anlegen, löschen, Guthaben, Server, Login als Nutzer
+            Login, Aktivität, Guthaben, Server
           </p>
         </div>
         <button
@@ -362,7 +402,7 @@ export default function AdminUsersPage() {
         </form>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
+      <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
         <div className="rounded-2xl border border-white/10 bg-[#121214] overflow-hidden max-h-[70vh] flex flex-col">
           <div className="border-b border-white/5 px-4 py-3 text-sm font-semibold text-zinc-300">
             Kunden ({users.length})
@@ -386,7 +426,13 @@ export default function AdminUsersPage() {
                   )}
                 </p>
                 <p className="truncate text-xs text-zinc-500">{u.email}</p>
-                <p className="mt-0.5 text-xs text-amber-400/80">{u.balance.toFixed(2)} €</p>
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]">
+                  <span className="text-amber-400/80">{u.balance.toFixed(2)} €</span>
+                  <span className="text-zinc-600">·</span>
+                  <span className="text-zinc-500" title={fmtDate(u.lastLoginAt)}>
+                    Login: {relativeLogin(u.lastLoginAt)}
+                  </span>
+                </div>
               </button>
             ))}
           </div>
@@ -420,6 +466,28 @@ export default function AdminUsersPage() {
                 </div>
               )}
 
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="rounded-xl border border-white/10 bg-[#121214] p-3">
+                  <p className="text-[10px] uppercase tracking-wide text-zinc-600">Registriert</p>
+                  <p className="mt-1 text-xs text-zinc-300">{fmtDate(selected.createdAt)}</p>
+                </div>
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 col-span-1 sm:col-span-2">
+                  <p className="text-[10px] uppercase tracking-wide text-amber-400/70">
+                    Letzter Login
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-white">
+                    {fmtDate(selected.lastLoginAt)}
+                  </p>
+                  <p className="text-[11px] text-zinc-500">{relativeLogin(selected.lastLoginAt)}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-[#121214] p-3">
+                  <p className="text-[10px] uppercase tracking-wide text-zinc-600">Aktivitäten</p>
+                  <p className="mt-1 text-lg font-semibold text-white">
+                    {selected.activityCount ?? selected.activities?.length ?? 0}
+                  </p>
+                </div>
+              </div>
+
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
@@ -438,6 +506,33 @@ export default function AdminUsersPage() {
                   Nutzer löschen
                 </button>
               </div>
+
+              <section className="rounded-2xl border border-white/10 bg-[#121214] overflow-hidden">
+                <div className="border-b border-white/5 px-5 py-3 font-semibold text-white">
+                  Aktivität (letzte 30)
+                </div>
+                {!selected.activities?.length ? (
+                  <p className="px-5 py-8 text-center text-sm text-zinc-500">
+                    Noch keine Einträge – erscheinen nach dem nächsten Login / Aktionen
+                  </p>
+                ) : (
+                  <div className="max-h-64 overflow-y-auto divide-y divide-white/5">
+                    {selected.activities.map((a) => (
+                      <div key={a.id} className="flex gap-3 px-5 py-2.5 text-sm">
+                        <div className="w-[9.5rem] shrink-0 text-[11px] text-zinc-500">
+                          {fmtDate(a.createdAt)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-zinc-200">{a.label}</p>
+                          {a.detail && (
+                            <p className="truncate text-xs text-zinc-500">{a.detail}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
 
               <section className="rounded-2xl border border-white/10 bg-[#121214] p-5 space-y-3">
                 <h2 className="font-semibold text-white">Profil</h2>

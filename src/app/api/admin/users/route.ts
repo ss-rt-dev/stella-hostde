@@ -4,13 +4,13 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { actionLabel } from "@/lib/activity";
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
   if (!session?.user || (session.user as any).role !== "ADMIN") {
     return null;
   }
-  // Während Impersonation kein Admin-API
   if ((session.user as any).impersonatedBy) return null;
   return session;
 }
@@ -27,7 +27,11 @@ export async function GET() {
         where: { status: { not: "DELETED" } },
         include: { package: true },
       },
-      _count: { select: { transactions: true } },
+      activities: {
+        orderBy: { createdAt: "desc" },
+        take: 30,
+      },
+      _count: { select: { transactions: true, activities: true } },
     },
   });
 
@@ -39,8 +43,18 @@ export async function GET() {
       role: u.role,
       balance: Number(u.balance),
       createdAt: u.createdAt,
+      lastLoginAt: u.lastLoginAt,
       servers: u.servers,
       transactionCount: u._count.transactions,
+      activityCount: u._count.activities,
+      activities: u.activities.map((a) => ({
+        id: a.id,
+        action: a.action,
+        label: actionLabel(a.action),
+        detail: a.detail,
+        ip: a.ip,
+        createdAt: a.createdAt,
+      })),
     }))
   );
 }
