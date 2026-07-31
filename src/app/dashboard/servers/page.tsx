@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { calcPricePerMonth, PRICING } from "@/lib/pricing";
@@ -34,6 +34,9 @@ type ServerType = "DEBIAN" | "MINECRAFT" | "DISCORD_BOT";
 export default function ServersPage() {
   const [servers, setServers] = useState<Server[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showConfig, setShowConfig] = useState(false);
+  const configRef = useRef<HTMLDivElement>(null);
+
   const [creating, setCreating] = useState(false);
   const [hostname, setHostname] = useState("");
   const [cpu, setCpu] = useState(2);
@@ -100,6 +103,13 @@ export default function ServersPage() {
   useEffect(() => {
     load();
   }, []);
+
+  function openConfigurator() {
+    setShowConfig(true);
+    setTimeout(() => {
+      configRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  }
 
   async function createServer(e: React.FormEvent) {
     e.preventDefault();
@@ -183,248 +193,42 @@ export default function ServersPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-white sm:text-2xl">Server</h1>
-        <p className="text-sm text-zinc-500">
-          Debian · Minecraft · Discord-Bot · Abrechnung pro Monat
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-white sm:text-2xl">Server</h1>
+          <p className="text-sm text-zinc-500">
+            {servers.length === 0
+              ? "Noch keine Server"
+              : `${servers.length} Server`}
+          </p>
+        </div>
+        {!showConfig && (
+          <button
+            type="button"
+            onClick={openConfigurator}
+            className="rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-4 py-2 text-sm font-semibold text-black shadow-lg shadow-amber-500/20"
+          >
+            + Server kaufen
+          </button>
+        )}
       </div>
 
-      <form
-        onSubmit={createServer}
-        className="space-y-5 rounded-2xl border border-white/10 bg-[#121214] p-5"
-      >
-        <h2 className="font-semibold text-white">Server konfigurieren</h2>
-
-        {error && (
-          <p className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">
-            {error}
-          </p>
-        )}
-
-        {rootPassword && (
-          <div className="space-y-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm">
-            <p className="font-medium text-emerald-400">Server erstellt!</p>
-            <p className="text-emerald-300/80">
-              Root-Passwort:{" "}
-              <code className="rounded bg-black/40 px-2 py-0.5 font-mono text-emerald-400">
-                {rootPassword}
-              </code>
-            </p>
-            {setupNote && <p className="text-xs text-zinc-400">{setupNote}</p>}
-            {createdSlug && (
-              <div className="flex flex-wrap gap-2 pt-1">
-                <Link
-                  href={`/server/${createdSlug}/console`}
-                  className="rounded-lg bg-amber-400 px-3 py-1.5 text-xs font-semibold text-black"
-                >
-                  Console
-                </Link>
-                <Link
-                  href={`/server/${createdSlug}/files`}
-                  className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-zinc-300"
-                >
-                  Dateien
-                </Link>
-              </div>
-            )}
-          </div>
-        )}
-
-        <div>
-          <label className="mb-2 block text-xs font-medium text-zinc-500">
-            Server-Typ
-          </label>
-          <div className="grid grid-cols-3 gap-2">
-            {(
-              [
-                ["DEBIAN", "Debian 12"],
-                ["MINECRAFT", "Minecraft"],
-                ["DISCORD_BOT", "Discord Bot"],
-              ] as const
-            ).map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setServerType(id)}
-                className={`rounded-xl py-2.5 text-sm font-medium transition ${
-                  serverType === id
-                    ? "bg-amber-400 text-black"
-                    : "border border-white/10 text-zinc-300 hover:bg-white/5"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {serverType === "MINECRAFT" && (
-          <div>
-            <label className="mb-2 block text-xs font-medium text-zinc-500">
-              Minecraft-Version / Engine
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {MINECRAFT_VARIANTS.map((v) => (
-                <button
-                  key={v.id}
-                  type="button"
-                  onClick={() => setMcVariant(v.id)}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-                    mcVariant === v.id
-                      ? "bg-amber-500/20 text-amber-400"
-                      : "bg-white/5 text-zinc-400"
-                  }`}
-                >
-                  {v.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {serverType === "DISCORD_BOT" && (
-          <div>
-            <label className="mb-2 block text-xs font-medium text-zinc-500">
-              Runtime
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {DISCORD_VARIANTS.map((v) => (
-                <button
-                  key={v.id}
-                  type="button"
-                  onClick={() => setBotVariant(v.id)}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-                    botVariant === v.id
-                      ? "bg-amber-500/20 text-amber-400"
-                      : "bg-white/5 text-zinc-400"
-                  }`}
-                >
-                  {v.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div>
-          <label className="mb-1.5 block text-xs font-medium text-zinc-500">
-            Hostname
-          </label>
-          <input
-            required
-            pattern="[a-z0-9-]+"
-            value={hostname}
-            onChange={(e) => setHostname(e.target.value.toLowerCase())}
-            placeholder="mein-server"
-            className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/50"
-          />
-        </div>
-
-        <div>
-          <div className="mb-2 flex items-center justify-between text-sm">
-            <span className="text-zinc-400">vCPU</span>
-            <span className="font-semibold text-amber-400">{cpu} Kerne</span>
-          </div>
-          <input
-            type="range"
-            min={PRICING.minCpu}
-            max={PRICING.maxCpu}
-            step={1}
-            value={cpu}
-            onChange={(e) => setCpu(Number(e.target.value))}
-            className="w-full accent-amber-400"
-          />
-        </div>
-
-        <div>
-          <div className="mb-2 flex items-center justify-between text-sm">
-            <span className="text-zinc-400">RAM</span>
-            <span className="font-semibold text-amber-400">
-              {ramMb >= 1024
-                ? `${(ramMb / 1024).toFixed(ramMb % 1024 === 0 ? 0 : 1)} GB`
-                : `${ramMb} MB`}
-            </span>
-          </div>
-          <input
-            type="range"
-            min={PRICING.minRamMb}
-            max={PRICING.maxRamMb}
-            step={512}
-            value={ramMb}
-            onChange={(e) => setRamMb(Number(e.target.value))}
-            className="w-full accent-amber-400"
-          />
-        </div>
-
-        <div>
-          <div className="mb-2 flex items-center justify-between text-sm">
-            <span className="text-zinc-400">SSD</span>
-            <span className="font-semibold text-amber-400">{diskGb} GB</span>
-          </div>
-          <input
-            type="range"
-            min={PRICING.minDiskGb}
-            max={PRICING.maxDiskGb}
-            step={10}
-            value={diskGb}
-            onChange={(e) => setDiskGb(Number(e.target.value))}
-            className="w-full accent-amber-400"
-          />
-        </div>
-
-        <div>
-          <label className="mb-1.5 block text-xs font-medium text-zinc-500">
-            Rabattcode (optional)
-          </label>
-          <input
-            value={discountCode}
-            onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
-            placeholder="z.B. STELLA20"
-            className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/50"
-          />
-          {discountCode && (
-            <p
-              className={`mt-1.5 text-xs ${
-                discountInfo.valid ? "text-emerald-400" : "text-red-400"
-              }`}
-            >
-              {discountInfo.valid
-                ? `✓ ${discountInfo.message}`
-                : discountInfo.message || "Ungültiger Code"}
-            </p>
-          )}
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
-          <div>
-            <p className="text-xs text-zinc-500">Preis pro Monat</p>
-            <p className="text-2xl font-bold text-amber-400">
-              {formatCurrency(price)}
-              <span className="text-sm font-normal text-zinc-500">/Monat</span>
-            </p>
-            {percent > 0 && (
-              <p className="text-xs text-emerald-400">
-                Statt {formatCurrency(basePrice)} (−{percent}%)
-              </p>
-            )}
-          </div>
-          <button
-            type="submit"
-            disabled={creating || !hostname}
-            className="rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-6 py-2.5 text-sm font-semibold text-black disabled:opacity-50"
-          >
-            {creating ? "Wird erstellt…" : "Server erstellen"}
-          </button>
-        </div>
-      </form>
-
+      {/* Server-Liste zuerst */}
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#121214]">
         <div className="border-b border-white/5 px-5 py-4">
           <h2 className="font-semibold text-white">Deine Server</h2>
         </div>
         {servers.length === 0 ? (
-          <p className="px-5 py-12 text-center text-sm text-zinc-500">Noch keine Server</p>
+          <div className="px-5 py-12 text-center">
+            <p className="text-sm text-zinc-500">Du hast noch keinen Server.</p>
+            <button
+              type="button"
+              onClick={openConfigurator}
+              className="mt-4 rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-black"
+            >
+              Jetzt Server kaufen
+            </button>
+          </div>
         ) : (
           <div className="divide-y divide-white/5">
             {servers.map((s) => (
@@ -504,6 +308,268 @@ export default function ServersPage() {
           </div>
         )}
       </div>
+
+      {/* CTA unten */}
+      {!showConfig && (
+        <div className="rounded-2xl border border-amber-500/25 bg-gradient-to-br from-amber-500/10 to-[#121214] px-6 py-8 text-center">
+          <h2 className="text-lg font-semibold text-white">
+            Brauchst du noch Server?
+          </h2>
+          <p className="mt-2 text-sm text-zinc-400">
+            Konfiguriere CPU, RAM und SSD und starte in wenigen Minuten.
+          </p>
+          <button
+            type="button"
+            onClick={openConfigurator}
+            className="mt-5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-6 py-2.5 text-sm font-semibold text-black shadow-lg shadow-amber-500/25 transition hover:from-amber-300 hover:to-yellow-400"
+          >
+            Server kaufen
+          </button>
+        </div>
+      )}
+
+      {/* Konfigurator */}
+      {showConfig && (
+        <div ref={configRef} className="page-slide-in scroll-mt-4">
+          <form
+            onSubmit={createServer}
+            className="space-y-5 rounded-2xl border border-amber-500/20 bg-[#121214] p-5"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="font-semibold text-white">Server konfigurieren</h2>
+              <button
+                type="button"
+                onClick={() => setShowConfig(false)}
+                className="text-xs text-zinc-500 hover:text-zinc-300"
+              >
+                Schließen
+              </button>
+            </div>
+
+            {error && (
+              <p className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">
+                {error}
+              </p>
+            )}
+
+            {rootPassword && (
+              <div className="space-y-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm">
+                <p className="font-medium text-emerald-400">Server erstellt!</p>
+                <p className="text-emerald-300/80">
+                  Root-Passwort:{" "}
+                  <code className="rounded bg-black/40 px-2 py-0.5 font-mono text-emerald-400">
+                    {rootPassword}
+                  </code>
+                </p>
+                {setupNote && <p className="text-xs text-zinc-400">{setupNote}</p>}
+                {createdSlug && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <Link
+                      href={`/server/${createdSlug}/console`}
+                      className="rounded-lg bg-amber-400 px-3 py-1.5 text-xs font-semibold text-black"
+                    >
+                      Console
+                    </Link>
+                    <Link
+                      href={`/server/${createdSlug}/files`}
+                      className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-zinc-300"
+                    >
+                      Dateien
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div>
+              <label className="mb-2 block text-xs font-medium text-zinc-500">
+                Server-Typ
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {(
+                  [
+                    ["DEBIAN", "Debian 12"],
+                    ["MINECRAFT", "Minecraft"],
+                    ["DISCORD_BOT", "Discord Bot"],
+                  ] as const
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setServerType(id)}
+                    className={`rounded-xl py-2.5 text-sm font-medium transition ${
+                      serverType === id
+                        ? "bg-amber-400 text-black"
+                        : "border border-white/10 text-zinc-300 hover:bg-white/5"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {serverType === "MINECRAFT" && (
+              <div>
+                <label className="mb-2 block text-xs font-medium text-zinc-500">
+                  Minecraft-Version / Engine
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {MINECRAFT_VARIANTS.map((v) => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => setMcVariant(v.id)}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+                        mcVariant === v.id
+                          ? "bg-amber-500/20 text-amber-400"
+                          : "bg-white/5 text-zinc-400"
+                      }`}
+                    >
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {serverType === "DISCORD_BOT" && (
+              <div>
+                <label className="mb-2 block text-xs font-medium text-zinc-500">
+                  Runtime
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {DISCORD_VARIANTS.map((v) => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => setBotVariant(v.id)}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+                        botVariant === v.id
+                          ? "bg-amber-500/20 text-amber-400"
+                          : "bg-white/5 text-zinc-400"
+                      }`}
+                    >
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-zinc-500">
+                Hostname
+              </label>
+              <input
+                required
+                pattern="[a-z0-9-]+"
+                value={hostname}
+                onChange={(e) => setHostname(e.target.value.toLowerCase())}
+                placeholder="mein-server"
+                className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/50"
+              />
+            </div>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between text-sm">
+                <span className="text-zinc-400">vCPU</span>
+                <span className="font-semibold text-amber-400">{cpu} Kerne</span>
+              </div>
+              <input
+                type="range"
+                min={PRICING.minCpu}
+                max={PRICING.maxCpu}
+                step={1}
+                value={cpu}
+                onChange={(e) => setCpu(Number(e.target.value))}
+                className="w-full accent-amber-400"
+              />
+            </div>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between text-sm">
+                <span className="text-zinc-400">RAM</span>
+                <span className="font-semibold text-amber-400">
+                  {ramMb >= 1024
+                    ? `${(ramMb / 1024).toFixed(ramMb % 1024 === 0 ? 0 : 1)} GB`
+                    : `${ramMb} MB`}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={PRICING.minRamMb}
+                max={PRICING.maxRamMb}
+                step={512}
+                value={ramMb}
+                onChange={(e) => setRamMb(Number(e.target.value))}
+                className="w-full accent-amber-400"
+              />
+            </div>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between text-sm">
+                <span className="text-zinc-400">SSD</span>
+                <span className="font-semibold text-amber-400">{diskGb} GB</span>
+              </div>
+              <input
+                type="range"
+                min={PRICING.minDiskGb}
+                max={PRICING.maxDiskGb}
+                step={10}
+                value={diskGb}
+                onChange={(e) => setDiskGb(Number(e.target.value))}
+                className="w-full accent-amber-400"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-zinc-500">
+                Rabattcode (optional)
+              </label>
+              <input
+                value={discountCode}
+                onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                placeholder="z.B. STELLA20"
+                className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/50"
+              />
+              {discountCode && (
+                <p
+                  className={`mt-1.5 text-xs ${
+                    discountInfo.valid ? "text-emerald-400" : "text-red-400"
+                  }`}
+                >
+                  {discountInfo.valid
+                    ? `✓ ${discountInfo.message}`
+                    : discountInfo.message || "Ungültiger Code"}
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
+              <div>
+                <p className="text-xs text-zinc-500">Preis pro Monat</p>
+                <p className="text-2xl font-bold text-amber-400">
+                  {formatCurrency(price)}
+                  <span className="text-sm font-normal text-zinc-500">/Monat</span>
+                </p>
+                {percent > 0 && (
+                  <p className="text-xs text-emerald-400">
+                    Statt {formatCurrency(basePrice)} (−{percent}%)
+                  </p>
+                )}
+              </div>
+              <button
+                type="submit"
+                disabled={creating || !hostname}
+                className="rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-6 py-2.5 text-sm font-semibold text-black disabled:opacity-50"
+              >
+                {creating ? "Wird erstellt…" : "Server erstellen"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
