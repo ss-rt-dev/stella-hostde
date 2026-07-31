@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { signIn } from "next-auth/react";
 
 interface Server {
   id: string;
@@ -42,6 +43,14 @@ export default function AdminUsersPage() {
   const [busy, setBusy] = useState(false);
   const [rootPw, setRootPw] = useState<string | null>(null);
 
+  // Neuer Nutzer
+  const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newRole, setNewRole] = useState<"CUSTOMER" | "ADMIN">("CUSTOMER");
+  const [newBalance, setNewBalance] = useState("0");
+  const [showCreate, setShowCreate] = useState(false);
+
   async function load() {
     const uRes = await fetch("/api/admin/users");
     if (uRes.ok) {
@@ -53,6 +62,8 @@ export default function AdminUsersPage() {
           setSelected(updated);
           setName(updated.name || "");
           setEmail(updated.email);
+        } else {
+          setSelected(null);
         }
       }
     }
@@ -71,6 +82,83 @@ export default function AdminUsersPage() {
     setMsg("");
     setError("");
     setRootPw(null);
+  }
+
+  async function createUser(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    const res = await fetch("/api/admin/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: newName,
+        email: newEmail,
+        password: newPassword,
+        role: newRole,
+        balance: Number(newBalance) || 0,
+      }),
+    });
+    const data = await res.json();
+    setBusy(false);
+    if (!res.ok) {
+      setError(data.error || "Fehler");
+      return;
+    }
+    setMsg(`Nutzer ${data.email} erstellt`);
+    setNewName("");
+    setNewEmail("");
+    setNewPassword("");
+    setNewBalance("0");
+    setShowCreate(false);
+    load();
+  }
+
+  async function deleteUser() {
+    if (!selected) return;
+    if (
+      !confirm(
+        `Nutzer ${selected.email} wirklich löschen? Server werden als gelöscht markiert.`
+      )
+    )
+      return;
+    setBusy(true);
+    setError("");
+    const res = await fetch(`/api/admin/users/${selected.id}`, {
+      method: "DELETE",
+    });
+    const data = await res.json();
+    setBusy(false);
+    if (!res.ok) {
+      setError(data.error || "Fehler");
+      return;
+    }
+    setMsg("Nutzer gelöscht");
+    setSelected(null);
+    load();
+  }
+
+  async function loginAsUser() {
+    if (!selected) return;
+    if (!confirm(`Als ${selected.email} anmelden?`)) return;
+    setBusy(true);
+    setError("");
+    const res = await fetch("/api/admin/impersonate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: selected.id }),
+    });
+    const data = await res.json();
+    setBusy(false);
+    if (!res.ok) {
+      setError(data.error || "Fehler");
+      return;
+    }
+    await signIn("credentials", {
+      impersonateToken: data.token,
+      redirect: true,
+      callbackUrl: "/dashboard",
+    });
   }
 
   async function saveProfile() {
@@ -109,6 +197,25 @@ export default function AdminUsersPage() {
     }
     setMsg("Passwort geändert");
     setPassword("");
+  }
+
+  async function setRole(role: "CUSTOMER" | "ADMIN") {
+    if (!selected) return;
+    setBusy(true);
+    setError("");
+    const res = await fetch(`/api/admin/users/${selected.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "set_role", role }),
+    });
+    const data = await res.json();
+    setBusy(false);
+    if (!res.ok) {
+      setError(data.error || "Fehler");
+      return;
+    }
+    setMsg(`Rolle: ${role}`);
+    load();
   }
 
   async function addCredit(sign: 1 | -1) {
@@ -182,12 +289,78 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-bold text-white sm:text-2xl">Nutzer</h1>
-        <p className="text-sm text-zinc-500">
-          Guthaben, Server zuweisen, kündigen, Profil & Passwort
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-white sm:text-2xl">Nutzer</h1>
+          <p className="text-sm text-zinc-500">
+            Anlegen, löschen, Guthaben, Server, Login als Nutzer
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowCreate(!showCreate)}
+          className="rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-4 py-2 text-sm font-semibold text-black"
+        >
+          {showCreate ? "Schließen" : "+ Nutzer erstellen"}
+        </button>
       </div>
+
+      {showCreate && (
+        <form
+          onSubmit={createUser}
+          className="grid gap-3 rounded-2xl border border-amber-500/20 bg-[#121214] p-5 sm:grid-cols-2"
+        >
+          <h2 className="sm:col-span-2 font-semibold text-white">Neuer Nutzer</h2>
+          <input
+            required
+            placeholder="Name"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-amber-500/50"
+          />
+          <input
+            required
+            type="email"
+            placeholder="E-Mail"
+            value={newEmail}
+            onChange={(e) => setNewEmail(e.target.value)}
+            className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-amber-500/50"
+          />
+          <input
+            required
+            type="password"
+            minLength={6}
+            placeholder="Passwort (min. 6)"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-amber-500/50"
+          />
+          <input
+            type="number"
+            step="0.01"
+            min={0}
+            placeholder="Start-Guthaben"
+            value={newBalance}
+            onChange={(e) => setNewBalance(e.target.value)}
+            className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-amber-500/50"
+          />
+          <select
+            value={newRole}
+            onChange={(e) => setNewRole(e.target.value as "CUSTOMER" | "ADMIN")}
+            className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-amber-500/50"
+          >
+            <option value="CUSTOMER">Kunde</option>
+            <option value="ADMIN">Admin</option>
+          </select>
+          <button
+            type="submit"
+            disabled={busy}
+            className="rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
+          >
+            Erstellen
+          </button>
+        </form>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
         <div className="rounded-2xl border border-white/10 bg-[#121214] overflow-hidden max-h-[70vh] flex flex-col">
@@ -247,6 +420,25 @@ export default function AdminUsersPage() {
                 </div>
               )}
 
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={loginAsUser}
+                  className="rounded-xl bg-sky-500/20 px-4 py-2 text-sm font-medium text-sky-400 hover:bg-sky-500/30 disabled:opacity-50"
+                >
+                  Als Nutzer anmelden
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={deleteUser}
+                  className="rounded-xl bg-red-500/20 px-4 py-2 text-sm font-medium text-red-400 hover:bg-red-500/30 disabled:opacity-50"
+                >
+                  Nutzer löschen
+                </button>
+              </div>
+
               <section className="rounded-2xl border border-white/10 bg-[#121214] p-5 space-y-3">
                 <h2 className="font-semibold text-white">Profil</h2>
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -268,14 +460,26 @@ export default function AdminUsersPage() {
                     />
                   </div>
                 </div>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={saveProfile}
-                  className="rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
-                >
-                  Speichern
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={saveProfile}
+                    className="rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
+                  >
+                    Speichern
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() =>
+                      setRole(selected.role === "ADMIN" ? "CUSTOMER" : "ADMIN")
+                    }
+                    className="rounded-xl border border-white/10 px-4 py-2 text-sm text-zinc-300 hover:bg-white/5 disabled:opacity-50"
+                  >
+                    Rolle: {selected.role === "ADMIN" ? "→ Kunde" : "→ Admin"}
+                  </button>
+                </div>
               </section>
 
               <section className="rounded-2xl border border-white/10 bg-[#121214] p-5 space-y-3">
@@ -349,7 +553,7 @@ export default function AdminUsersPage() {
                       <input
                         type="number"
                         min={1}
-                        max={16}
+                        max={8}
                         value={cpu}
                         onChange={(e) => setCpu(Number(e.target.value))}
                         className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-amber-500/50"
@@ -372,7 +576,7 @@ export default function AdminUsersPage() {
                       <input
                         type="number"
                         min={10}
-                        max={500}
+                        max={250}
                         step={10}
                         value={diskGb}
                         onChange={(e) => setDiskGb(Number(e.target.value))}
