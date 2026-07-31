@@ -13,6 +13,15 @@ const links = [
   { href: "/dashboard/account", label: "Konto", icon: "user" },
 ];
 
+const adminLinks = [
+  { href: "/admin", label: "Overview", exact: true },
+  { href: "/admin/users", label: "Nutzer" },
+  { href: "/admin/discounts", label: "Rabatte" },
+  { href: "/admin/servers", label: "Server" },
+  { href: "/admin/transactions", label: "Transaktionen" },
+  { href: "/admin/activity", label: "Aktivitäten" },
+];
+
 function Icon({ type }: { type: string }) {
   const cls = "nav-icon nav-icon-bounce h-5 w-5";
   if (type === "home")
@@ -39,24 +48,10 @@ function Icon({ type }: { type: string }) {
         <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
       </svg>
     );
-  if (type === "admin")
-    return (
-      <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-      </svg>
-    );
-  if (type === "users")
-    return (
-      <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-      </svg>
-    );
   return null;
 }
 
-/** emoji.gg – Nutzer Dashboard (dark yellow) */
 const LOGO_USER = "https://cdn3.emoji.gg/emojis/40642-darkyellow.png";
-/** emoji.gg – Admin Dashboard (weiß) */
 const LOGO_ADMIN = "https://cdn3.emoji.gg/emojis/18092-white.png";
 
 export function DashboardNav({
@@ -75,7 +70,8 @@ export function DashboardNav({
   const onAdmin = pathname.startsWith("/admin") && !impersonating;
   const logo = onAdmin ? LOGO_ADMIN : LOGO_USER;
 
-  function isActive(href: string) {
+  function isActive(href: string, exact?: boolean) {
+    if (exact) return pathname === href;
     if (href === "/dashboard") return pathname === "/dashboard";
     return pathname.startsWith(href);
   }
@@ -156,28 +152,22 @@ export function DashboardNav({
               <p className="mb-2 mt-5 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
                 Admin
               </p>
-              <Link
-                href="/admin"
-                className={`nav-link group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition ${
-                  pathname === "/admin"
-                    ? "active bg-amber-500/15 font-medium text-amber-400 ring-1 ring-amber-500/25"
-                    : "text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100"
-                }`}
-              >
-                <Icon type="admin" />
-                Overview
-              </Link>
-              <Link
-                href="/admin/users"
-                className={`nav-link group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition ${
-                  pathname.startsWith("/admin/users")
-                    ? "active bg-amber-500/15 font-medium text-amber-400 ring-1 ring-amber-500/25"
-                    : "text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100"
-                }`}
-              >
-                <Icon type="users" />
-                Nutzer
-              </Link>
+              {adminLinks.map((l) => {
+                const active = isActive(l.href, l.exact);
+                return (
+                  <Link
+                    key={l.href}
+                    href={l.href}
+                    className={`nav-link group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition ${
+                      active
+                        ? "active bg-amber-500/15 font-medium text-amber-400 ring-1 ring-amber-500/25"
+                        : "text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100"
+                    }`}
+                  >
+                    {l.label}
+                  </Link>
+                );
+              })}
             </>
           )}
         </nav>
@@ -244,12 +234,11 @@ export function DashboardNav({
         })}
         {user.role === "ADMIN" && !impersonating && (
           <Link
-            href="/admin/users"
+            href="/admin"
             className={`nav-link flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-[10px] ${
               pathname.startsWith("/admin") ? "active text-amber-400" : "text-zinc-500"
             }`}
           >
-            <Icon type="admin" />
             Admin
           </Link>
         )}
