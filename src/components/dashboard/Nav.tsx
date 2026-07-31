@@ -54,8 +54,10 @@ function Icon({ type }: { type: string }) {
   return null;
 }
 
-/** emoji.gg – Pixel Star (animiert) */
-const LOGO = "https://cdn3.emoji.gg/emojis/847706-pixelstar.gif";
+/** emoji.gg – Nutzer Dashboard (gelb) */
+const LOGO_USER = "https://cdn3.emoji.gg/emojis/36006-yellow.png";
+/** emoji.gg – Admin Dashboard (weiß) */
+const LOGO_ADMIN = "https://cdn3.emoji.gg/emojis/18092-white.png";
 
 export function DashboardNav({
   user,
@@ -70,6 +72,8 @@ export function DashboardNav({
   const pathname = usePathname();
   const [stopping, setStopping] = useState(false);
   const impersonating = Boolean(user.impersonatedBy);
+  const onAdmin = pathname.startsWith("/admin") && !impersonating;
+  const logo = onAdmin ? LOGO_ADMIN : LOGO_USER;
 
   function isActive(href: string) {
     if (href === "/dashboard") return pathname === "/dashboard";
@@ -113,7 +117,14 @@ export function DashboardNav({
 
       <aside className="glass-strong fixed inset-y-0 left-0 z-40 hidden w-[240px] flex-col lg:flex">
         <div className="flex h-16 items-center gap-2.5 border-b border-white/10 px-4">
-          <Image src={LOGO} alt="Stella Host" width={36} height={36} className="h-9 w-9 object-contain" unoptimized />
+          <Image
+            src={logo}
+            alt="Stella Host"
+            width={36}
+            height={36}
+            className="h-9 w-9 object-contain"
+            unoptimized
+          />
           <span className="text-[15px] font-semibold tracking-tight text-white">
             Stella <span className="text-amber-400">Host</span>
           </span>
@@ -197,8 +208,15 @@ export function DashboardNav({
           impersonating ? "top-10" : "top-0"
         }`}
       >
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <Image src={LOGO} alt="Stella Host" width={28} height={28} className="h-7 w-7 object-contain" unoptimized />
+        <Link href={onAdmin ? "/admin" : "/dashboard"} className="flex items-center gap-2">
+          <Image
+            src={logo}
+            alt="Stella Host"
+            width={28}
+            height={28}
+            className="h-7 w-7 object-contain"
+            unoptimized
+          />
           <span className="font-semibold text-white">
             Stella <span className="text-amber-400">Host</span>
           </span>
