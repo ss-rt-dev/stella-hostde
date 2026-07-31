@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { logActivity } from "@/lib/activity";
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
@@ -59,6 +60,12 @@ export async function PATCH(
         where: { id },
         data: update,
       });
+      await logActivity({
+        userId: id,
+        action: "profile_update",
+        detail: "Profil durch Admin aktualisiert",
+        meta: { by: session.user.id },
+      });
       return NextResponse.json({
         id: updated.id,
         name: updated.name,
@@ -74,6 +81,12 @@ export async function PATCH(
       await prisma.user.update({
         where: { id },
         data: { passwordHash },
+      });
+      await logActivity({
+        userId: id,
+        action: "password_change",
+        detail: "Passwort durch Admin gesetzt",
+        meta: { by: session.user.id },
       });
       return NextResponse.json({ success: true });
     }
@@ -91,6 +104,12 @@ export async function PATCH(
       const updated = await prisma.user.update({
         where: { id },
         data: { role: data.role },
+      });
+      await logActivity({
+        userId: id,
+        action: "profile_update",
+        detail: `Rolle → ${data.role}`,
+        meta: { by: session.user.id },
       });
       return NextResponse.json({ role: updated.role });
     }
@@ -118,6 +137,15 @@ export async function PATCH(
           },
         });
         return u;
+      });
+      await logActivity({
+        userId: id,
+        action: "admin_credit",
+        detail:
+          amount >= 0
+            ? `+${amount.toFixed(2)} € Gutschrift`
+            : `${amount.toFixed(2)} € Abbuchung`,
+        meta: { amount, by: session.user.id },
       });
       return NextResponse.json({ balance: Number(updated.balance) });
     }
@@ -152,7 +180,6 @@ export async function DELETE(
     return NextResponse.json({ error: "User nicht gefunden" }, { status: 404 });
   }
 
-  // Server soft-delete, User hard-delete (Cascade löscht Transaktionen etc.)
   await prisma.server.updateMany({
     where: { userId: id },
     data: { status: "DELETED" },

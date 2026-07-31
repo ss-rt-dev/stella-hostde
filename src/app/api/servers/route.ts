@@ -9,12 +9,13 @@ import {
   resolveStorage,
 } from "@/lib/proxmox";
 import { calcPricePerMonth, clampConfig, PRICING } from "@/lib/pricing";
-import { applyDiscount } from "@/lib/discounts";
+import { applyDiscount, incrementDiscountUse } from "@/lib/discounts";
 import {
   runSoftwareSetup,
   type ServerKind,
 } from "@/lib/software-setup";
 import { randomAccessSlug } from "@/lib/slug";
+import { logActivity } from "@/lib/activity";
 import { z } from "zod";
 import { randomBytes } from "crypto";
 
@@ -72,7 +73,7 @@ export async function POST(req: Request) {
     if (serverType === "DEBIAN") softwareVariant = null;
 
     const basePrice = calcPricePerMonth(cpu, ramMb, diskGb);
-    const { price: pricePerMonth, percent, code: appliedCode } = applyDiscount(
+    const { price: pricePerMonth, percent, code: appliedCode } = await applyDiscount(
       basePrice,
       parsed.discountCode
     );
@@ -169,7 +170,6 @@ export async function POST(req: Request) {
 
       if (serverType !== "DEBIAN" && softwareVariant) {
         try {
-          // Kurz warten bis Container bootet
           await new Promise((r) => setTimeout(r, 8000));
           const setup = await runSoftwareSetup({
             vmid,
@@ -216,6 +216,14 @@ export async function POST(req: Request) {
           },
         }),
       ]);
+
+      await incrementDiscountUse(appliedCode);
+      await logActivity({
+        userId: session.user.id,
+        action: "server_create",
+        detail: `${hostname} · ${cpu}vCPU / ${ramMb}MB / ${diskGb}GB · ${pricePerMonth.toFixed(2)} €`,
+        meta: { vmid, accessSlug, discount: appliedCode },
+      });
 
       return NextResponse.json({
         id: server.id,

@@ -137,7 +137,6 @@ model AppSetting {
   updatedAt DateTime @updatedAt
 }
 
-/** Aktivitäten / Audit-Log pro Nutzer */
 model ActivityLog {
   id        String   @id @default(cuid())
   userId    String
@@ -149,4 +148,20 @@ model ActivityLog {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+  @@index([createdAt])
+}
+
+/** Rabattcodes – in DB gespeichert */
+model DiscountCode {
+  id            String    @id @default(cuid())
+  code          String    @unique
+  percent       Int
+  label         String?
+  active        Boolean   @default(true)
+  maxUses       Int?
+  usedCount     Int       @default(0)
+  validFrom     DateTime?
+  validUntil    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
