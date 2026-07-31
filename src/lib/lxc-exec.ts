@@ -2,6 +2,7 @@
  * SSH zum Proxmox-Host + pct exec im LXC.
  * Env: PROXMOX_SSH_HOST, PROXMOX_SSH_USER, PROXMOX_SSH_PASSWORD
  * (optional PROXMOX_SSH_PORT, PROXMOX_SSH_PRIVATE_KEY)
+ * Fallback-Passwort: PROXMOX_PASSWORD
  */
 
 import { Client } from "ssh2";
@@ -16,6 +17,23 @@ function shellEscape(s: string): string {
   return `'${s.replace(/'/g, `'"'"'`)}'`;
 }
 
+/** Host ohne https:// und ohne Port-Suffix */
+function normalizeSshHost(raw: string): string {
+  let h = raw.trim();
+  h = h.replace(/^https?:\/\//i, "");
+  // trailing slash / path entfernen
+  h = h.split("/")[0];
+  // host:port → host (Port separat)
+  if (h.includes(":") && !h.includes("]")) {
+    // IPv4 host:port
+    const parts = h.split(":");
+    if (parts.length === 2 && /^\d+$/.test(parts[1])) {
+      return parts[0];
+    }
+  }
+  return h;
+}
+
 /** Sichere absolute Pfade – kein .., kein leerer Pfad */
 export function sanitizePath(raw: string): string {
   let p = (raw || "/").replace(/\\/g, "/");
@@ -27,24 +45,42 @@ export function sanitizePath(raw: string): string {
       if (out.length) out.pop();
       continue;
     }
-    // nur normale Dateinamen
     if (/[\0]/.test(seg)) throw new Error("Ungültiger Pfad");
     out.push(seg);
   }
   return "/" + out.join("/") || "/";
 }
 
-export function runSsh(command: string, timeoutMs = 45000): Promise<{ ok: boolean; out: string; code: number }> {
-  const host = process.env.PROXMOX_SSH_HOST?.trim() || "";
+export function runSsh(
+  command: string,
+  timeoutMs = 45000
+): Promise<{ ok: boolean; out: string; code: number }> {
+  const hostRaw = process.env.PROXMOX_SSH_HOST?.trim() || "";
+  const host = normalizeSshHost(hostRaw);
   const user = process.env.PROXMOX_SSH_USER?.trim() || "root";
-  const password = process.env.PROXMOX_SSH_PASSWORD || "";
-  const privateKey = process.env.PROXMOX_SSH_PRIVATE_KEY || "";
+  // Passwort: SSH-spezifisch, sonst Proxmox-Root-Passwort
+  const password =
+    process.env.PROXMOX_SSH_PASSWORD ||
+    process.env.PROXMOX_PASSWORD ||
+    "";
+  const privateKey = (process.env.PROXMOX_SSH_PRIVATE_KEY || "").replace(
+    /\\n/g,
+    "\n"
+  );
   const port = Number(process.env.PROXMOX_SSH_PORT || 22);
 
   if (!host) {
     return Promise.resolve({
       ok: false,
       out: "PROXMOX_SSH_HOST ist nicht gesetzt",
+      code: -1,
+    });
+  }
+
+  if (!password && !privateKey) {
+    return Promise.resolve({
+      ok: false,
+      out: "Weder PROXMOX_SSH_PASSWORD noch PROXMOX_SSH_PRIVATE_KEY gesetzt",
       code: -1,
     });
   }
@@ -84,9 +120,18 @@ export function runSsh(command: string, timeoutMs = 45000): Promise<{ ok: boolea
           });
           stream.on("close", (code: number) => {
             clearTimeout(timer);
-            finish({ ok: code === 0, out: out.slice(0, MAX_OUT), code: code ?? -1 });
+            finish({
+              ok: code === 0,
+              out: out.slice(0, MAX_OUT),
+              code: code ?? -1,
+            });
           });
         });
+      })
+      // Viele Server (Debian/Proxmox) wollen keyboard-interactive statt "password"
+      .on("keyboard-interactive", (_name, _instructions, _lang, prompts, finishKb) => {
+        const answers = prompts.map(() => password);
+        finishKb(answers);
       })
       .on("error", (err) => {
         clearTimeout(timer);
@@ -98,8 +143,10 @@ export function runSsh(command: string, timeoutMs = 45000): Promise<{ ok: boolea
         username: user,
         password: password || undefined,
         privateKey: privateKey || undefined,
+        tryKeyboard: true,
         readyTimeout: 20000,
-        algorithms: undefined,
+        // Host-Key-Prüfung für Serverless überspringen (wie StrictHostKeyChecking=no)
+        hostVerifier: () => true,
       });
   });
 }
@@ -110,7 +157,6 @@ export async function pctExec(
   innerCmd: string,
   timeoutMs = 45000
 ): Promise<{ ok: boolean; out: string; code: number }> {
-  // pct exec <vmid> -- bash -c '...'
   const remote = `pct exec ${vmid} -- bash -c ${shellEscape(innerCmd)}`;
   return runSsh(remote, timeoutMs);
 }
@@ -189,7 +235,6 @@ with open(path, "rb") as f:
     data = f.read(max_b + 1)
 truncated = len(data) > max_b
 data = data[:max_b]
-# text versuchen
 try:
     text = data.decode("utf-8")
 except Exception:
@@ -213,7 +258,6 @@ export async function writeFile(
   const p = sanitizePath(path);
   if (p === "/") throw new Error("Root kann nicht überschrieben werden");
   const contentB64 = Buffer.from(content, "utf8").toString("base64");
-  // Inhalt in Chunks vermeiden – Limit ~1.5MB body
   if (contentB64.length > 1_500_000) {
     throw new Error("Datei zu groß (max. ~1 MB)");
   }
@@ -247,9 +291,6 @@ export async function renamePath(
   const a = sanitizePath(from);
   const b = sanitizePath(to);
   if (a === "/" || b === "/") throw new Error("Ungültiger Pfad");
-  const r = await pctExec(
-    vmid,
-    `mv ${shellEscape(a)} ${shellEscape(b)}`
-  );
+  const r = await pctExec(vmid, `mv ${shellEscape(a)} ${shellEscape(b)}`);
   if (!r.ok) throw new Error(r.out.trim() || "Umbenennen fehlgeschlagen");
 }
