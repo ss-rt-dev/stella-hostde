@@ -58,13 +58,11 @@ export default function ServerFilesPage() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  // Editor
   const [editPath, setEditPath] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
   const [editMeta, setEditMeta] = useState<{ size: number; truncated: boolean } | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Dialogs
   const [newFolder, setNewFolder] = useState("");
   const [newFile, setNewFile] = useState("");
   const [showNew, setShowNew] = useState(false);
@@ -245,7 +243,6 @@ export default function ServerFilesPage() {
       )}
 
       <div className="flex flex-1 flex-col lg:flex-row">
-        {/* Sidebar shortcuts */}
         <aside className="w-full border-b border-white/10 p-3 lg:w-48 lg:border-b-0 lg:border-r">
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-600">
             Schnellzugriff
@@ -269,7 +266,6 @@ export default function ServerFilesPage() {
         </aside>
 
         <main className="flex min-w-0 flex-1 flex-col">
-          {/* Toolbar */}
           <div className="flex flex-wrap items-center gap-2 border-b border-white/10 px-4 py-2">
             <button
               type="button"
@@ -336,7 +332,8 @@ export default function ServerFilesPage() {
                   className="rounded-lg border border-white/10 bg-black/40 px-3 py-1.5 text-sm outline-none focus:border-amber-500/50"
                 />
                 <button
-                  type="button"av disabled={busy || !newFile.trim()}
+                  type="button"
+                  disabled={busy || !newFile.trim()}
                   onClick={createFile}
                   className="rounded-lg bg-white/10 px-3 py-1.5 text-xs text-zinc-200 disabled:opacity-40"
                 >
@@ -346,7 +343,6 @@ export default function ServerFilesPage() {
             </div>
           )}
 
-          {/* File list */}
           <div className="flex-1 overflow-auto">
             {loading ? (
               <p className="p-8 text-center text-sm text-zinc-500">Lade…</p>
@@ -372,18 +368,13 @@ export default function ServerFilesPage() {
                   {entries.map((e) => {
                     const full = joinPath(path, e.name);
                     return (
-                      <tr
-                        key={e.name}
-                        className="hover:bg-white/[0.03]"
-                      >
+                      <tr key={e.name} className="hover:bg-white/[0.03]">
                         <td className="px-4 py-2">
                           <button
                             type="button"
                             disabled={busy}
                             onClick={() =>
-                              e.type === "dir"
-                                ? load(full)
-                                : openFile(full)
+                              e.type === "dir" ? load(full) : openFile(full)
                             }
                             className="flex items-center gap-2 text-left hover:text-amber-400"
                           >
@@ -450,7 +441,6 @@ export default function ServerFilesPage() {
           </div>
         </main>
 
-        {/* Editor panel */}
         {editPath && (
           <div className="flex w-full flex-col border-t border-white/10 lg:w-[min(520px,45%)] lg:border-l lg:border-t-0">
             <div className="flex items-center justify-between gap-2 border-b border-white/10 px-3 py-2">
