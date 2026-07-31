@@ -136,7 +136,6 @@ function storageContent(s: any): string {
 function isUsableForLxc(s: any): boolean {
   const name = String(s.storage || "");
   if (!name || name === "local-lvm") return false;
-  // enabled/active: 1, true oder fehlend = ok
   if (s.enabled === 0 || s.enabled === false) return false;
   if (s.active === 0 || s.active === false) return false;
   const c = storageContent(s);
@@ -145,11 +144,11 @@ function isUsableForLxc(s: any): boolean {
 
 /**
  * Storage für LXC-rootfs ermitteln.
- * Niemals local-lvm, wenn es nicht in der API-Liste existiert.
+ * Niemals local-lvm, wenn es nicht existiert.
  */
 export async function resolveStorage(
   node: string,
-  _preferred?: string | null
+  preferred?: string | null
 ): Promise<string> {
   const data = await proxmoxRequest(`/nodes/${node}/storage`);
   if (!Array.isArray(data) || !data.length) {
@@ -159,22 +158,28 @@ export async function resolveStorage(
   const names = data.map((s: any) => String(s.storage));
   const available = names.join(", ");
 
+  const candidates: string[] = [];
+
   const fromEnv = process.env.PROXMOX_STORAGE?.trim();
-  if (fromEnv) {
-    if (fromEnv === "local-lvm" && !names.includes("local-lvm")) {
-      // Env zeigt auf nicht existierendes Storage → ignorieren
-    } else if (names.includes(fromEnv)) {
-      return fromEnv;
-    } else {
-      throw new Error(
-        `PROXMOX_STORAGE="${fromEnv}" existiert nicht. Verfügbar: ${available}`
-      );
-    }
+  if (fromEnv && fromEnv !== "auto" && fromEnv !== "local-lvm") {
+    candidates.push(fromEnv);
+  }
+
+  if (
+    preferred &&
+    preferred !== "auto" &&
+    preferred !== "local-lvm" &&
+    preferred !== fromEnv
+  ) {
+    candidates.push(preferred);
+  }
+
+  for (const name of candidates) {
+    if (names.includes(name)) return name;
   }
 
   const usable = data.filter(isUsableForLxc);
 
-  // rootdir bevorzugen
   const rootdir = usable.find((s: any) =>
     storageContent(s).includes("rootdir")
   );
@@ -185,7 +190,9 @@ export async function resolveStorage(
   );
   if (images) return String(images.storage);
 
-  // Fallback: irgendein Storage außer local-lvm und backup-only
+  // Häufig: "local" mit dir/rootdir
+  if (names.includes("local")) return "local";
+
   const any = data.find((s: any) => {
     const name = String(s.storage || "");
     if (name === "local-lvm") return false;
@@ -198,8 +205,10 @@ export async function resolveStorage(
   if (any) return String(any.storage);
 
   throw new Error(
-    `Kein Storage für LXC-Disks (rootdir). Verfügbar: ${available}. ` +
-      `In Proxmox unter Datacenter → Storage prüfen und ggf. PROXMOX_STORAGE setzen.`
+    `Kein Storage für LXC-Disks gefunden. Verfügbar: ${available}. ` +
+      `In Vercel PROXMOX_STORAGE auf einen existierenden Namen setzen ` +
+      `(Datacenter → Storage in Proxmox, z.B. "local"). ` +
+      `Nicht "local-lvm" verwenden, wenn es nicht existiert.`
   );
 }
 
@@ -221,11 +230,11 @@ export interface CreateLxcOptions {
 }
 
 export async function createLxc(opts: CreateLxcOptions) {
-  // Safety: nie local-lvm hardcoden
   if (opts.disk.startsWith("local-lvm:")) {
     throw new Error(
-      "Storage local-lvm ist ungültig. PROXMOX_STORAGE auf ein existierendes Storage setzen " +
-        "(z.B. local oder der Name unter Datacenter → Storage)."
+      "Storage local-lvm ist ungültig auf diesem Host. " +
+        "In Vercel PROXMOX_STORAGE setzen (z.B. local) oder in Proxmox prüfen, " +
+        "welche Storages existieren (Datacenter → Storage)."
     );
   }
 

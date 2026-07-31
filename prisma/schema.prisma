@@ -71,7 +71,7 @@ model Package {
   pricePerHour       Decimal  @db.Decimal(10, 4)
   proxmoxTemplateId  String
   node               String   @default("pve")
-  storage            String   @default("local")
+  storage            String   @default("auto")
   active             Boolean  @default(true)
   createdAt          DateTime @default(now())
   servers            Server[]
@@ -79,7 +79,8 @@ model Package {
 
 model Server {
   id            String       @id @default(cuid())
-  accessSlug    String       @unique @default(cuid())
+  // optional, damit db push bei bestehenden Zeilen nicht scheitert
+  accessSlug    String?      @unique
   userId        String
   packageId     String
   proxmoxVmid   Int?
