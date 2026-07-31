@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { DashboardNav } from "@/components/dashboard/Nav";
+
+export const metadata: Metadata = {
+  title: "Stella Host Dashboard",
+  description: "Stella Host – Server, Guthaben und Konto verwalten",
+};
 
 export default async function DashboardLayout({
   children,
