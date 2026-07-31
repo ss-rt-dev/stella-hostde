@@ -4,17 +4,14 @@ import { randomBytes } from "crypto";
 
 const prisma = new PrismaClient();
 
-/**
- * pricePerHour in DB = Monatspreis (historischer Feldname).
- * Storage: auto → zur Laufzeit per Proxmox-API.
- */
+/** pricePerHour in DB = Monatspreis (2,50–20 €) */
 const BASE_PACKAGE = {
   name: "Debian 11",
-  description: "Konfigurierbarer LXC – Debian 11 · Abrechnung monatlich",
+  description: "Konfigurierbarer LXC – Debian 11 · 2,50–20 €/Monat",
   cpu: 1,
   ramMb: 1024,
   diskGb: 10,
-  pricePerHour: 5.75,
+  pricePerHour: 2.5,
   proxmoxTemplateId: "local:vztmpl/debian-11-standard_11.7-1_amd64.tar.zst",
   node: "pve",
   storage: "auto",
@@ -39,7 +36,7 @@ async function main() {
       where: { id: existing.id },
       data: { ...BASE_PACKAGE, active: true },
     });
-    console.log("  ↻ Basis-Paket Debian 11 aktualisiert (Monatspreis)");
+    console.log("  ↻ Basis-Paket Debian 11 aktualisiert");
   } else {
     await prisma.package.create({ data: { ...BASE_PACKAGE, active: true } });
     console.log("  ✓ Basis-Paket Debian 11 angelegt");

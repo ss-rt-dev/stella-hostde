@@ -1,11 +1,11 @@
 /**
- * Monatspreise aus Ressourcen (EUR / Monat)
- * Hardware-Limit Host: 8 vCPU, 32 GB RAM, ~250 GB SSD
+ * Monatspreise (EUR / Monat)
+ * Zielspanne: ca. 2,50 € (Minimum) bis 20 € (Maximum)
+ * Limits: 8 vCPU, 32 GB RAM, 250 GB SSD
  */
 export const PRICING = {
-  cpuPerMonth: 4.0,
-  ramGbPerMonth: 1.5,
-  diskGbPerMonth: 0.25,
+  minPrice: 2.5,
+  maxPrice: 20,
   minCpu: 1,
   maxCpu: 8,
   minRamMb: 512,
@@ -16,21 +16,33 @@ export const PRICING = {
   billingDays: 30,
 } as const;
 
-/** Monatspreis in EUR */
+/**
+ * Monatspreis aus Ressourcen, skaliert linear auf 2,50–20 €.
+ * Gewichtung: CPU 40 %, RAM 40 %, Disk 20 %.
+ */
 export function calcPricePerMonth(
   cpu: number,
   ramMb: number,
   diskGb: number
 ): number {
-  const ramGb = ramMb / 1024;
+  const cpuN =
+    (cpu - PRICING.minCpu) / (PRICING.maxCpu - PRICING.minCpu);
+  const ramN =
+    (ramMb - PRICING.minRamMb) / (PRICING.maxRamMb - PRICING.minRamMb);
+  const diskN =
+    (diskGb - PRICING.minDiskGb) / (PRICING.maxDiskGb - PRICING.minDiskGb);
+
+  const score =
+    Math.min(1, Math.max(0, cpuN)) * 0.4 +
+    Math.min(1, Math.max(0, ramN)) * 0.4 +
+    Math.min(1, Math.max(0, diskN)) * 0.2;
+
   const raw =
-    cpu * PRICING.cpuPerMonth +
-    ramGb * PRICING.ramGbPerMonth +
-    diskGb * PRICING.diskGbPerMonth;
+    PRICING.minPrice + score * (PRICING.maxPrice - PRICING.minPrice);
   return Math.round(raw * 100) / 100;
 }
 
-/** @deprecated Alias – gleiche Logik wie calcPricePerMonth (DB-Feld heißt noch pricePerHour) */
+/** Alias – DB-Feld heißt noch pricePerHour, Inhalt = Monatspreis */
 export function calcPricePerHour(
   cpu: number,
   ramMb: number,
