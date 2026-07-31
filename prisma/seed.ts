@@ -5,24 +5,22 @@ import { randomBytes } from "crypto";
 const prisma = new PrismaClient();
 
 /**
- * Storage wird zur Laufzeit per Proxmox-API gewählt – hier nur Platzhalter "auto".
- * Template muss auf Proxmox existieren, z.B.:
- *   pveam download local debian-11-standard_11.7-1_amd64.tar.zst
+ * pricePerHour in DB = Monatspreis (historischer Feldname).
+ * Storage: auto → zur Laufzeit per Proxmox-API.
  */
 const BASE_PACKAGE = {
   name: "Debian 11",
-  description: "Konfigurierbarer LXC – Debian 11",
+  description: "Konfigurierbarer LXC – Debian 11 · Abrechnung monatlich",
   cpu: 1,
   ramMb: 1024,
   diskGb: 10,
-  pricePerHour: 0.02,
+  pricePerHour: 5.75,
   proxmoxTemplateId: "local:vztmpl/debian-11-standard_11.7-1_amd64.tar.zst",
   node: "pve",
   storage: "auto",
 };
 
 async function main() {
-  // Alte local-lvm Einträge bereinigen
   await prisma.package.updateMany({
     data: { storage: "auto" },
   });
@@ -41,13 +39,12 @@ async function main() {
       where: { id: existing.id },
       data: { ...BASE_PACKAGE, active: true },
     });
-    console.log("  ↻ Basis-Paket Debian 11 aktualisiert");
+    console.log("  ↻ Basis-Paket Debian 11 aktualisiert (Monatspreis)");
   } else {
     await prisma.package.create({ data: { ...BASE_PACKAGE, active: true } });
     console.log("  ✓ Basis-Paket Debian 11 angelegt");
   }
 
-  // Fehlende accessSlug bei alten Servern nachziehen
   const withoutSlug = await prisma.server.findMany({
     where: { OR: [{ accessSlug: null }, { accessSlug: "" }] },
     select: { id: true },

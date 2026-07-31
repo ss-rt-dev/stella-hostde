@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
-import { calcPricePerHour, PRICING } from "@/lib/pricing";
+import { calcPricePerMonth, PRICING } from "@/lib/pricing";
 
 interface Server {
   id: string;
@@ -33,7 +33,7 @@ export default function ServersPage() {
   const [error, setError] = useState("");
 
   const price = useMemo(
-    () => calcPricePerHour(cpu, ramMb, diskGb),
+    () => calcPricePerMonth(cpu, ramMb, diskGb),
     [cpu, ramMb, diskGb]
   );
 
@@ -119,7 +119,7 @@ export default function ServersPage() {
       <div>
         <h1 className="text-xl font-bold text-white sm:text-2xl">Server</h1>
         <p className="text-sm text-zinc-500">
-          Debian 11 – CPU, RAM und SSD selbst konfigurieren
+          Debian 11 – CPU, RAM und SSD selbst konfigurieren · Abrechnung pro Monat
         </p>
       </div>
 
@@ -164,7 +164,9 @@ export default function ServersPage() {
         )}
 
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-zinc-500">Hostname</label>
+          <label className="mb-1.5 block text-xs font-medium text-zinc-500">
+            Hostname
+          </label>
           <input
             required
             pattern="[a-z0-9-]+"
@@ -229,10 +231,10 @@ export default function ServersPage() {
 
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
           <div>
-            <p className="text-xs text-zinc-500">Preis pro Stunde</p>
+            <p className="text-xs text-zinc-500">Preis pro Monat</p>
             <p className="text-2xl font-bold text-amber-400">
               {formatCurrency(price)}
-              <span className="text-sm font-normal text-zinc-500">/h</span>
+              <span className="text-sm font-normal text-zinc-500">/Monat</span>
             </p>
           </div>
           <button
@@ -250,7 +252,9 @@ export default function ServersPage() {
           <h2 className="font-semibold text-white">Deine Server</h2>
         </div>
         {servers.length === 0 ? (
-          <p className="px-5 py-12 text-center text-sm text-zinc-500">Noch keine Server</p>
+          <p className="px-5 py-12 text-center text-sm text-zinc-500">
+            Noch keine Server
+          </p>
         ) : (
           <div className="divide-y divide-white/5">
             {servers.map((s) => (
@@ -272,7 +276,7 @@ export default function ServersPage() {
                       : "?"}{" "}
                     RAM · {s.diskGb ?? "?"} GB SSD
                     {s.pricePerHour != null &&
-                      ` · ${formatCurrency(Number(s.pricePerHour))}/h`}
+                      ` · ${formatCurrency(Number(s.pricePerHour))}/Monat`}
                     {s.proxmoxVmid != null && ` · VMID ${s.proxmoxVmid}`}
                   </p>
                 </div>
@@ -311,7 +315,8 @@ export default function ServersPage() {
                   )}
                   <button
                     onClick={() => {
-                      if (confirm("Server wirklich löschen?")) action(s.id, "delete");
+                      if (confirm("Server wirklich löschen?"))
+                        action(s.id, "delete");
                     }}
                     className="rounded-lg bg-red-500/15 px-3 py-1.5 text-xs font-medium text-red-400"
                   >

@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { stopLxc, resolveNode } from "@/lib/proxmox";
+import { PRICING } from "@/lib/pricing";
 
+/**
+ * Monatliche Abrechnung (Hobby: 1× täglich prüfen).
+ * Bucht ab, wenn seit lastBilledAt >= billingDays vergangen sind.
+ */
 export async function GET(req: Request) {
   const authHeader = req.headers.get("authorization");
   if (
@@ -18,12 +23,13 @@ export async function GET(req: Request) {
 
   let charged = 0;
   let stopped = 0;
+  const msPerDay = 1000 * 60 * 60 * 24;
 
   for (const server of runningServers) {
-    const hoursSinceLastBill =
-      (Date.now() - server.lastBilledAt.getTime()) / (1000 * 60 * 60);
+    const daysSinceLastBill =
+      (Date.now() - server.lastBilledAt.getTime()) / msPerDay;
 
-    if (hoursSinceLastBill < 0.95) continue;
+    if (daysSinceLastBill < PRICING.billingDays) continue;
 
     const price =
       server.pricePerHour != null
@@ -42,7 +48,7 @@ export async function GET(req: Request) {
             userId: server.userId,
             type: "HOURLY_CHARGE",
             amount: -price,
-            description: `Stündliche Gebühr Server ${server.name}`,
+            description: `Monatsgebühr Server ${server.name}`,
           },
         }),
         prisma.server.update({
@@ -68,5 +74,5 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({ charged, stopped });
+  return NextResponse.json({ charged, stopped, mode: "monthly" });
 }

@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { createLxc, getNextVmid, resolveNode, resolveStorage } from "@/lib/proxmox";
-import { calcPricePerHour, clampConfig, PRICING } from "@/lib/pricing";
+import { calcPricePerMonth, clampConfig, PRICING } from "@/lib/pricing";
 import { randomAccessSlug } from "@/lib/slug";
 import { z } from "zod";
 import { randomBytes } from "crypto";
@@ -44,9 +44,14 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const parsed = createSchema.parse(body);
-    const { cpu, ramMb, diskGb } = clampConfig(parsed.cpu, parsed.ramMb, parsed.diskGb);
+    const { cpu, ramMb, diskGb } = clampConfig(
+      parsed.cpu,
+      parsed.ramMb,
+      parsed.diskGb
+    );
     const hostname = parsed.hostname;
-    const pricePerHour = calcPricePerHour(cpu, ramMb, diskGb);
+    // pricePerHour in DB = Monatspreis
+    const pricePerMonth = calcPricePerMonth(cpu, ramMb, diskGb);
 
     const basePkg = await prisma.package.findFirst({
       where: { active: true },
@@ -59,14 +64,18 @@ export async function POST(req: Request) {
       );
     }
 
-    const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+    });
     if (!user) {
       return NextResponse.json({ error: "User nicht gefunden" }, { status: 404 });
     }
 
-    if (Number(user.balance) < pricePerHour) {
+    if (Number(user.balance) < pricePerMonth) {
       return NextResponse.json(
-        { error: "Nicht genug Guthaben für die erste Stunde." },
+        {
+          error: `Nicht genug Guthaben für den ersten Monat (${pricePerMonth.toFixed(2)} €).`,
+        },
         { status: 400 }
       );
     }
@@ -101,7 +110,7 @@ export async function POST(req: Request) {
         cpu,
         ramMb,
         diskGb,
-        pricePerHour,
+        pricePerHour: pricePerMonth,
       },
     });
 
@@ -125,14 +134,14 @@ export async function POST(req: Request) {
       await prisma.$transaction([
         prisma.user.update({
           where: { id: session.user.id },
-          data: { balance: { decrement: pricePerHour } },
+          data: { balance: { decrement: pricePerMonth } },
         }),
         prisma.transaction.create({
           data: {
             userId: session.user.id,
             type: "PURCHASE",
-            amount: -pricePerHour,
-            description: `Server ${hostname} (${cpu}vCPU/${ramMb}MB/${diskGb}GB)`,
+            amount: -pricePerMonth,
+            description: `Monatsgebühr Server ${hostname} (${cpu}vCPU/${ramMb}MB/${diskGb}GB)`,
           },
         }),
       ]);
@@ -147,7 +156,8 @@ export async function POST(req: Request) {
         cpu,
         ramMb,
         diskGb,
-        pricePerHour,
+        pricePerHour: pricePerMonth,
+        pricePerMonth,
         rootPassword: password,
         consoleUrl: `/server/${accessSlug}/console`,
         filesUrl: `/server/${accessSlug}/files`,
