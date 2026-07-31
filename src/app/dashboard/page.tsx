@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/utils";
 import Link from "next/link";
+import { WelcomeHero } from "@/components/dashboard/WelcomeHero";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -37,34 +38,20 @@ export default async function DashboardPage() {
         <div className="flex gap-2">
           <Link
             href="/dashboard/deposit"
-            className="rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-4 py-2 text-sm font-semibold text-black shadow-lg shadow-amber-500/20 hover:from-amber-300 hover:to-yellow-400 transition"
+            className="rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-4 py-2 text-sm font-semibold text-black shadow-lg shadow-amber-500/20 transition hover:from-amber-300 hover:to-yellow-400 hover:shadow-amber-500/30"
           >
             + Guthaben
           </Link>
           <Link
             href="/dashboard/servers"
-            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-zinc-300 hover:bg-white/10 transition"
+            className="glass rounded-xl px-4 py-2 text-sm font-medium text-zinc-300 transition hover:bg-white/10 hover:text-white"
           >
             Server
           </Link>
         </div>
       </div>
 
-      <div className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-gradient-to-r from-amber-500/15 via-[#121214] to-[#0c0c0e] p-6 sm:p-8">
-        <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-amber-400/10" />
-        <h2 className="relative text-2xl font-bold text-white sm:text-3xl">
-          Hallo {displayName}!
-        </h2>
-        <p className="relative mt-2 max-w-md text-sm text-zinc-400">
-          Verwalte Server und Zahlungen – Stella Host.
-        </p>
-        <Link
-          href="/dashboard/servers"
-          className="relative mt-4 inline-flex rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-sm font-medium text-amber-400 hover:bg-amber-400/20 transition"
-        >
-          Server erstellen →
-        </Link>
-      </div>
+      <WelcomeHero displayName={displayName || ""} />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Guthaben" value={formatCurrency(Number(user.balance))} href="/dashboard/deposit" />
@@ -74,7 +61,7 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <section className="lg:col-span-2 rounded-2xl border border-white/10 bg-[#121214] overflow-hidden">
+        <section className="glass lg:col-span-2 overflow-hidden rounded-2xl">
           <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
             <h3 className="font-semibold text-white">Active Services</h3>
             <Link href="/dashboard/servers" className="text-sm text-amber-400 hover:underline">
@@ -109,19 +96,19 @@ export default async function DashboardPage() {
         </section>
 
         <div className="space-y-4">
-          <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/10 to-[#121214] p-5">
-            <p className="text-xs uppercase tracking-wider text-amber-400/70">Guthaben</p>
+          <div className="glass-amber rounded-2xl p-5">
+            <p className="text-xs uppercase tracking-wider text-amber-400/80">Guthaben</p>
             <p className="mt-2 text-3xl font-bold text-white">
               {formatCurrency(Number(user.balance))}
             </p>
             <Link
               href="/dashboard/deposit"
-              className="mt-4 flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 py-2.5 text-sm font-semibold text-black"
+              className="mt-4 flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 py-2.5 text-sm font-semibold text-black shadow-md shadow-amber-500/20 transition hover:shadow-amber-500/35"
             >
               Aufladen
             </Link>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-[#121214] p-4">
+          <div className="glass rounded-2xl p-4">
             <h3 className="mb-3 text-sm font-semibold text-white">Transaktionen</h3>
             {user.transactions.length === 0 ? (
               <p className="py-4 text-center text-xs text-zinc-600">Keine</p>
@@ -149,9 +136,9 @@ function Stat({ label, value, href }: { label: string; value: string; href: stri
   return (
     <Link
       href={href}
-      className="rounded-2xl border border-white/10 bg-[#121214] p-4 transition hover:border-amber-500/30"
+      className="glass group rounded-2xl p-4 transition hover:border-amber-500/35 hover:bg-white/[0.06]"
     >
-      <p className="text-xs text-zinc-500">{label}</p>
+      <p className="text-xs text-zinc-500 transition group-hover:text-zinc-400">{label}</p>
       <p className="mt-1 text-lg font-bold text-white">{value}</p>
     </Link>
   );

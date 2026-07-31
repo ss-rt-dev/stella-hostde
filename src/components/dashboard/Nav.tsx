@@ -14,7 +14,7 @@ const links = [
 ];
 
 function Icon({ type }: { type: string }) {
-  const cls = "h-5 w-5";
+  const cls = "nav-icon nav-icon-bounce h-5 w-5";
   if (type === "home")
     return (
       <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
@@ -43,6 +43,12 @@ function Icon({ type }: { type: string }) {
     return (
       <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+      </svg>
+    );
+  if (type === "users")
+    return (
+      <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
       </svg>
     );
   return null;
@@ -104,7 +110,7 @@ export function DashboardNav({
         </div>
       )}
 
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[240px] flex-col border-r border-white/10 bg-[#0c0c0e] lg:flex">
+      <aside className="glass-strong fixed inset-y-0 left-0 z-40 hidden w-[240px] flex-col lg:flex">
         <div className="flex h-16 items-center gap-2.5 border-b border-white/10 px-4">
           <Image src={LOGO} alt="Stella Host" width={36} height={36} className="h-9 w-9 object-contain" unoptimized />
           <span className="text-[15px] font-semibold tracking-tight text-white">
@@ -122,10 +128,10 @@ export function DashboardNav({
               <Link
                 key={l.href}
                 href={l.href}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition ${
+                className={`nav-link group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition ${
                   active
-                    ? "bg-amber-500/15 font-medium text-amber-400 ring-1 ring-amber-500/25"
-                    : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-100"
+                    ? "active bg-amber-500/15 font-medium text-amber-400 ring-1 ring-amber-500/25"
+                    : "text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100"
                 }`}
               >
                 <Icon type={l.icon} />
@@ -140,10 +146,10 @@ export function DashboardNav({
               </p>
               <Link
                 href="/admin"
-                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition ${
+                className={`nav-link group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition ${
                   pathname === "/admin"
-                    ? "bg-amber-500/15 font-medium text-amber-400 ring-1 ring-amber-500/25"
-                    : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-100"
+                    ? "active bg-amber-500/15 font-medium text-amber-400 ring-1 ring-amber-500/25"
+                    : "text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100"
                 }`}
               >
                 <Icon type="admin" />
@@ -151,15 +157,13 @@ export function DashboardNav({
               </Link>
               <Link
                 href="/admin/users"
-                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition ${
+                className={`nav-link group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition ${
                   pathname.startsWith("/admin/users")
-                    ? "bg-amber-500/15 font-medium text-amber-400 ring-1 ring-amber-500/25"
-                    : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-100"
+                    ? "active bg-amber-500/15 font-medium text-amber-400 ring-1 ring-amber-500/25"
+                    : "text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100"
                 }`}
               >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
+                <Icon type="users" />
                 Nutzer
               </Link>
             </>
@@ -188,7 +192,7 @@ export function DashboardNav({
       </aside>
 
       <header
-        className={`sticky z-40 flex items-center justify-between border-b border-white/10 bg-[#0c0c0e]/95 px-4 py-3 backdrop-blur lg:hidden ${
+        className={`glass-strong sticky z-40 flex items-center justify-between px-4 py-3 lg:hidden ${
           impersonating ? "top-10" : "top-0"
         }`}
       >
@@ -203,15 +207,15 @@ export function DashboardNav({
         </button>
       </header>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-white/10 bg-[#0c0c0e]/95 backdrop-blur lg:hidden">
+      <nav className="glass-strong fixed inset-x-0 bottom-0 z-40 flex lg:hidden">
         {links.map((l) => {
           const active = isActive(l.href);
           return (
             <Link
               key={l.href}
               href={l.href}
-              className={`flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-[10px] ${
-                active ? "text-amber-400" : "text-zinc-500"
+              className={`nav-link flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-[10px] ${
+                active ? "active text-amber-400" : "text-zinc-500"
               }`}
             >
               <Icon type={l.icon} />
@@ -222,8 +226,8 @@ export function DashboardNav({
         {user.role === "ADMIN" && !impersonating && (
           <Link
             href="/admin/users"
-            className={`flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-[10px] ${
-              pathname.startsWith("/admin") ? "text-amber-400" : "text-zinc-500"
+            className={`nav-link flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-[10px] ${
+              pathname.startsWith("/admin") ? "active text-amber-400" : "text-zinc-500"
             }`}
           >
             <Icon type="admin" />
