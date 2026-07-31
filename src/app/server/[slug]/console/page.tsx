@@ -56,34 +56,65 @@ export default function ServerConsolePage() {
 
         setStatus("WebSocket…");
 
-        ws = new WebSocket(data.wsUrl);
+        // Proxmox verlangt Subprotokoll "binary" (wie die offizielle UI)
+        ws = new WebSocket(data.wsUrl, ["binary"]);
         ws.binaryType = "arraybuffer";
 
+        const sendResize = () => {
+          if (!ws || ws.readyState !== WebSocket.OPEN || !term) return;
+          const cols = term.cols || 80;
+          const rows = term.rows || 24;
+          // Proxmox xterm-Protokoll: 1:cols:rows:
+          ws.send(`1:${cols}:${rows}:`);
+        };
+
         ws.onopen = () => {
-          setStatus("Verbunden");
-          const auth = `${data.user}:${data.ticket}\n`;
-          ws?.send(auth);
-          term.focus();
+          // Erste Nachricht: user:ticket\n  (user ohne !token)
+          const user = String(data.user || "root@pam").split("!")[0];
+          ws?.send(`${user}:${data.ticket}\n`);
+          setStatus("Auth…");
         };
 
         ws.onmessage = (ev) => {
+          let text: string;
           if (typeof ev.data === "string") {
-            term.write(ev.data);
+            text = ev.data;
           } else {
-            const text = new TextDecoder().decode(ev.data);
-            term.write(text);
+            text = new TextDecoder().decode(ev.data);
           }
+
+          // Erste Antwort sollte "OK" sein
+          if (status === "Auth…" || text === "OK" || text.startsWith("OK")) {
+            if (text === "OK" || text.startsWith("OK")) {
+              setStatus("Verbunden");
+              sendResize();
+              term.focus();
+              // Rest nach "OK" ggf. anzeigen
+              const rest = text.replace(/^OK/, "");
+              if (rest) term.write(rest);
+              return;
+            }
+          }
+
+          term.write(text);
         };
 
         ws.onerror = () => {
           setError(
-            "WebSocket-Fehler – oft SSL (selbstsigniert) oder Firewall. Console ggf. nur im Proxmox-Netz."
+            "WebSocket-Fehler – Proxmox muss per HTTPS mit gültigem Zertifikat " +
+              "öffentlich erreichbar sein (z.B. pve.stella-host.de). " +
+              "Selbstsigniert + IP blockiert der Browser. " +
+              "Optional: PROXMOX_PASSWORD in Vercel für bessere termproxy-Auth."
           );
           setStatus("Fehler");
         };
 
-        ws.onclose = () => {
-          setStatus("Getrennt");
+        ws.onclose = (ev) => {
+          if (ev.code !== 1000) {
+            setStatus(`Getrennt (${ev.code})`);
+          } else {
+            setStatus("Getrennt");
+          }
         };
 
         term.onData((d: string) => {
@@ -94,6 +125,7 @@ export default function ServerConsolePage() {
 
         const onResize = () => {
           fitAddon?.fit();
+          sendResize();
         };
         window.addEventListener("resize", onResize);
 
@@ -111,6 +143,7 @@ export default function ServerConsolePage() {
       ws?.close();
       term?.dispose();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
   return (

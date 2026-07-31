@@ -2,9 +2,7 @@
  * Proxmox API Client für LXC-Container
  * Env: PROXMOX_HOST, PROXMOX_TOKEN_ID, PROXMOX_TOKEN_SECRET
  * Optional: PROXMOX_INSECURE, PROXMOX_NODE, PROXMOX_STORAGE
- *
- * Wichtig: Proxmox erwartet bei POST/PUT meist x-www-form-urlencoded.
- * Content-Type: application/json OHNE Body → "malformed JSON string".
+ * Optional für Console: PROXMOX_USER + PROXMOX_PASSWORD (Ticket-Auth, zuverlässiger als API-Token)
  */
 
 import https from "https";
@@ -40,6 +38,9 @@ function proxmoxRequest(
     method?: string;
     body?: string;
     contentType?: string;
+    extraHeaders?: Record<string, string>;
+    /** Cookie statt API-Token (für termproxy) */
+    cookie?: string;
   } = {}
 ): Promise<any> {
   assertConfig();
@@ -48,10 +49,15 @@ function proxmoxRequest(
   const full = `${PROXMOX_HOST}/api2/json${path}`;
   const u = new URL(full);
 
-  // Proxmox: nie application/json ohne Body senden
   const headers: Record<string, string> = {
-    Authorization: `PVEAPIToken=${TOKEN_ID}=${TOKEN_SECRET}`,
+    ...(options.extraHeaders || {}),
   };
+
+  if (options.cookie) {
+    headers["Cookie"] = options.cookie;
+  } else {
+    headers["Authorization"] = `PVEAPIToken=${TOKEN_ID}=${TOKEN_SECRET}`;
+  }
 
   let body = options.body;
   if (body != null && body !== "") {
@@ -59,7 +65,6 @@ function proxmoxRequest(
       options.contentType || "application/x-www-form-urlencoded";
     headers["Content-Length"] = String(Buffer.byteLength(body));
   } else if (method === "POST" || method === "PUT") {
-    // Leerer Form-Body statt JSON – vermeidet malformed JSON
     body = "";
     headers["Content-Type"] = "application/x-www-form-urlencoded";
     headers["Content-Length"] = "0";
@@ -118,6 +123,71 @@ function proxmoxRequest(
     });
 
     if (body != null) req.write(body);
+    req.end();
+  });
+}
+
+/** Login mit User/Passwort → PVEAuthCookie + CSRF (für Console/termproxy) */
+export async function getAuthTicket(): Promise<{
+  ticket: string;
+  CSRFPreventionToken: string;
+  username: string;
+} | null> {
+  const user =
+    process.env.PROXMOX_USER?.trim() ||
+    process.env.PROXMOX_TOKEN_ID?.split("!")[0] ||
+    "root@pam";
+  const password = process.env.PROXMOX_PASSWORD?.trim();
+  if (!password) return null;
+
+  const body = new URLSearchParams();
+  body.set("username", user);
+  body.set("password", password);
+
+  // access/ticket braucht keinen API-Token
+  const full = `${PROXMOX_HOST}/api2/json/access/ticket`;
+  const u = new URL(full);
+
+  return new Promise((resolve, reject) => {
+    const payload = body.toString();
+    const req = https.request(
+      {
+        hostname: u.hostname,
+        port: u.port || 8006,
+        path: u.pathname,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Content-Length": String(Buffer.byteLength(payload)),
+        },
+        rejectUnauthorized: !INSECURE,
+        timeout: 15000,
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on("data", (c) => chunks.push(c));
+        res.on("end", () => {
+          const text = Buffer.concat(chunks).toString("utf8");
+          try {
+            const json = JSON.parse(text);
+            const data = json.data;
+            if (!data?.ticket) {
+              resolve(null);
+              return;
+            }
+            resolve({
+              ticket: data.ticket,
+              CSRFPreventionToken: data.CSRFPreventionToken,
+              username: data.username || user,
+            });
+          } catch {
+            resolve(null);
+          }
+        });
+      }
+    );
+    req.on("error", reject);
+    req.write(payload);
     req.end();
   });
 }
@@ -281,9 +351,10 @@ export async function stopLxc(node: string, vmid: number) {
 }
 
 export async function deleteLxc(node: string, vmid: number) {
-  return proxmoxRequest(`/nodes/${node}/lxc/${vmid}?purge=1&destroy-unreferenced-disks=1`, {
-    method: "DELETE",
-  });
+  return proxmoxRequest(
+    `/nodes/${node}/lxc/${vmid}?purge=1&destroy-unreferenced-disks=1`,
+    { method: "DELETE" }
+  );
 }
 
 export async function getLxcStatus(node: string, vmid: number) {
@@ -294,10 +365,52 @@ export async function getLxcConfig(node: string, vmid: number) {
   return proxmoxRequest(`/nodes/${node}/lxc/${vmid}/config`);
 }
 
-export async function createTermProxy(node: string, vmid: number) {
-  return proxmoxRequest(`/nodes/${node}/lxc/${vmid}/termproxy`, {
+/**
+ * termproxy für xterm.js-Console.
+ * Bevorzugt User/Passwort (PROXMOX_PASSWORD), weil API-Tokens bei
+ * WebSocket-Auth oft scheitern (user!token wird abgelehnt).
+ */
+export async function createTermProxy(
+  node: string,
+  vmid: number
+): Promise<{ port: number | string; ticket: string; user: string }> {
+  const auth = await getAuthTicket();
+
+  const referer = `${PROXMOX_HOST}/?console=lxc&xtermjs=1&vmid=${vmid}&node=${node}`;
+
+  if (auth) {
+    const data = await proxmoxRequest(`/nodes/${node}/lxc/${vmid}/termproxy`, {
+      method: "POST",
+      cookie: `PVEAuthCookie=${auth.ticket}`,
+      extraHeaders: {
+        CSRFPreventionToken: auth.CSRFPreventionToken,
+        Referer: referer,
+      },
+    });
+    return {
+      port: data.port,
+      ticket: data.ticket,
+      user: auth.username.split("!")[0],
+    };
+  }
+
+  // Fallback: API-Token (kann bei WS-Auth fehlschlagen)
+  const data = await proxmoxRequest(`/nodes/${node}/lxc/${vmid}/termproxy`, {
     method: "POST",
+    extraHeaders: { Referer: referer },
   });
+
+  const rawUser =
+    data.user ||
+    process.env.PROXMOX_TOKEN_ID?.split("!")[0] ||
+    "root@pam";
+
+  return {
+    port: data.port,
+    ticket: data.ticket,
+    // Nie "root@pam!tokenname" senden – Proxmox lehnt das ab
+    user: String(rawUser).split("!")[0],
+  };
 }
 
 export function buildTermWebsocketUrl(
