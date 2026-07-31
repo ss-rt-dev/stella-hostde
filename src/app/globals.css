@@ -4,6 +4,36 @@ body {
   margin: 0;
 }
 
+/* Custom Scrollbar – schwarz / gold */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #fbbf24 #121214;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #0a0a0c;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
+  border-radius: 999px;
+  border: 2px solid #0a0a0c;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #fcd34d 0%, #fbbf24 100%);
+}
+
+*::-webkit-scrollbar-corner {
+  background: #0a0a0c;
+}
+
 /* Glassmorphism */
 .glass {
   background: rgba(18, 18, 20, 0.55);
