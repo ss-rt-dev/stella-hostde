@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { signOut } from "next-auth/react";
+import { signIn, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 const links = [
   { href: "/dashboard", label: "Dashboard", icon: "home" },
   { href: "/dashboard/servers", label: "Server", icon: "server" },
   { href: "/dashboard/deposit", label: "Billing", icon: "wallet" },
+  { href: "/dashboard/account", label: "Konto", icon: "user" },
 ];
 
 function Icon({ type }: { type: string }) {
@@ -31,6 +33,12 @@ function Icon({ type }: { type: string }) {
         <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
       </svg>
     );
+  if (type === "user")
+    return (
+      <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+      </svg>
+    );
   if (type === "admin")
     return (
       <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
@@ -45,17 +53,57 @@ const LOGO = "https://i.postimg.cc/25RvgMy6/sh-logo.png";
 export function DashboardNav({
   user,
 }: {
-  user: { name?: string | null; email?: string | null; role?: string };
+  user: {
+    name?: string | null;
+    email?: string | null;
+    role?: string;
+    impersonatedBy?: string;
+  };
 }) {
   const pathname = usePathname();
+  const [stopping, setStopping] = useState(false);
+  const impersonating = Boolean(user.impersonatedBy);
 
   function isActive(href: string) {
     if (href === "/dashboard") return pathname === "/dashboard";
     return pathname.startsWith(href);
   }
 
+  async function stopImpersonate() {
+    setStopping(true);
+    try {
+      const res = await fetch("/api/admin/stop-impersonate", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Fehler");
+        return;
+      }
+      await signIn("credentials", {
+        impersonateToken: data.token,
+        redirect: true,
+        callbackUrl: "/admin/users",
+      });
+    } finally {
+      setStopping(false);
+    }
+  }
+
   return (
     <>
+      {impersonating && (
+        <div className="fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-3 bg-amber-500 px-4 py-2 text-sm font-medium text-black lg:left-[240px]">
+          <span>Du siehst das Panel als Nutzer {user.name || user.email}</span>
+          <button
+            type="button"
+            disabled={stopping}
+            onClick={stopImpersonate}
+            className="rounded-lg bg-black/20 px-3 py-1 text-xs font-semibold hover:bg-black/30 disabled:opacity-50"
+          >
+            {stopping ? "…" : "Zurück zum Admin"}
+          </button>
+        </div>
+      )}
+
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[240px] flex-col border-r border-white/10 bg-[#0c0c0e] lg:flex">
         <div className="flex h-16 items-center gap-2.5 border-b border-white/10 px-4">
           <Image src={LOGO} alt="Stella Host" width={36} height={36} className="h-9 w-9 object-contain" unoptimized />
@@ -85,7 +133,7 @@ export function DashboardNav({
               </Link>
             );
           })}
-          {user.role === "ADMIN" && (
+          {user.role === "ADMIN" && !impersonating && (
             <>
               <p className="mb-2 mt-5 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
                 Admin
@@ -124,7 +172,9 @@ export function DashboardNav({
               {(user.name || user.email || "U")[0].toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-zinc-200">{user.name || "Kunde"}</p>
+              <p className="truncate text-sm font-medium text-zinc-200">
+                {user.name || "Kunde"}
+              </p>
               <p className="truncate text-[11px] text-zinc-500">{user.email}</p>
             </div>
           </div>
@@ -137,7 +187,11 @@ export function DashboardNav({
         </div>
       </aside>
 
-      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-white/10 bg-[#0c0c0e]/95 px-4 py-3 backdrop-blur lg:hidden">
+      <header
+        className={`sticky z-40 flex items-center justify-between border-b border-white/10 bg-[#0c0c0e]/95 px-4 py-3 backdrop-blur lg:hidden ${
+          impersonating ? "top-10" : "top-0"
+        }`}
+      >
         <Link href="/dashboard" className="flex items-center gap-2">
           <Image src={LOGO} alt="Stella Host" width={28} height={28} className="h-7 w-7 object-contain" unoptimized />
           <span className="font-semibold text-white">
@@ -165,7 +219,7 @@ export function DashboardNav({
             </Link>
           );
         })}
-        {user.role === "ADMIN" && (
+        {user.role === "ADMIN" && !impersonating && (
           <Link
             href="/admin/users"
             className={`flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-[10px] ${

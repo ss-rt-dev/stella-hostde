@@ -25,14 +25,14 @@ export default async function DashboardPage() {
   const running = user.servers.filter((s) => s.status === "RUNNING").length;
   const paused = user.servers.filter((s) => s.status === "STOPPED").length;
   const total = user.servers.length;
-  const firstName = user.name?.split(" ")[0] || "Dev";
+  const displayName = user.name?.trim() || user.email;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-white sm:text-2xl">Dashboard</h1>
-          <p className="text-sm text-zinc-500">Willkommen zurück, {firstName}</p>
+          <p className="text-sm text-zinc-500">Willkommen zurück, {displayName}</p>
         </div>
         <div className="flex gap-2">
           <Link
@@ -52,7 +52,9 @@ export default async function DashboardPage() {
 
       <div className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-gradient-to-r from-amber-500/15 via-[#121214] to-[#0c0c0e] p-6 sm:p-8">
         <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-amber-400/10" />
-        <h2 className="relative text-2xl font-bold text-white sm:text-3xl">Hallo {firstName}!</h2>
+        <h2 className="relative text-2xl font-bold text-white sm:text-3xl">
+          Hallo {displayName}!
+        </h2>
         <p className="relative mt-2 max-w-md text-sm text-zinc-400">
           Verwalte Server und Zahlungen – Stella Host.
         </p>
