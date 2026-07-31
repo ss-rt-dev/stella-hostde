@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // ssh2 hat native .node-Binaries – nicht von Webpack bundlen
+  serverExternalPackages: ["ssh2", "cpu-features"],
   eslint: {
     // ESLint-Config auf Vercel inkonsistent – Build nicht blockieren
     ignoreDuringBuilds: true,
