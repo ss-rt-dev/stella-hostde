@@ -4,6 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { calcPricePerMonth, PRICING } from "@/lib/pricing";
+import { applyDiscount, validateDiscountCode } from "@/lib/discounts";
+import {
+  MINECRAFT_VARIANTS,
+  DISCORD_VARIANTS,
+} from "@/lib/software-setup";
 
 interface Server {
   id: string;
@@ -16,9 +21,15 @@ interface Server {
   ramMb: number | null;
   diskGb: number | null;
   pricePerHour: string | null;
+  serverType?: string;
+  softwareVariant?: string | null;
+  discountCode?: string | null;
+  setupStatus?: string | null;
   package: { name: string };
   createdAt: string;
 }
+
+type ServerType = "DEBIAN" | "MINECRAFT" | "DISCORD_BOT";
 
 export default function ServersPage() {
   const [servers, setServers] = useState<Server[]>([]);
@@ -28,13 +39,26 @@ export default function ServersPage() {
   const [cpu, setCpu] = useState(2);
   const [ramMb, setRamMb] = useState(2048);
   const [diskGb, setDiskGb] = useState(20);
+  const [serverType, setServerType] = useState<ServerType>("DEBIAN");
+  const [mcVariant, setMcVariant] = useState("paper");
+  const [botVariant, setBotVariant] = useState("python");
+  const [discountCode, setDiscountCode] = useState("");
   const [rootPassword, setRootPassword] = useState<string | null>(null);
   const [createdSlug, setCreatedSlug] = useState<string | null>(null);
+  const [setupNote, setSetupNote] = useState<string | null>(null);
   const [error, setError] = useState("");
 
-  const price = useMemo(
+  const basePrice = useMemo(
     () => calcPricePerMonth(cpu, ramMb, diskGb),
     [cpu, ramMb, diskGb]
+  );
+  const discountInfo = useMemo(
+    () => validateDiscountCode(discountCode),
+    [discountCode]
+  );
+  const { price, percent } = useMemo(
+    () => applyDiscount(basePrice, discountCode),
+    [basePrice, discountCode]
   );
 
   async function load() {
@@ -57,12 +81,28 @@ export default function ServersPage() {
     setError("");
     setRootPassword(null);
     setCreatedSlug(null);
+    setSetupNote(null);
+
+    const softwareVariant =
+      serverType === "MINECRAFT"
+        ? mcVariant
+        : serverType === "DISCORD_BOT"
+          ? botVariant
+          : undefined;
 
     try {
       const res = await fetch("/api/servers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ hostname, cpu, ramMb, diskGb }),
+        body: JSON.stringify({
+          hostname,
+          cpu,
+          ramMb,
+          diskGb,
+          serverType,
+          softwareVariant,
+          discountCode: discountCode.trim() || undefined,
+        }),
       });
 
       let data: any = {};
@@ -79,6 +119,7 @@ export default function ServersPage() {
 
       setRootPassword(data.rootPassword);
       setCreatedSlug(data.accessSlug);
+      setSetupNote(data.setupNote || null);
       setHostname("");
       load();
     } catch (err: any) {
@@ -119,13 +160,13 @@ export default function ServersPage() {
       <div>
         <h1 className="text-xl font-bold text-white sm:text-2xl">Server</h1>
         <p className="text-sm text-zinc-500">
-          Debian 12 – CPU, RAM und SSD selbst konfigurieren · Abrechnung pro Monat
+          Debian · Minecraft · Discord-Bot · Abrechnung pro Monat
         </p>
       </div>
 
       <form
         onSubmit={createServer}
-        className="rounded-2xl border border-white/10 bg-[#121214] p-5 space-y-5"
+        className="space-y-5 rounded-2xl border border-white/10 bg-[#121214] p-5"
       >
         <h2 className="font-semibold text-white">Server konfigurieren</h2>
 
@@ -136,7 +177,7 @@ export default function ServersPage() {
         )}
 
         {rootPassword && (
-          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm space-y-2">
+          <div className="space-y-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm">
             <p className="font-medium text-emerald-400">Server erstellt!</p>
             <p className="text-emerald-300/80">
               Root-Passwort:{" "}
@@ -144,6 +185,9 @@ export default function ServersPage() {
                 {rootPassword}
               </code>
             </p>
+            {setupNote && (
+              <p className="text-xs text-zinc-400">{setupNote}</p>
+            )}
             {createdSlug && (
               <div className="flex flex-wrap gap-2 pt-1">
                 <Link
@@ -160,6 +204,92 @@ export default function ServersPage() {
                 </Link>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Server-Typ */}
+        <div>
+          <label className="mb-2 block text-xs font-medium text-zinc-500">
+            Server-Typ
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            {(
+              [
+                ["DEBIAN", "Debian 12"],
+                ["MINECRAFT", "Minecraft"],
+                ["DISCORD_BOT", "Discord Bot"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setServerType(id)}
+                className={`rounded-xl py-2.5 text-sm font-medium transition ${
+                  serverType === id
+                    ? "bg-amber-400 text-black"
+                    : "border border-white/10 text-zinc-300 hover:bg-white/5"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {serverType === "MINECRAFT" && (
+          <div>
+            <label className="mb-2 block text-xs font-medium text-zinc-500">
+              Minecraft-Version / Engine
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {MINECRAFT_VARIANTS.map((v) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => setMcVariant(v.id)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+                    mcVariant === v.id
+                      ? "bg-amber-500/20 text-amber-400"
+                      : "bg-white/5 text-zinc-400"
+                  }`}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-zinc-600">
+              Java wird installiert, Server-JAR automatisch geladen, eula
+              akzeptiert, systemd-Service gestartet.
+            </p>
+          </div>
+        )}
+
+        {serverType === "DISCORD_BOT" && (
+          <div>
+            <label className="mb-2 block text-xs font-medium text-zinc-500">
+              Runtime
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {DISCORD_VARIANTS.map((v) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => setBotVariant(v.id)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+                    botVariant === v.id
+                      ? "bg-amber-500/20 text-amber-400"
+                      : "bg-white/5 text-zinc-400"
+                  }`}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-zinc-600">
+              Vorlage + Dependencies. Danach in der Console{" "}
+              <code className="text-zinc-500">DISCORD_TOKEN</code> in{" "}
+              <code className="text-zinc-500">/opt/discord-bot/.env</code> setzen.
+            </p>
           </div>
         )}
 
@@ -229,6 +359,29 @@ export default function ServersPage() {
           />
         </div>
 
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-zinc-500">
+            Rabattcode (optional)
+          </label>
+          <input
+            value={discountCode}
+            onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+            placeholder="z.B. NEXUS-10"
+            className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/50"
+          />
+          {discountCode && (
+            <p
+              className={`mt-1.5 text-xs ${
+                discountInfo.valid ? "text-emerald-400" : "text-red-400"
+              }`}
+            >
+              {discountInfo.valid
+                ? `✓ ${discountInfo.message}`
+                : discountInfo.message || "Ungültiger Code"}
+            </p>
+          )}
+        </div>
+
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
           <div>
             <p className="text-xs text-zinc-500">Preis pro Monat</p>
@@ -236,6 +389,11 @@ export default function ServersPage() {
               {formatCurrency(price)}
               <span className="text-sm font-normal text-zinc-500">/Monat</span>
             </p>
+            {percent > 0 && (
+              <p className="text-xs text-emerald-400">
+                Statt {formatCurrency(basePrice)} (−{percent}%)
+              </p>
+            )}
           </div>
           <button
             type="submit"
@@ -247,7 +405,7 @@ export default function ServersPage() {
         </div>
       </form>
 
-      <div className="rounded-2xl border border-white/10 bg-[#121214] overflow-hidden">
+      <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#121214]">
         <div className="border-b border-white/5 px-5 py-4">
           <h2 className="font-semibold text-white">Deine Server</h2>
         </div>
@@ -263,9 +421,15 @@ export default function ServersPage() {
                 className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium text-zinc-200">{s.name}</span>
                     <StatusPill status={s.status} />
+                    {s.serverType && s.serverType !== "DEBIAN" && (
+                      <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs text-amber-400">
+                        {s.serverType}
+                        {s.softwareVariant ? ` · ${s.softwareVariant}` : ""}
+                      </span>
+                    )}
                   </div>
                   <p className="mt-0.5 text-sm text-zinc-500">
                     {s.cpu ?? "?"} vCPU ·{" "}
@@ -277,7 +441,7 @@ export default function ServersPage() {
                     RAM · {s.diskGb ?? "?"} GB SSD
                     {s.pricePerHour != null &&
                       ` · ${formatCurrency(Number(s.pricePerHour))}/Monat`}
-                    {s.proxmoxVmid != null && ` · VMID ${s.proxmoxVmid}`}
+                    {s.discountCode && ` · ${s.discountCode}`}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">

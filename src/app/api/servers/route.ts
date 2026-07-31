@@ -2,8 +2,18 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { createLxc, getNextVmid, resolveNode, resolveStorage } from "@/lib/proxmox";
+import {
+  createLxc,
+  getNextVmid,
+  resolveNode,
+  resolveStorage,
+} from "@/lib/proxmox";
 import { calcPricePerMonth, clampConfig, PRICING } from "@/lib/pricing";
+import { applyDiscount } from "@/lib/discounts";
+import {
+  runSoftwareSetup,
+  type ServerKind,
+} from "@/lib/software-setup";
 import { randomAccessSlug } from "@/lib/slug";
 import { z } from "zod";
 import { randomBytes } from "crypto";
@@ -15,6 +25,10 @@ const createSchema = z.object({
   cpu: z.number().int().min(PRICING.minCpu).max(PRICING.maxCpu),
   ramMb: z.number().int().min(PRICING.minRamMb).max(PRICING.maxRamMb),
   diskGb: z.number().int().min(PRICING.minDiskGb).max(PRICING.maxDiskGb),
+  serverType: z.enum(["DEBIAN", "MINECRAFT", "DISCORD_BOT"]).default("DEBIAN"),
+  softwareVariant: z.string().optional(),
+  softwareVersion: z.string().optional(),
+  discountCode: z.string().max(32).optional(),
 });
 
 export async function GET() {
@@ -50,8 +64,25 @@ export async function POST(req: Request) {
       parsed.diskGb
     );
     const hostname = parsed.hostname;
-    // pricePerHour in DB = Monatspreis
-    const pricePerMonth = calcPricePerMonth(cpu, ramMb, diskGb);
+    const serverType = parsed.serverType as ServerKind;
+
+    let softwareVariant = parsed.softwareVariant || null;
+    if (serverType === "MINECRAFT" && !softwareVariant) softwareVariant = "paper";
+    if (serverType === "DISCORD_BOT" && !softwareVariant) softwareVariant = "python";
+    if (serverType === "DEBIAN") softwareVariant = null;
+
+    const basePrice = calcPricePerMonth(cpu, ramMb, diskGb);
+    const { price: pricePerMonth, percent, code: appliedCode } = applyDiscount(
+      basePrice,
+      parsed.discountCode
+    );
+
+    if (parsed.discountCode?.trim() && !appliedCode) {
+      return NextResponse.json(
+        { error: "Ungültiger Rabattcode" },
+        { status: 400 }
+      );
+    }
 
     const basePkg = await prisma.package.findFirst({
       where: { active: true },
@@ -59,7 +90,7 @@ export async function POST(req: Request) {
     });
     if (!basePkg) {
       return NextResponse.json(
-        { error: "Kein Basis-Paket (Debian 11) – bitte Seed ausführen" },
+        { error: "Kein Basis-Paket – bitte Seed ausführen" },
         { status: 404 }
       );
     }
@@ -74,7 +105,9 @@ export async function POST(req: Request) {
     if (Number(user.balance) < pricePerMonth) {
       return NextResponse.json(
         {
-          error: `Nicht genug Guthaben für den ersten Monat (${pricePerMonth.toFixed(2)} €).`,
+          error: `Nicht genug Guthaben (${pricePerMonth.toFixed(2)} €${
+            percent ? `, ${percent}% Rabatt` : ""
+          }).`,
         },
         { status: 400 }
       );
@@ -111,6 +144,11 @@ export async function POST(req: Request) {
         ramMb,
         diskGb,
         pricePerHour: pricePerMonth,
+        serverType,
+        softwareVariant,
+        softwareVersion: parsed.softwareVersion || null,
+        discountCode: appliedCode,
+        setupStatus: serverType === "DEBIAN" ? "skipped" : "pending",
       },
     });
 
@@ -126,10 +164,43 @@ export async function POST(req: Request) {
         node,
       });
 
+      let setupStatus = "skipped";
+      let setupNote: string | null = null;
+
+      if (serverType !== "DEBIAN" && softwareVariant) {
+        try {
+          // Kurz warten bis Container bootet
+          await new Promise((r) => setTimeout(r, 8000));
+          const setup = await runSoftwareSetup({
+            vmid,
+            kind: serverType,
+            variant: softwareVariant,
+            version: parsed.softwareVersion,
+          });
+          setupStatus = setup.status;
+          setupNote = setup.note;
+        } catch (e: any) {
+          setupStatus = "failed";
+          setupNote = e.message || "Setup fehlgeschlagen";
+        }
+      }
+
       await prisma.server.update({
         where: { id: server.id },
-        data: { status: "RUNNING" },
+        data: {
+          status: "RUNNING",
+          setupStatus,
+          setupNote,
+        },
       });
+
+      const descParts = [
+        `Monatsgebühr ${hostname}`,
+        serverType !== "DEBIAN" ? serverType : null,
+        softwareVariant,
+        percent ? `Rabatt ${appliedCode} -${percent}%` : null,
+        `${cpu}vCPU/${ramMb}MB/${diskGb}GB`,
+      ].filter(Boolean);
 
       await prisma.$transaction([
         prisma.user.update({
@@ -141,7 +212,7 @@ export async function POST(req: Request) {
             userId: session.user.id,
             type: "PURCHASE",
             amount: -pricePerMonth,
-            description: `Monatsgebühr Server ${hostname} (${cpu}vCPU/${ramMb}MB/${diskGb}GB)`,
+            description: descParts.join(" · "),
           },
         }),
       ]);
@@ -156,8 +227,14 @@ export async function POST(req: Request) {
         cpu,
         ramMb,
         diskGb,
-        pricePerHour: pricePerMonth,
         pricePerMonth,
+        basePrice,
+        discountPercent: percent,
+        discountCode: appliedCode,
+        serverType,
+        softwareVariant,
+        setupStatus,
+        setupNote,
         rootPassword: password,
         consoleUrl: `/server/${accessSlug}/console`,
         filesUrl: `/server/${accessSlug}/files`,
@@ -177,7 +254,7 @@ export async function POST(req: Request) {
     console.error(e);
     if (e?.name === "ZodError") {
       return NextResponse.json(
-        { error: "Ungültige Eingabe – prüfe Hostname und Ressourcen" },
+        { error: "Ungültige Eingabe – prüfe Hostname und Optionen" },
         { status: 400 }
       );
     }
