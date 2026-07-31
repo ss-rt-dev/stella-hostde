@@ -11,11 +11,35 @@ export async function POST(req: Request) {
 
   try {
     const { orderID } = await req.json();
+    if (!orderID) {
+      return NextResponse.json({ error: "Keine Order-ID" }, { status: 400 });
+    }
 
-    const clientId = process.env.PAYPAL_CLIENT_ID;
-    const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
+    // Doppelte Gutschrift verhindern
+    const existing = await prisma.transaction.findFirst({
+      where: { paypalOrderId: orderID },
+    });
+    if (existing) {
+      return NextResponse.json({
+        success: true,
+        amount: Number(existing.amount),
+        alreadyCredited: true,
+      });
+    }
+
+    const clientId = process.env.PAYPAL_CLIENT_ID?.trim();
+    const clientSecret = process.env.PAYPAL_CLIENT_SECRET?.trim();
+    const mode = (process.env.PAYPAL_MODE || "sandbox").toLowerCase();
+
+    if (!clientId || !clientSecret) {
+      return NextResponse.json(
+        { error: "PayPal nicht konfiguriert" },
+        { status: 500 }
+      );
+    }
+
     const base =
-      process.env.PAYPAL_MODE === "live"
+      mode === "live"
         ? "https://api-m.paypal.com"
         : "https://api-m.sandbox.paypal.com";
 
@@ -30,14 +54,20 @@ export async function POST(req: Request) {
       body: "grant_type=client_credentials",
     });
 
-    const { access_token } = await tokenRes.json();
+    const tokenJson = await tokenRes.json();
+    if (!tokenJson.access_token) {
+      return NextResponse.json(
+        { error: "PayPal Auth fehlgeschlagen" },
+        { status: 500 }
+      );
+    }
 
     const captureRes = await fetch(
       `${base}/v2/checkout/orders/${orderID}/capture`,
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${access_token}`,
+          Authorization: `Bearer ${tokenJson.access_token}`,
           "Content-Type": "application/json",
         },
       }
@@ -46,17 +76,18 @@ export async function POST(req: Request) {
     const capture = await captureRes.json();
 
     if (capture.status !== "COMPLETED") {
-      return NextResponse.json(
-        { error: "Zahlung nicht abgeschlossen" },
-        { status: 400 }
-      );
+      console.error("PayPal capture", capture);
+      const detail =
+        capture?.details?.[0]?.description ||
+        capture?.message ||
+        "Zahlung nicht abgeschlossen";
+      return NextResponse.json({ error: `PayPal: ${detail}` }, { status: 400 });
     }
 
     const amount = parseFloat(
       capture.purchase_units[0].payments.captures[0].amount.value
     );
 
-    // Guthaben gutschreiben
     await prisma.$transaction([
       prisma.user.update({
         where: { id: session.user.id },
@@ -67,15 +98,18 @@ export async function POST(req: Request) {
           userId: session.user.id,
           type: "DEPOSIT",
           amount,
-          description: `PayPal Aufladung`,
+          description: "PayPal Aufladung",
           paypalOrderId: orderID,
         },
       }),
     ]);
 
     return NextResponse.json({ success: true, amount });
-  } catch (e) {
+  } catch (e: any) {
     console.error(e);
-    return NextResponse.json({ error: "Serverfehler" }, { status: 500 });
+    return NextResponse.json(
+      { error: e.message || "Serverfehler" },
+      { status: 500 }
+    );
   }
 }

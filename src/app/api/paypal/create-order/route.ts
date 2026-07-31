@@ -17,10 +17,22 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { amount } = schema.parse(body);
 
-    const clientId = process.env.PAYPAL_CLIENT_ID;
-    const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
+    const clientId = process.env.PAYPAL_CLIENT_ID?.trim();
+    const clientSecret = process.env.PAYPAL_CLIENT_SECRET?.trim();
+    const mode = (process.env.PAYPAL_MODE || "sandbox").toLowerCase();
+
+    if (!clientId || !clientSecret) {
+      return NextResponse.json(
+        {
+          error:
+            "PayPal nicht konfiguriert: PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET in Vercel setzen",
+        },
+        { status: 500 }
+      );
+    }
+
     const base =
-      process.env.PAYPAL_MODE === "live"
+      mode === "live"
         ? "https://api-m.paypal.com"
         : "https://api-m.sandbox.paypal.com";
 
@@ -35,12 +47,24 @@ export async function POST(req: Request) {
       body: "grant_type=client_credentials",
     });
 
-    const { access_token } = await tokenRes.json();
+    const tokenJson = await tokenRes.json();
+    if (!tokenJson.access_token) {
+      console.error("PayPal token error", tokenJson);
+      return NextResponse.json(
+        {
+          error:
+            mode === "live"
+              ? "PayPal Live-Login fehlgeschlagen – Client-ID/Secret prüfen (Live-App!)"
+              : "PayPal Sandbox-Login fehlgeschlagen – Client-ID/Secret und PAYPAL_MODE prüfen",
+        },
+        { status: 500 }
+      );
+    }
 
     const orderRes = await fetch(`${base}/v2/checkout/orders`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${access_token}`,
+        Authorization: `Bearer ${tokenJson.access_token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -51,8 +75,7 @@ export async function POST(req: Request) {
               currency_code: "EUR",
               value: amount.toFixed(2),
             },
-            description: `Stella Host – Guthaben ${amount.toFixed(2)} €`,
-            soft_descriptor: "STELLA HOST",
+            description: `Stella Host Guthaben ${amount.toFixed(2)} EUR`,
             custom_id: session.user.id,
           },
         ],
@@ -60,8 +83,8 @@ export async function POST(req: Request) {
           brand_name: "Stella Host",
           shipping_preference: "NO_SHIPPING",
           user_action: "PAY_NOW",
-          return_url: `${process.env.NEXTAUTH_URL}/dashboard/deposit?success=1`,
-          cancel_url: `${process.env.NEXTAUTH_URL}/dashboard/deposit?cancel=1`,
+          return_url: `${process.env.NEXTAUTH_URL || "https://stella-host.de"}/dashboard/deposit?success=1`,
+          cancel_url: `${process.env.NEXTAUTH_URL || "https://stella-host.de"}/dashboard/deposit?cancel=1`,
         },
       }),
     });
@@ -69,16 +92,30 @@ export async function POST(req: Request) {
     const order = await orderRes.json();
 
     if (!order.id) {
-      console.error(order);
+      console.error("PayPal order error", order);
+      const detail =
+        order?.details?.[0]?.description ||
+        order?.message ||
+        order?.error_description ||
+        "Order konnte nicht erstellt werden";
       return NextResponse.json(
-        { error: "PayPal Fehler" },
+        { error: `PayPal: ${detail}` },
         { status: 500 }
       );
     }
 
     return NextResponse.json({ id: order.id });
-  } catch (e) {
+  } catch (e: any) {
     console.error(e);
-    return NextResponse.json({ error: "Serverfehler" }, { status: 500 });
+    if (e?.name === "ZodError") {
+      return NextResponse.json(
+        { error: "Betrag muss zwischen 5 und 500 € liegen" },
+        { status: 400 }
+      );
+    }
+    return NextResponse.json(
+      { error: e.message || "Serverfehler" },
+      { status: 500 }
+    );
   }
 }
