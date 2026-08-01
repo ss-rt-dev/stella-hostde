@@ -4,10 +4,16 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import {
   createLxc,
+  cloneLxcFromTemplate,
   getNextVmid,
   resolveNode,
   resolveStorage,
 } from "@/lib/proxmox";
+import {
+  getTemplateVmid,
+  getOstemplate,
+  shouldSkipSoftwareSetup,
+} from "@/lib/templates";
 import { calcPricePerMonth, clampConfig, PRICING } from "@/lib/pricing";
 import { applyDiscount, incrementDiscountUse } from "@/lib/discounts";
 import {
@@ -47,7 +53,6 @@ export async function GET() {
     orderBy: { createdAt: "desc" },
   });
 
-  // Alte Server ohne accessSlug nachrüsten (sonst fehlen Console/Dateien-Links)
   for (const s of servers) {
     if (!s.accessSlug) {
       try {
@@ -169,21 +174,40 @@ export async function POST(req: Request) {
     });
 
     try {
-      await createLxc({
-        vmid,
-        hostname,
-        password,
-        cores: cpu,
-        memory: ramMb,
-        disk: `${storage}:${diskGb}`,
-        ostemplate: basePkg.proxmoxTemplateId,
-        node,
-      });
+      const templateVmid = getTemplateVmid(serverType);
+      if (templateVmid) {
+        await cloneLxcFromTemplate({
+          node,
+          templateVmid,
+          newid: vmid,
+          hostname,
+          password,
+          cores: cpu,
+          memory: ramMb,
+          storage,
+        });
+      } else {
+        const ostemplate = getOstemplate(serverType, basePkg.proxmoxTemplateId);
+        await createLxc({
+          vmid,
+          hostname,
+          password,
+          cores: cpu,
+          memory: ramMb,
+          disk: `${storage}:${diskGb}`,
+          ostemplate,
+          node,
+        });
+      }
 
       let setupStatus = "skipped";
       let setupNote: string | null = null;
 
-      if (serverType !== "DEBIAN" && softwareVariant) {
+      if (
+        !shouldSkipSoftwareSetup(serverType) &&
+        serverType !== "DEBIAN" &&
+        softwareVariant
+      ) {
         try {
           await new Promise((r) => setTimeout(r, 8000));
           const setup = await runSoftwareSetup({
@@ -198,6 +222,9 @@ export async function POST(req: Request) {
           setupStatus = "failed";
           setupNote = e.message || "Setup fehlgeschlagen";
         }
+      } else if (serverType === "MINECRAFT" && getTemplateVmid("MINECRAFT")) {
+        setupStatus = "template";
+        setupNote = "Aus Minecraft-Template geklont";
       }
 
       await prisma.server.update({
