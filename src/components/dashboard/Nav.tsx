@@ -6,7 +6,8 @@ import { signIn, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
-const links = [
+/** Service-Menü für Kunden (Support nur hier für Nutzer) */
+const customerLinks = [
   { href: "/dashboard", label: "Dashboard", icon: "home" },
   { href: "/dashboard/servers", label: "Server", icon: "server" },
   { href: "/dashboard/deposit", label: "Billing", icon: "wallet" },
@@ -14,6 +15,15 @@ const links = [
   { href: "/dashboard/account", label: "Konto", icon: "user" },
 ];
 
+/** Service-Menü für Admins – ohne Nutzer-Support */
+const adminServiceLinks = [
+  { href: "/dashboard", label: "Dashboard", icon: "home" },
+  { href: "/dashboard/servers", label: "Server", icon: "server" },
+  { href: "/dashboard/deposit", label: "Billing", icon: "wallet" },
+  { href: "/dashboard/account", label: "Konto", icon: "user" },
+];
+
+/** Kompletter Admin-Bereich – unverändert + Support */
 const adminLinks = [
   { href: "/admin", label: "Overview", icon: "admin", exact: true },
   { href: "/admin/support", label: "Support", icon: "support" },
@@ -109,6 +119,9 @@ export function DashboardNav({
   const logo = onAdmin ? LOGO_ADMIN : LOGO_USER;
   const isAdminRole = user.role === "ADMIN" && !impersonating;
 
+  // Admins sehen Nutzer-Support nicht; Kunden schon
+  const serviceLinks = isAdminRole ? adminServiceLinks : customerLinks;
+
   function isActive(href: string, exact?: boolean) {
     if (exact) return pathname === href;
     if (href === "/dashboard") return pathname === "/dashboard";
@@ -170,7 +183,7 @@ export function DashboardNav({
           <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
             Service
           </p>
-          {links.map((l) => {
+          {serviceLinks.map((l) => {
             const active = isActive(l.href);
             return (
               <Link
@@ -187,7 +200,8 @@ export function DashboardNav({
               </Link>
             );
           })}
-          {user.role === "ADMIN" && !impersonating && (
+
+          {isAdminRole && (
             <>
               <p className="mb-2 mt-5 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
                 Admin
@@ -274,8 +288,21 @@ export function DashboardNav({
       </header>
 
       <nav className="glass-strong fixed inset-x-0 bottom-0 z-40 flex lg:hidden">
-        {links.slice(0, 4).map((l) => {
-          const active = isActive(l.href);
+        {(isAdminRole
+          ? [
+              { href: "/dashboard", label: "Home", icon: "home" },
+              { href: "/dashboard/servers", label: "Server", icon: "server" },
+              { href: "/admin/support", label: "Support", icon: "support" },
+              { href: "/admin", label: "Admin", icon: "admin" },
+            ]
+          : [
+              { href: "/dashboard", label: "Home", icon: "home" },
+              { href: "/dashboard/servers", label: "Server", icon: "server" },
+              { href: "/dashboard/support", label: "Support", icon: "support" },
+              { href: "/dashboard/account", label: "Konto", icon: "user" },
+            ]
+        ).map((l) => {
+          const active = isActive(l.href, l.href === "/admin");
           return (
             <Link
               key={l.href}
@@ -289,17 +316,6 @@ export function DashboardNav({
             </Link>
           );
         })}
-        {user.role === "ADMIN" && !impersonating && (
-          <Link
-            href="/admin/support"
-            className={`nav-link flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-[10px] ${
-              pathname.startsWith("/admin") ? "active text-amber-400" : "text-zinc-500"
-            }`}
-          >
-            <Icon type="admin" />
-            Admin
-          </Link>
-        )}
       </nav>
     </>
   );
