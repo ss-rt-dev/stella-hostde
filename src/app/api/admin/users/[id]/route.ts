@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { logActivity } from "@/lib/activity";
+import { ROLES } from "@/lib/roles";
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
@@ -22,7 +23,7 @@ const patchSchema = z.object({
   password: z.string().min(6).max(100).optional(),
   amount: z.number().optional(),
   description: z.string().optional(),
-  role: z.enum(["CUSTOMER", "ADMIN"]).optional(),
+  role: z.enum(ROLES).optional(),
 });
 
 export async function PATCH(

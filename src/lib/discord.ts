@@ -1,5 +1,7 @@
 /** Discord Webhook für neue Support-Tickets */
 
+const SUPPORT_ROLE_ID = "1523343547669938266";
+
 export async function sendSupportTicketWebhook(opts: {
   ticketId: string;
   subject: string;
@@ -29,6 +31,11 @@ export async function sendSupportTicketWebhook(opts: {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         username: "Stella Host Support",
+        // Rolle pingen (muss in Discord „Erwähnen erlauben" haben)
+        content: `<@&${SUPPORT_ROLE_ID}>`,
+        allowed_mentions: {
+          roles: [SUPPORT_ROLE_ID],
+        },
         embeds: [
           {
             title: "Neues Support-Ticket",

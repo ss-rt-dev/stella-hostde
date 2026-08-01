@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { actionLabel } from "@/lib/activity";
+import { ROLES } from "@/lib/roles";
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
@@ -63,7 +64,7 @@ const createSchema = z.object({
   email: z.string().email(),
   name: z.string().min(1).max(100),
   password: z.string().min(6).max(100),
-  role: z.enum(["CUSTOMER", "ADMIN"]).optional(),
+  role: z.enum(ROLES).optional(),
   balance: z.number().min(0).optional(),
 });
 
