@@ -8,10 +8,18 @@ interface Ticket {
   subject: string;
   type: string;
   status: string;
+  discordName?: string | null;
+  applyRole?: string | null;
   createdAt: string;
   updatedAt: string;
   user: { name: string | null; email: string };
   _count?: { messages: number };
+}
+
+function typeLabel(type: string) {
+  if (type === "SERVER") return "Server";
+  if (type === "TEAM_APPLICATION") return "Team Bewerbung";
+  return "Allgemein";
 }
 
 export default function AdminSupportPage() {
@@ -100,12 +108,24 @@ export default function AdminSupportPage() {
                     >
                       {t.status === "OPEN" ? "Offen" : "Geschlossen"}
                     </span>
-                    <span className="rounded-full bg-white/5 px-2 py-0.5 text-xs text-zinc-400">
-                      {t.type === "SERVER" ? "Server" : "Allgemein"}
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs ${
+                        t.type === "TEAM_APPLICATION"
+                          ? "bg-purple-500/15 text-purple-300"
+                          : "bg-white/5 text-zinc-400"
+                      }`}
+                    >
+                      {typeLabel(t.type)}
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-zinc-500">
                     {t.user.name || "—"} · {t.user.email}
+                    {t.type === "TEAM_APPLICATION" && t.discordName && (
+                      <> · Discord: {t.discordName}</>
+                    )}
+                    {t.type === "TEAM_APPLICATION" && t.applyRole && (
+                      <> · als {t.applyRole}</>
+                    )}
                   </p>
                   <p className="text-xs text-zinc-600">
                     Erstellt {fmt(t.createdAt)}

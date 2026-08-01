@@ -175,6 +175,7 @@ model DiscountCode {
 enum SupportType {
   GENERAL
   SERVER
+  TEAM_APPLICATION
 }
 
 enum SupportStatus {
@@ -189,6 +190,8 @@ model SupportTicket {
   description String           @db.Text
   type        SupportType      @default(GENERAL)
   status      SupportStatus    @default(OPEN)
+  discordName String?
+  applyRole   String?
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   closedAt    DateTime?

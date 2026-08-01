@@ -5,11 +5,32 @@ import { prisma } from "@/lib/db";
 import { sendSupportTicketWebhook } from "@/lib/discord";
 import { z } from "zod";
 
-const createSchema = z.object({
-  subject: z.string().min(3).max(120),
-  description: z.string().min(10).max(5000),
-  type: z.enum(["GENERAL", "SERVER"]),
-});
+const createSchema = z
+  .object({
+    subject: z.string().min(3).max(120),
+    description: z.string().min(10).max(5000),
+    type: z.enum(["GENERAL", "SERVER", "TEAM_APPLICATION"]),
+    discordName: z.string().max(64).optional(),
+    applyRole: z.string().max(64).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.type === "TEAM_APPLICATION") {
+      if (!data.discordName?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Discord-Name ist Pflicht bei Team Bewerbung",
+          path: ["discordName"],
+        });
+      }
+      if (!data.applyRole?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Bitte eine Rolle wählen",
+          path: ["applyRole"],
+        });
+      }
+    }
+  });
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -45,39 +66,58 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "User nicht gefunden" }, { status: 404 });
     }
 
+    const discordName =
+      parsed.type === "TEAM_APPLICATION"
+        ? parsed.discordName!.trim()
+        : null;
+    const applyRole =
+      parsed.type === "TEAM_APPLICATION" ? parsed.applyRole!.trim() : null;
+
+    let firstMessage = parsed.description.trim();
+    if (parsed.type === "TEAM_APPLICATION") {
+      firstMessage =
+        `**Team Bewerbung**\n` +
+        `Discord: ${discordName}\n` +
+        `Rolle: ${applyRole}\n\n` +
+        parsed.description.trim();
+    }
+
     const ticket = await prisma.supportTicket.create({
       data: {
         userId: session.user.id,
         subject: parsed.subject.trim(),
         description: parsed.description.trim(),
         type: parsed.type,
+        discordName,
+        applyRole,
         messages: {
           create: {
             userId: session.user.id,
-            body: parsed.description.trim(),
+            body: firstMessage,
             isStaff: false,
           },
         },
       },
     });
 
-    // Discord – nicht blockierend für den User
     void sendSupportTicketWebhook({
       ticketId: ticket.id,
       subject: ticket.subject,
       description: ticket.description,
-      type: ticket.type,
+      type: ticket.type as "GENERAL" | "SERVER" | "TEAM_APPLICATION",
       userName: user.name || "—",
       userEmail: user.email,
+      discordName: discordName || undefined,
+      applyRole: applyRole || undefined,
     });
 
     return NextResponse.json(ticket);
   } catch (e: any) {
     if (e?.name === "ZodError") {
-      return NextResponse.json(
-        { error: "Bitte Grund (min. 3) und Beschreibung (min. 10 Zeichen) angeben" },
-        { status: 400 }
-      );
+      const msg =
+        e.errors?.[0]?.message ||
+        "Bitte alle Pflichtfelder korrekt ausfüllen";
+      return NextResponse.json({ error: msg }, { status: 400 });
     }
     console.error(e);
     return NextResponse.json({ error: "Serverfehler" }, { status: 500 });
