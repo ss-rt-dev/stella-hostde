@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/db";
 import {
   createTermProxy,
   resolveNode,
   buildTermWebsocketUrl,
   getProxmoxHost,
 } from "@/lib/proxmox";
+import { getServerForUser } from "@/lib/server-access";
 
 export async function POST(
   _req: Request,
@@ -19,24 +19,12 @@ export async function POST(
   }
 
   const { slug } = await params;
-
-  const server = await prisma.server.findFirst({
-    where: {
-      accessSlug: slug,
-      status: { not: "DELETED" },
-    },
-    include: { package: true },
-  });
-
-  if (!server) {
-    return NextResponse.json({ error: "Server nicht gefunden" }, { status: 404 });
+  const auth = await getServerForUser(slug, session.user as any);
+  if ("error" in auth) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
-  const isOwner = server.userId === session.user.id;
-  const isAdmin = (session.user as any).role === "ADMIN";
-  if (!isOwner && !isAdmin) {
-    return NextResponse.json({ error: "Kein Zugriff" }, { status: 403 });
-  }
+  const server = auth.server;
 
   if (!server.proxmoxVmid) {
     return NextResponse.json({ error: "Kein Proxmox-VMID" }, { status: 400 });
@@ -44,15 +32,14 @@ export async function POST(
 
   if (server.status !== "RUNNING") {
     return NextResponse.json(
-      { error: "Server muss online (RUNNING) sein" },
+      { error: `Server muss online sein (aktuell: ${server.status})` },
       { status: 400 }
     );
   }
 
   try {
-    const node = await resolveNode(server.package.node);
+    const node = await resolveNode(server.package?.node);
     const proxy = await createTermProxy(node, server.proxmoxVmid);
-    // proxy: { port, ticket, user, upid }
     const wsUrl = buildTermWebsocketUrl(
       node,
       server.proxmoxVmid,
@@ -69,9 +56,17 @@ export async function POST(
       vmid: server.proxmoxVmid,
       proxmoxHost: getProxmoxHost(),
       name: server.name,
+      accessSlug: server.accessSlug,
     });
   } catch (e: any) {
-    console.error(e);
-    return NextResponse.json({ error: e.message }, { status: 502 });
+    console.error("console termproxy", e);
+    return NextResponse.json(
+      {
+        error:
+          e.message ||
+          "Proxmox termproxy fehlgeschlagen – PROXMOX_HOST / Login prüfen",
+      },
+      { status: 502 }
+    );
   }
 }

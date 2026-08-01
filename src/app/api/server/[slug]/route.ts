@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { getServerForUser } from "@/lib/server-access";
 
 export async function GET(
   _req: Request,
@@ -13,20 +13,12 @@ export async function GET(
   }
 
   const { slug } = await params;
-  const server = await prisma.server.findFirst({
-    where: { accessSlug: slug, status: { not: "DELETED" } },
-    include: { package: true },
-  });
-
-  if (!server) {
-    return NextResponse.json({ error: "Nicht gefunden" }, { status: 404 });
+  const auth = await getServerForUser(slug, session.user as any);
+  if ("error" in auth) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
-  const isOwner = server.userId === session.user.id;
-  const isAdmin = (session.user as any).role === "ADMIN";
-  if (!isOwner && !isAdmin) {
-    return NextResponse.json({ error: "Kein Zugriff" }, { status: 403 });
-  }
+  const server = auth.server;
 
   return NextResponse.json({
     id: server.id,

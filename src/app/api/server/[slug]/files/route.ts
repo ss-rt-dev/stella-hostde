@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/db";
 import {
   hasSshConfig,
   listDir,
@@ -12,36 +11,11 @@ import {
   renamePath,
   sanitizePath,
 } from "@/lib/lxc-exec";
+import { getServerForUser } from "@/lib/server-access";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
-
-async function getAuthorizedServer(slug: string, sessionUser: any) {
-  const server = await prisma.server.findFirst({
-    where: { accessSlug: slug, status: { not: "DELETED" } },
-  });
-  if (!server) return { error: "Server nicht gefunden", status: 404 as const };
-  const isOwner = server.userId === sessionUser.id;
-  const isAdmin = sessionUser.role === "ADMIN";
-  if (!isOwner && !isAdmin) {
-    return { error: "Kein Zugriff", status: 403 as const };
-  }
-  if (!server.proxmoxVmid) {
-    return { error: "Kein Proxmox-VMID", status: 400 as const };
-  }
-  if (server.status !== "RUNNING") {
-    return { error: "Server muss online (RUNNING) sein", status: 400 as const };
-  }
-  if (!hasSshConfig()) {
-    return {
-      error:
-        "Dateimanager: In Vercel setzen – PROXMOX_SSH_HOST (nur IP, z.B. 176.9.164.43), PROXMOX_SSH_USER=root, PROXMOX_SSH_PASSWORD=… und Port 22 in der Firewall öffnen. Danach Redeploy.",
-      status: 503 as const,
-    };
-  }
-  return { server };
-}
 
 export async function GET(
   req: Request,
@@ -53,15 +27,36 @@ export async function GET(
   }
 
   const { slug } = await params;
-  const auth = await getAuthorizedServer(slug, session.user);
+  const auth = await getServerForUser(slug, session.user as any);
   if ("error" in auth) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
+  const server = auth.server;
+
+  if (!server.proxmoxVmid) {
+    return NextResponse.json({ error: "Kein Proxmox-VMID" }, { status: 400 });
+  }
+  if (server.status !== "RUNNING") {
+    return NextResponse.json(
+      { error: `Server muss online sein (aktuell: ${server.status})` },
+      { status: 400 }
+    );
+  }
+  if (!hasSshConfig()) {
+    return NextResponse.json(
+      {
+        error:
+          "Dateimanager: In Vercel setzen – PROXMOX_SSH_HOST (nur IP), PROXMOX_SSH_USER=root, PROXMOX_SSH_PASSWORD=… und Port 22 öffnen. Danach Redeploy.",
+      },
+      { status: 503 }
+    );
   }
 
   const url = new URL(req.url);
   const action = url.searchParams.get("action") || "list";
   const path = url.searchParams.get("path") || "/";
-  const vmid = auth.server.proxmoxVmid!;
+  const vmid = server.proxmoxVmid;
 
   try {
     if (action === "list") {
@@ -69,7 +64,7 @@ export async function GET(
       return NextResponse.json({
         path: sanitizePath(path),
         entries,
-        name: auth.server.name,
+        name: server.name,
       });
     }
     if (action === "read") {
@@ -96,12 +91,33 @@ export async function POST(
   }
 
   const { slug } = await params;
-  const auth = await getAuthorizedServer(slug, session.user);
+  const auth = await getServerForUser(slug, session.user as any);
   if ("error" in auth) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
-  const vmid = auth.server.proxmoxVmid!;
+  const server = auth.server;
+
+  if (!server.proxmoxVmid) {
+    return NextResponse.json({ error: "Kein Proxmox-VMID" }, { status: 400 });
+  }
+  if (server.status !== "RUNNING") {
+    return NextResponse.json(
+      { error: `Server muss online sein (aktuell: ${server.status})` },
+      { status: 400 }
+    );
+  }
+  if (!hasSshConfig()) {
+    return NextResponse.json(
+      {
+        error:
+          "Dateimanager: PROXMOX_SSH_HOST / PROXMOX_SSH_PASSWORD in Vercel setzen",
+      },
+      { status: 503 }
+    );
+  }
+
+  const vmid = server.proxmoxVmid;
 
   try {
     const body = await req.json();
