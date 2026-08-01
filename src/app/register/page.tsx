@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
+
+const LOGO_USER = "https://cdn3.emoji.gg/emojis/40642-darkyellow.png";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -39,11 +42,17 @@ export default function RegisterPage() {
       <div className="pointer-events-none absolute inset-0 bg-[#060608]" />
       <div
         className="pointer-events-none absolute -right-32 top-1/4 h-[420px] w-[420px] rounded-full opacity-40 blur-[120px]"
-        style={{ background: "radial-gradient(circle, rgba(212,175,55,0.35), transparent 70%)" }}
+        style={{
+          background:
+            "radial-gradient(circle, rgba(212,175,55,0.35), transparent 70%)",
+        }}
       />
       <div
         className="pointer-events-none absolute -left-24 bottom-1/4 h-[380px] w-[380px] rounded-full opacity-30 blur-[100px]"
-        style={{ background: "radial-gradient(circle, rgba(245,200,50,0.2), transparent 70%)" }}
+        style={{
+          background:
+            "radial-gradient(circle, rgba(245,200,50,0.2), transparent 70%)",
+        }}
       />
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.04]"
@@ -56,11 +65,17 @@ export default function RegisterPage() {
 
       <div className="relative w-full max-w-[420px]">
         <div className="mb-8 flex flex-col items-center">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-600 shadow-xl shadow-amber-500/30">
-            <span className="text-xl font-bold text-black">S</span>
-          </div>
+          <Image
+            src={LOGO_USER}
+            alt="Stella Host"
+            width={56}
+            height={56}
+            className="mb-3 h-14 w-14 object-contain drop-shadow-[0_0_20px_rgba(245,158,11,0.35)]"
+            unoptimized
+            priority
+          />
           <h1 className="text-xl font-semibold tracking-tight text-white">
-            stella<span className="text-amber-400">host</span>
+            Stella<span className="text-amber-400">Host</span>
           </h1>
           <p className="mt-1 text-sm text-zinc-500">Konto erstellen</p>
         </div>
