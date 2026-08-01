@@ -8,20 +8,22 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  email         String         @unique
-  name          String?
-  passwordHash  String
-  role          Role           @default(CUSTOMER)
-  balance       Decimal        @default(0) @db.Decimal(12, 2)
-  lastLoginAt   DateTime?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  servers       Server[]
-  transactions  Transaction[]
-  accounts      Account[]
-  sessions      Session[]
-  activities    ActivityLog[]
+  id               String            @id @default(cuid())
+  email            String            @unique
+  name             String?
+  passwordHash     String
+  role             Role              @default(CUSTOMER)
+  balance          Decimal           @default(0) @db.Decimal(12, 2)
+  lastLoginAt      DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  servers          Server[]
+  transactions     Transaction[]
+  accounts         Account[]
+  sessions         Session[]
+  activities       ActivityLog[]
+  supportTickets   SupportTicket[]
+  supportMessages  SupportMessage[]
 }
 
 model Account {
@@ -151,17 +153,56 @@ model ActivityLog {
   @@index([createdAt])
 }
 
-/** Rabattcodes – in DB gespeichert */
 model DiscountCode {
-  id            String    @id @default(cuid())
-  code          String    @unique
-  percent       Int
-  label         String?
-  active        Boolean   @default(true)
-  maxUses       Int?
-  usedCount     Int       @default(0)
-  validFrom     DateTime?
-  validUntil    DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id         String    @id @default(cuid())
+  code       String    @unique
+  percent    Int
+  label      String?
+  active     Boolean   @default(true)
+  maxUses    Int?
+  usedCount  Int       @default(0)
+  validFrom  DateTime?
+  validUntil DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+enum SupportType {
+  GENERAL
+  SERVER
+}
+
+enum SupportStatus {
+  OPEN
+  CLOSED
+}
+
+model SupportTicket {
+  id          String           @id @default(cuid())
+  userId      String
+  subject     String
+  description String           @db.Text
+  type        SupportType      @default(GENERAL)
+  status      SupportStatus    @default(OPEN)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  closedAt    DateTime?
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages    SupportMessage[]
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+model SupportMessage {
+  id        String        @id @default(cuid())
+  ticketId  String
+  userId    String
+  body      String        @db.Text
+  isStaff   Boolean       @default(false)
+  createdAt DateTime      @default(now())
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
 }
