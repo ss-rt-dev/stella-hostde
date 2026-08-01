@@ -3,6 +3,7 @@
  * Env: PROXMOX_HOST, PROXMOX_TOKEN_ID, PROXMOX_TOKEN_SECRET
  * Optional: PROXMOX_INSECURE, PROXMOX_NODE, PROXMOX_STORAGE
  * Optional für Console: PROXMOX_USER + PROXMOX_PASSWORD (Ticket-Auth, zuverlässiger als API-Token)
+ * Minecraft-Template: PROXMOX_MINECRAFT_TEMPLATE_VMID oder PROXMOX_TEMPLATE_MINECRAFT
  */
 
 import https from "https";
@@ -39,7 +40,6 @@ function proxmoxRequest(
     body?: string;
     contentType?: string;
     extraHeaders?: Record<string, string>;
-    /** Cookie statt API-Token (für termproxy) */
     cookie?: string;
   } = {}
 ): Promise<any> {
@@ -127,7 +127,6 @@ function proxmoxRequest(
   });
 }
 
-/** Login mit User/Passwort → PVEAuthCookie + CSRF (für Console/termproxy) */
 export async function getAuthTicket(): Promise<{
   ticket: string;
   CSRFPreventionToken: string;
@@ -144,7 +143,6 @@ export async function getAuthTicket(): Promise<{
   body.set("username", user);
   body.set("password", password);
 
-  // access/ticket braucht keinen API-Token
   const full = `${PROXMOX_HOST}/api2/json/access/ticket`;
   const u = new URL(full);
 
@@ -338,6 +336,53 @@ export async function createLxc(opts: CreateLxcOptions) {
   });
 }
 
+/**
+ * LXC von einem CT-Template klonen (pct template / "Convert to template").
+ */
+export async function cloneLxcFromTemplate(opts: {
+  node: string;
+  templateVmid: number;
+  newid: number;
+  hostname: string;
+  password: string;
+  cores: number;
+  memory: number;
+  storage?: string;
+}) {
+  const body = new URLSearchParams();
+  body.set("newid", String(opts.newid));
+  body.set("hostname", opts.hostname);
+  body.set("full", "1");
+  body.set("target", opts.node);
+  if (opts.storage) body.set("storage", opts.storage);
+
+  await proxmoxRequest(
+    `/nodes/${opts.node}/lxc/${opts.templateVmid}/clone`,
+    {
+      method: "POST",
+      body: body.toString(),
+      contentType: "application/x-www-form-urlencoded",
+    }
+  );
+
+  // Clone-Task etwas Zeit geben
+  await new Promise((r) => setTimeout(r, 5000));
+
+  const conf = new URLSearchParams();
+  conf.set("cores", String(opts.cores));
+  conf.set("memory", String(opts.memory));
+  conf.set("hostname", opts.hostname);
+  conf.set("password", opts.password);
+
+  await proxmoxRequest(`/nodes/${opts.node}/lxc/${opts.newid}/config`, {
+    method: "PUT",
+    body: conf.toString(),
+    contentType: "application/x-www-form-urlencoded",
+  });
+
+  await startLxc(opts.node, opts.newid);
+}
+
 export async function startLxc(node: string, vmid: number) {
   return proxmoxRequest(`/nodes/${node}/lxc/${vmid}/status/start`, {
     method: "POST",
@@ -365,11 +410,6 @@ export async function getLxcConfig(node: string, vmid: number) {
   return proxmoxRequest(`/nodes/${node}/lxc/${vmid}/config`);
 }
 
-/**
- * termproxy für xterm.js-Console.
- * Bevorzugt User/Passwort (PROXMOX_PASSWORD), weil API-Tokens bei
- * WebSocket-Auth oft scheitern (user!token wird abgelehnt).
- */
 export async function createTermProxy(
   node: string,
   vmid: number
@@ -394,7 +434,6 @@ export async function createTermProxy(
     };
   }
 
-  // Fallback: API-Token (kann bei WS-Auth fehlschlagen)
   const data = await proxmoxRequest(`/nodes/${node}/lxc/${vmid}/termproxy`, {
     method: "POST",
     extraHeaders: { Referer: referer },
@@ -408,7 +447,6 @@ export async function createTermProxy(
   return {
     port: data.port,
     ticket: data.ticket,
-    // Nie "root@pam!tokenname" senden – Proxmox lehnt das ab
     user: String(rawUser).split("!")[0],
   };
 }
