@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
+import { ROLES, ROLE_LABELS, type AppRole, roleLabel } from "@/lib/roles";
 
 interface Server {
   id: string;
@@ -87,7 +88,7 @@ export default function AdminUsersPage() {
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [newRole, setNewRole] = useState<"CUSTOMER" | "ADMIN">("CUSTOMER");
+  const [newRole, setNewRole] = useState<AppRole>("CUSTOMER");
   const [newBalance, setNewBalance] = useState("0");
   const [showCreate, setShowCreate] = useState(false);
 
@@ -239,7 +240,7 @@ export default function AdminUsersPage() {
     setPassword("");
   }
 
-  async function setRole(role: "CUSTOMER" | "ADMIN") {
+  async function setRole(role: AppRole) {
     if (!selected) return;
     setBusy(true);
     setError("");
@@ -254,7 +255,7 @@ export default function AdminUsersPage() {
       setError(data.error || "Fehler");
       return;
     }
-    setMsg(`Rolle: ${role}`);
+    setMsg(`Rolle: ${roleLabel(role)}`);
     load();
   }
 
@@ -333,7 +334,7 @@ export default function AdminUsersPage() {
         <div>
           <h1 className="text-xl font-bold text-white sm:text-2xl">Nutzer</h1>
           <p className="text-sm text-zinc-500">
-            Login, Aktivität, Guthaben, Server
+            Login, Aktivität, Guthaben, Server, Rollen
           </p>
         </div>
         <button
@@ -386,11 +387,14 @@ export default function AdminUsersPage() {
           />
           <select
             value={newRole}
-            onChange={(e) => setNewRole(e.target.value as "CUSTOMER" | "ADMIN")}
+            onChange={(e) => setNewRole(e.target.value as AppRole)}
             className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-amber-500/50"
           >
-            <option value="CUSTOMER">Kunde</option>
-            <option value="ADMIN">Admin</option>
+            {ROLES.map((r) => (
+              <option key={r} value={r}>
+                {ROLE_LABELS[r]}
+              </option>
+            ))}
           </select>
           <button
             type="submit"
@@ -421,8 +425,10 @@ export default function AdminUsersPage() {
               >
                 <p className="truncate text-sm font-medium text-zinc-200">
                   {u.name || u.email}
-                  {u.role === "ADMIN" && (
-                    <span className="ml-1.5 text-[10px] text-amber-400">ADMIN</span>
+                  {u.role !== "CUSTOMER" && (
+                    <span className="ml-1.5 text-[10px] text-amber-400">
+                      {roleLabel(u.role)}
+                    </span>
                   )}
                 </p>
                 <p className="truncate text-xs text-zinc-500">{u.email}</p>
@@ -535,7 +541,7 @@ export default function AdminUsersPage() {
               </section>
 
               <section className="rounded-2xl border border-white/10 bg-[#121214] p-5 space-y-3">
-                <h2 className="font-semibold text-white">Profil</h2>
+                <h2 className="font-semibold text-white">Profil & Rolle</h2>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <label className="mb-1 block text-xs text-zinc-500">Name</label>
@@ -554,27 +560,30 @@ export default function AdminUsersPage() {
                       className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-amber-500/50"
                     />
                   </div>
+                  <div className="sm:col-span-2">
+                    <label className="mb-1 block text-xs text-zinc-500">Rolle</label>
+                    <select
+                      value={selected.role}
+                      disabled={busy}
+                      onChange={(e) => setRole(e.target.value as AppRole)}
+                      className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-amber-500/50"
+                    >
+                      {ROLES.map((r) => (
+                        <option key={r} value={r}>
+                          {ROLE_LABELS[r]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={saveProfile}
-                    className="rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
-                  >
-                    Speichern
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() =>
-                      setRole(selected.role === "ADMIN" ? "CUSTOMER" : "ADMIN")
-                    }
-                    className="rounded-xl border border-white/10 px-4 py-2 text-sm text-zinc-300 hover:bg-white/5 disabled:opacity-50"
-                  >
-                    Rolle: {selected.role === "ADMIN" ? "→ Kunde" : "→ Admin"}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={saveProfile}
+                  className="rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
+                >
+                  Profil speichern
+                </button>
               </section>
 
               <section className="rounded-2xl border border-white/10 bg-[#121214] p-5 space-y-3">
@@ -629,7 +638,7 @@ export default function AdminUsersPage() {
               </section>
 
               <section className="rounded-2xl border border-white/10 bg-[#121214] p-5 space-y-3">
-                <h2 className="font-semibold text-white">Server zuweisen (Debian 11)</h2>
+                <h2 className="font-semibold text-white">Server zuweisen</h2>
                 <form onSubmit={assignServer} className="space-y-3">
                   <div>
                     <label className="mb-1 block text-xs text-zinc-500">Hostname</label>
