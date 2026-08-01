@@ -75,46 +75,21 @@ export async function POST(req: Request) {
     const isApp = parsed.type === "TEAM_APPLICATION";
     const discordName = isApp ? parsed.discordName!.trim() : null;
     const applyRole = isApp ? parsed.applyRole!.trim() : null;
-    const motivation = parsed.description.trim();
+    const description = parsed.description.trim();
 
     const subject = isApp
       ? `Team-Bewerbung · ${applyRole}`
       : parsed.subject!.trim();
 
-    // Schöne erste Nachricht nur bei Bewerbung
-    const firstMessage = isApp
-      ? [
-          "━━━━━━━━━━━━━━━━━━━━",
-          "  TEAM-BEWERBUNG",
-          "━━━━━━━━━━━━━━━━━━━━",
-          "",
-          `Discord:     ${discordName}`,
-          `Rolle:       ${applyRole}`,
-          `Account:     ${user.name || "—"} (${user.email})`,
-          "",
-          "── Erfahrung & Motivation ──",
-          "",
-          motivation,
-          "",
-          "━━━━━━━━━━━━━━━━━━━━",
-        ].join("\n")
-      : motivation;
-
+    // Keine erste Chat-Nachricht – alles steht in der Übersicht
     const ticket = await prisma.supportTicket.create({
       data: {
         userId: session.user.id,
         subject,
-        description: motivation,
+        description,
         type: parsed.type,
         discordName,
         applyRole,
-        messages: {
-          create: {
-            userId: session.user.id,
-            body: firstMessage,
-            isStaff: false,
-          },
-        },
       },
     });
 
