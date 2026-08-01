@@ -10,11 +10,13 @@ const links = [
   { href: "/dashboard", label: "Dashboard", icon: "home" },
   { href: "/dashboard/servers", label: "Server", icon: "server" },
   { href: "/dashboard/deposit", label: "Billing", icon: "wallet" },
+  { href: "/dashboard/support", label: "Support", icon: "support" },
   { href: "/dashboard/account", label: "Konto", icon: "user" },
 ];
 
 const adminLinks = [
   { href: "/admin", label: "Overview", icon: "admin", exact: true },
+  { href: "/admin/support", label: "Support", icon: "support" },
   { href: "/admin/users", label: "Nutzer", icon: "users" },
   { href: "/admin/discounts", label: "Rabatte", icon: "tag" },
   { href: "/admin/servers", label: "Server", icon: "server" },
@@ -46,6 +48,12 @@ function Icon({ type }: { type: string }) {
     return (
       <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+      </svg>
+    );
+  if (type === "support")
+    return (
+      <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
       </svg>
     );
   if (type === "admin")
@@ -104,6 +112,7 @@ export function DashboardNav({
   function isActive(href: string, exact?: boolean) {
     if (exact) return pathname === href;
     if (href === "/dashboard") return pathname === "/dashboard";
+    if (href === "/admin") return pathname === "/admin";
     return pathname.startsWith(href);
   }
 
@@ -265,7 +274,7 @@ export function DashboardNav({
       </header>
 
       <nav className="glass-strong fixed inset-x-0 bottom-0 z-40 flex lg:hidden">
-        {links.map((l) => {
+        {links.slice(0, 4).map((l) => {
           const active = isActive(l.href);
           return (
             <Link
@@ -282,7 +291,7 @@ export function DashboardNav({
         })}
         {user.role === "ADMIN" && !impersonating && (
           <Link
-            href="/admin"
+            href="/admin/support"
             className={`nav-link flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-[10px] ${
               pathname.startsWith("/admin") ? "active text-amber-400" : "text-zinc-500"
             }`}
