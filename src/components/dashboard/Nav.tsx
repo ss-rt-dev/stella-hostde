@@ -5,7 +5,12 @@ import Image from "next/image";
 import { signIn, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { isAdminRole, isStaffRole, roleLabel } from "@/lib/roles";
+import {
+  isAdminRole,
+  isStaffRole,
+  roleLabel,
+  roleColor,
+} from "@/lib/roles";
 
 const customerLinks = [
   { href: "/dashboard", label: "Dashboard", icon: "home" },
@@ -22,7 +27,6 @@ const staffServiceLinks = [
   { href: "/dashboard/account", label: "Konto", icon: "user" },
 ];
 
-/** Volle Team-Navigation nur für ADMIN */
 const adminTeamLinks = [
   { href: "/admin", label: "Overview", icon: "admin", exact: true },
   { href: "/admin/support", label: "Support", icon: "support" },
@@ -33,7 +37,6 @@ const adminTeamLinks = [
   { href: "/admin/activity", label: "Aktivitäten", icon: "activity" },
 ];
 
-/** Moderator / Supporter: nur Support */
 const staffTeamLinks = [
   { href: "/admin/support", label: "Support", icon: "support" },
 ];
@@ -254,8 +257,11 @@ export function DashboardNav({
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-zinc-200">
                 {user.name || "Kunde"}
-                {staff && role && (
-                  <span className="ml-1.5 text-[10px] font-semibold text-amber-400">
+                {role && (
+                  <span
+                    className="ml-1.5 text-[10px] font-semibold"
+                    style={{ color: roleColor(role) }}
+                  >
                     {roleLabel(role)}
                   </span>
                 )}
