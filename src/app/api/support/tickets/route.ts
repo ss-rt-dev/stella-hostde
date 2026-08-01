@@ -7,7 +7,7 @@ import { z } from "zod";
 
 const createSchema = z
   .object({
-    subject: z.string().min(3).max(120),
+    subject: z.string().min(3).max(120).optional(),
     description: z.string().min(10).max(5000),
     type: z.enum(["GENERAL", "SERVER", "TEAM_APPLICATION"]),
     discordName: z.string().max(64).optional(),
@@ -29,6 +29,12 @@ const createSchema = z
           path: ["applyRole"],
         });
       }
+    } else if (!data.subject?.trim() || data.subject.trim().length < 3) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Bitte einen Betreff angeben (min. 3 Zeichen)",
+        path: ["subject"],
+      });
     }
   });
 
@@ -66,27 +72,39 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "User nicht gefunden" }, { status: 404 });
     }
 
-    const discordName =
-      parsed.type === "TEAM_APPLICATION"
-        ? parsed.discordName!.trim()
-        : null;
-    const applyRole =
-      parsed.type === "TEAM_APPLICATION" ? parsed.applyRole!.trim() : null;
+    const isApp = parsed.type === "TEAM_APPLICATION";
+    const discordName = isApp ? parsed.discordName!.trim() : null;
+    const applyRole = isApp ? parsed.applyRole!.trim() : null;
+    const motivation = parsed.description.trim();
 
-    let firstMessage = parsed.description.trim();
-    if (parsed.type === "TEAM_APPLICATION") {
-      firstMessage =
-        `**Team Bewerbung**\n` +
-        `Discord: ${discordName}\n` +
-        `Rolle: ${applyRole}\n\n` +
-        parsed.description.trim();
-    }
+    const subject = isApp
+      ? `Team-Bewerbung · ${applyRole}`
+      : parsed.subject!.trim();
+
+    // Schöne erste Nachricht nur bei Bewerbung
+    const firstMessage = isApp
+      ? [
+          "━━━━━━━━━━━━━━━━━━━━",
+          "  TEAM-BEWERBUNG",
+          "━━━━━━━━━━━━━━━━━━━━",
+          "",
+          `Discord:     ${discordName}`,
+          `Rolle:       ${applyRole}`,
+          `Account:     ${user.name || "—"} (${user.email})`,
+          "",
+          "── Erfahrung & Motivation ──",
+          "",
+          motivation,
+          "",
+          "━━━━━━━━━━━━━━━━━━━━",
+        ].join("\n")
+      : motivation;
 
     const ticket = await prisma.supportTicket.create({
       data: {
         userId: session.user.id,
-        subject: parsed.subject.trim(),
-        description: parsed.description.trim(),
+        subject,
+        description: motivation,
         type: parsed.type,
         discordName,
         applyRole,

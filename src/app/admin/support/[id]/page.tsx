@@ -18,6 +18,8 @@ interface Ticket {
   description: string;
   type: string;
   status: string;
+  discordName?: string | null;
+  applyRole?: string | null;
   createdAt: string;
   user: { name: string | null; email: string };
   messages: Message[];
@@ -101,6 +103,7 @@ export default function AdminTicketPage() {
   if (!ticket) return <p className="text-zinc-500">Lade…</p>;
 
   const open = ticket.status === "OPEN";
+  const isApp = ticket.type === "TEAM_APPLICATION";
 
   return (
     <div className="flex h-[calc(100vh-8rem)] flex-col space-y-4">
@@ -115,7 +118,11 @@ export default function AdminTicketPage() {
           <h1 className="mt-1 text-lg font-bold text-white">{ticket.subject}</h1>
           <p className="text-xs text-zinc-500">
             {ticket.user.name || "—"} · {ticket.user.email} ·{" "}
-            {ticket.type === "SERVER" ? "Server Support" : "Normaler Support"}
+            {isApp
+              ? "Team-Bewerbung"
+              : ticket.type === "SERVER"
+                ? "Server Support"
+                : "Support"}
           </p>
           <p className="text-xs text-zinc-600">
             {new Date(ticket.createdAt).toLocaleString("de-DE")}
@@ -142,32 +149,73 @@ export default function AdminTicketPage() {
         </div>
       </div>
 
+      {isApp && (
+        <div className="rounded-2xl border border-purple-500/30 bg-gradient-to-br from-purple-500/20 to-transparent p-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-purple-300">
+            Team-Bewerbung – Übersicht
+          </p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-xl bg-black/40 px-3 py-2">
+              <p className="text-[10px] uppercase text-zinc-500">Discord</p>
+              <p className="font-medium text-white">{ticket.discordName || "—"}</p>
+            </div>
+            <div className="rounded-xl bg-black/40 px-3 py-2">
+              <p className="text-[10px] uppercase text-zinc-500">Rolle</p>
+              <p className="font-medium text-purple-200">{ticket.applyRole || "—"}</p>
+            </div>
+            <div className="rounded-xl bg-black/40 px-3 py-2">
+              <p className="text-[10px] uppercase text-zinc-500">Account</p>
+              <p className="truncate text-sm text-zinc-300">{ticket.user.email}</p>
+            </div>
+          </div>
+          {ticket.description && (
+            <div className="mt-3 rounded-xl bg-black/40 px-3 py-3">
+              <p className="mb-1.5 text-[10px] uppercase text-zinc-500">
+                Motivation
+              </p>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-100">
+                {ticket.description}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#121214]">
         <div className="flex-1 space-y-3 overflow-y-auto p-4">
-          {ticket.messages.map((m) => (
-            <div
-              key={m.id}
-              className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${
-                m.isStaff
-                  ? "ml-auto bg-amber-500/15 text-amber-100"
-                  : "bg-white/5 text-zinc-200"
-              }`}
-            >
-              <p className="mb-0.5 text-[10px] font-medium text-zinc-500">
-                {m.isStaff
-                  ? `Team · ${m.user.name || "Admin"}`
-                  : m.user.name || m.user.email}{" "}
-                ·{" "}
-                {new Date(m.createdAt).toLocaleString("de-DE", {
-                  day: "2-digit",
-                  month: "2-digit",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </p>
-              <p className="whitespace-pre-wrap">{m.body}</p>
-            </div>
-          ))}
+          {ticket.messages.map((m, idx) => {
+            const isAppIntro = isApp && idx === 0 && !m.isStaff;
+            return (
+              <div
+                key={m.id}
+                className={`max-w-[90%] rounded-xl px-3 py-2 text-sm ${
+                  m.isStaff
+                    ? "ml-auto bg-amber-500/15 text-amber-100"
+                    : isAppIntro
+                      ? "border border-purple-500/25 bg-purple-500/10 text-zinc-100"
+                      : "bg-white/5 text-zinc-200"
+                }`}
+              >
+                <p className="mb-0.5 text-[10px] font-medium text-zinc-500">
+                  {m.isStaff
+                    ? `Team · ${m.user.name || "Admin"}`
+                    : isAppIntro
+                      ? "Bewerbung"
+                      : m.user.name || m.user.email}{" "}
+                  ·{" "}
+                  {new Date(m.createdAt).toLocaleString("de-DE", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+                <p className="whitespace-pre-wrap font-mono text-[13px] leading-relaxed">
+                  {m.body}
+                </p>
+              </div>
+            );
+          })}
           <div ref={bottomRef} />
         </div>
 
@@ -179,7 +227,9 @@ export default function AdminTicketPage() {
             <input
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="Als Team antworten…"
+              placeholder={
+                isApp ? "Antwort zur Bewerbung…" : "Als Team antworten…"
+              }
               className="flex-1 rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/50"
             />
             <button
@@ -192,7 +242,7 @@ export default function AdminTicketPage() {
           </form>
         ) : (
           <p className="border-t border-white/10 px-4 py-3 text-center text-xs text-zinc-500">
-            Ticket geschlossen
+            Geschlossen
           </p>
         )}
       </div>

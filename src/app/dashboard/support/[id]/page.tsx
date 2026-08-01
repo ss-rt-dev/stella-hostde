@@ -18,6 +18,8 @@ interface Ticket {
   description: string;
   type: string;
   status: string;
+  discordName?: string | null;
+  applyRole?: string | null;
   createdAt: string;
   messages: Message[];
 }
@@ -78,7 +80,7 @@ export default function TicketChatPage() {
   }
 
   async function closeTicket() {
-    if (!confirm("Ticket schließen?")) return;
+    if (!confirm("Schließen?")) return;
     const res = await fetch(`/api/support/tickets/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -91,7 +93,7 @@ export default function TicketChatPage() {
     return (
       <div className="space-y-4">
         <Link href="/dashboard/support" className="text-sm text-zinc-500 hover:text-amber-400">
-          ← Support
+          ← Zurück
         </Link>
         <p className="text-red-400">{error}</p>
       </div>
@@ -99,10 +101,11 @@ export default function TicketChatPage() {
   }
 
   if (!ticket) {
-    return <p className="text-zinc-500">Lade Ticket…</p>;
+    return <p className="text-zinc-500">Lade…</p>;
   }
 
   const open = ticket.status === "OPEN";
+  const isApp = ticket.type === "TEAM_APPLICATION";
 
   return (
     <div className="flex h-[calc(100vh-8rem)] flex-col space-y-4">
@@ -112,12 +115,16 @@ export default function TicketChatPage() {
             href="/dashboard/support"
             className="text-sm text-zinc-500 hover:text-amber-400"
           >
-            ← Support
+            ← Zurück
           </Link>
           <h1 className="mt-1 text-lg font-bold text-white">{ticket.subject}</h1>
           <p className="text-xs text-zinc-500">
-            {ticket.type === "SERVER" ? "Server Support" : "Normaler Support"} ·{" "}
-            {open ? "Offen" : "Geschlossen"}
+            {isApp
+              ? "Team-Bewerbung"
+              : ticket.type === "SERVER"
+                ? "Server Support"
+                : "Support"}{" "}
+            · {open ? "Offen" : "Geschlossen"}
           </p>
         </div>
         {open && (
@@ -126,37 +133,74 @@ export default function TicketChatPage() {
             onClick={closeTicket}
             className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-zinc-400 hover:text-white"
           >
-            Ticket schließen
+            {isApp ? "Bewerbung schließen" : "Ticket schließen"}
           </button>
         )}
       </div>
 
+      {isApp && (
+        <div className="rounded-2xl border border-purple-500/25 bg-gradient-to-br from-purple-500/15 to-transparent p-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-purple-300">
+            Bewerbungsdaten
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl bg-black/30 px-3 py-2">
+              <p className="text-[10px] uppercase text-zinc-500">Discord</p>
+              <p className="font-medium text-white">{ticket.discordName || "—"}</p>
+            </div>
+            <div className="rounded-xl bg-black/30 px-3 py-2">
+              <p className="text-[10px] uppercase text-zinc-500">Bewerbung als</p>
+              <p className="font-medium text-purple-200">{ticket.applyRole || "—"}</p>
+            </div>
+          </div>
+          {ticket.description && (
+            <div className="mt-3 rounded-xl bg-black/30 px-3 py-2">
+              <p className="mb-1 text-[10px] uppercase text-zinc-500">
+                Erfahrung & Motivation
+              </p>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-200">
+                {ticket.description}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#121214]">
         <div className="flex-1 space-y-3 overflow-y-auto p-4">
-          {ticket.messages.map((m) => (
-            <div
-              key={m.id}
-              className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${
-                m.isStaff
-                  ? "ml-auto bg-amber-500/15 text-amber-100"
-                  : "bg-white/5 text-zinc-200"
-              }`}
-            >
-              <p className="mb-0.5 text-[10px] font-medium text-zinc-500">
-                {m.isStaff
-                  ? `Team · ${m.user.name || "Admin"}`
-                  : m.user.name || "Du"}{" "}
-                ·{" "}
-                {new Date(m.createdAt).toLocaleString("de-DE", {
-                  day: "2-digit",
-                  month: "2-digit",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </p>
-              <p className="whitespace-pre-wrap">{m.body}</p>
-            </div>
-          ))}
+          {ticket.messages.map((m, idx) => {
+            const isAppIntro = isApp && idx === 0 && !m.isStaff;
+            return (
+              <div
+                key={m.id}
+                className={`max-w-[90%] rounded-xl px-3 py-2 text-sm ${
+                  m.isStaff
+                    ? "ml-auto bg-amber-500/15 text-amber-100"
+                    : isAppIntro
+                      ? "border border-purple-500/20 bg-purple-500/10 text-zinc-100"
+                      : "bg-white/5 text-zinc-200"
+                }`}
+              >
+                <p className="mb-0.5 text-[10px] font-medium text-zinc-500">
+                  {m.isStaff
+                    ? `Team · ${m.user.name || "Admin"}`
+                    : isAppIntro
+                      ? "Deine Bewerbung"
+                      : m.user.name || "Du"}{" "}
+                  ·{" "}
+                  {new Date(m.createdAt).toLocaleString("de-DE", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+                <p className="whitespace-pre-wrap font-mono text-[13px] leading-relaxed">
+                  {m.body}
+                </p>
+              </div>
+            );
+          })}
           <div ref={bottomRef} />
         </div>
 
@@ -168,7 +212,9 @@ export default function TicketChatPage() {
             <input
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="Nachricht schreiben…"
+              placeholder={
+                isApp ? "Nachfrage an das Team…" : "Nachricht schreiben…"
+              }
               className="flex-1 rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/50"
             />
             <button
@@ -181,7 +227,7 @@ export default function TicketChatPage() {
           </form>
         ) : (
           <p className="border-t border-white/10 px-4 py-3 text-center text-xs text-zinc-500">
-            Ticket geschlossen – keine neuen Nachrichten
+            Geschlossen – keine neuen Nachrichten
           </p>
         )}
       </div>
