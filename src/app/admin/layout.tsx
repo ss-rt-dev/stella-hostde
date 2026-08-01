@@ -4,10 +4,11 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { DashboardNav } from "@/components/dashboard/Nav";
 import { PageTransition } from "@/components/dashboard/PageTransition";
+import { isStaffRole } from "@/lib/roles";
 
 export const metadata: Metadata = {
   title: "Stella Host Dashboard",
-  description: "Stella Host Admin",
+  description: "Stella Host Team",
 };
 
 export default async function AdminLayout({
@@ -17,7 +18,9 @@ export default async function AdminLayout({
 }) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
-  if ((session.user as any).role !== "ADMIN") redirect("/dashboard");
+
+  const role = (session.user as any).role as string;
+  if (!isStaffRole(role)) redirect("/dashboard");
 
   return (
     <div className="min-h-screen bg-[#0a0a0c] text-zinc-100">

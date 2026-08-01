@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { isStaffRole } from "@/lib/roles";
 
 export async function GET(
   _req: Request,
@@ -13,7 +14,7 @@ export async function GET(
   }
 
   const { id } = await params;
-  const isAdmin = (session.user as any).role === "ADMIN";
+  const staff = isStaffRole((session.user as any).role);
 
   const ticket = await prisma.supportTicket.findUnique({
     where: { id },
@@ -32,7 +33,7 @@ export async function GET(
     return NextResponse.json({ error: "Ticket nicht gefunden" }, { status: 404 });
   }
 
-  if (!isAdmin && ticket.userId !== session.user.id) {
+  if (!staff && ticket.userId !== session.user.id) {
     return NextResponse.json({ error: "Kein Zugriff" }, { status: 403 });
   }
 
@@ -49,7 +50,7 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const isAdmin = (session.user as any).role === "ADMIN";
+  const staff = isStaffRole((session.user as any).role);
   const body = await req.json().catch(() => ({}));
 
   const ticket = await prisma.supportTicket.findUnique({ where: { id } });
@@ -57,15 +58,14 @@ export async function PATCH(
     return NextResponse.json({ error: "Ticket nicht gefunden" }, { status: 404 });
   }
 
-  if (!isAdmin && ticket.userId !== session.user.id) {
+  if (!staff && ticket.userId !== session.user.id) {
     return NextResponse.json({ error: "Kein Zugriff" }, { status: 403 });
   }
 
-  // Schließen: Admin immer, User nur eigene
   if (body.status === "CLOSED" || body.status === "OPEN") {
-    if (body.status === "OPEN" && !isAdmin) {
+    if (body.status === "OPEN" && !staff) {
       return NextResponse.json(
-        { error: "Nur Admins können Tickets wieder öffnen" },
+        { error: "Nur Team kann Tickets wieder öffnen" },
         { status: 403 }
       );
     }

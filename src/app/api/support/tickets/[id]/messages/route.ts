@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { isStaffRole } from "@/lib/roles";
 import { z } from "zod";
 
 const schema = z.object({
@@ -18,7 +19,7 @@ export async function POST(
   }
 
   const { id } = await params;
-  const isAdmin = (session.user as any).role === "ADMIN";
+  const staff = isStaffRole((session.user as any).role);
 
   try {
     const { body } = schema.parse(await req.json());
@@ -28,7 +29,7 @@ export async function POST(
       return NextResponse.json({ error: "Ticket nicht gefunden" }, { status: 404 });
     }
 
-    if (!isAdmin && ticket.userId !== session.user.id) {
+    if (!staff && ticket.userId !== session.user.id) {
       return NextResponse.json({ error: "Kein Zugriff" }, { status: 403 });
     }
 
@@ -44,7 +45,7 @@ export async function POST(
         ticketId: id,
         userId: session.user.id,
         body: body.trim(),
-        isStaff: isAdmin,
+        isStaff: staff,
       },
       include: {
         user: { select: { id: true, name: true, email: true, role: true } },

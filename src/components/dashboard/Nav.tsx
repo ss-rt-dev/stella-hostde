@@ -5,8 +5,8 @@ import Image from "next/image";
 import { signIn, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { isAdminRole, isStaffRole, roleLabel } from "@/lib/roles";
 
-/** Service-Menü für Kunden (Support nur hier für Nutzer) */
 const customerLinks = [
   { href: "/dashboard", label: "Dashboard", icon: "home" },
   { href: "/dashboard/servers", label: "Server", icon: "server" },
@@ -15,16 +15,15 @@ const customerLinks = [
   { href: "/dashboard/account", label: "Konto", icon: "user" },
 ];
 
-/** Service-Menü für Admins – ohne Nutzer-Support */
-const adminServiceLinks = [
+const staffServiceLinks = [
   { href: "/dashboard", label: "Dashboard", icon: "home" },
   { href: "/dashboard/servers", label: "Server", icon: "server" },
   { href: "/dashboard/deposit", label: "Billing", icon: "wallet" },
   { href: "/dashboard/account", label: "Konto", icon: "user" },
 ];
 
-/** Kompletter Admin-Bereich – unverändert + Support */
-const adminLinks = [
+/** Volle Team-Navigation nur für ADMIN */
+const adminTeamLinks = [
   { href: "/admin", label: "Overview", icon: "admin", exact: true },
   { href: "/admin/support", label: "Support", icon: "support" },
   { href: "/admin/users", label: "Nutzer", icon: "users" },
@@ -32,6 +31,11 @@ const adminLinks = [
   { href: "/admin/servers", label: "Server", icon: "server" },
   { href: "/admin/transactions", label: "Transaktionen", icon: "receipt" },
   { href: "/admin/activity", label: "Aktivitäten", icon: "activity" },
+];
+
+/** Moderator / Supporter: nur Support */
+const staffTeamLinks = [
+  { href: "/admin/support", label: "Support", icon: "support" },
 ];
 
 function Icon({ type }: { type: string }) {
@@ -115,12 +119,14 @@ export function DashboardNav({
   const pathname = usePathname();
   const [stopping, setStopping] = useState(false);
   const impersonating = Boolean(user.impersonatedBy);
-  const onAdmin = pathname.startsWith("/admin") && !impersonating;
-  const logo = onAdmin ? LOGO_ADMIN : LOGO_USER;
-  const isAdminRole = user.role === "ADMIN" && !impersonating;
+  const role = user.role;
+  const staff = isStaffRole(role) && !impersonating;
+  const admin = isAdminRole(role) && !impersonating;
+  const onTeam = pathname.startsWith("/admin") && !impersonating;
+  const logo = onTeam ? LOGO_ADMIN : LOGO_USER;
 
-  // Admins sehen Nutzer-Support nicht; Kunden schon
-  const serviceLinks = isAdminRole ? adminServiceLinks : customerLinks;
+  const serviceLinks = staff ? staffServiceLinks : customerLinks;
+  const teamLinks = admin ? adminTeamLinks : staff ? staffTeamLinks : [];
 
   function isActive(href: string, exact?: boolean) {
     if (exact) return pathname === href;
@@ -159,7 +165,7 @@ export function DashboardNav({
             onClick={stopImpersonate}
             className="rounded-lg bg-black/20 px-3 py-1 text-xs font-semibold hover:bg-black/30 disabled:opacity-50"
           >
-            {stopping ? "…" : "Zurück zum Admin"}
+            {stopping ? "…" : "Zurück zum Team"}
           </button>
         </div>
       )}
@@ -201,13 +207,13 @@ export function DashboardNav({
             );
           })}
 
-          {isAdminRole && (
+          {staff && teamLinks.length > 0 && (
             <>
               <p className="mb-2 mt-5 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
-                Admin
+                Team
               </p>
-              {adminLinks.map((l) => {
-                const active = isActive(l.href, l.exact);
+              {teamLinks.map((l) => {
+                const active = isActive(l.href, (l as any).exact);
                 return (
                   <Link
                     key={l.href}
@@ -229,11 +235,11 @@ export function DashboardNav({
 
         <div className="border-t border-white/10 p-4">
           <div className="mb-3 flex items-center gap-3">
-            {isAdminRole ? (
+            {staff ? (
               <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/10 ring-1 ring-amber-500/30">
                 <Image
                   src={LOGO_ADMIN}
-                  alt="Admin"
+                  alt="Team"
                   width={28}
                   height={28}
                   className="h-7 w-7 object-contain"
@@ -248,8 +254,10 @@ export function DashboardNav({
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-zinc-200">
                 {user.name || "Kunde"}
-                {isAdminRole && (
-                  <span className="ml-1.5 text-[10px] font-semibold text-amber-400">ADMIN</span>
+                {staff && role && (
+                  <span className="ml-1.5 text-[10px] font-semibold text-amber-400">
+                    {roleLabel(role)}
+                  </span>
                 )}
               </p>
               <p className="truncate text-[11px] text-zinc-500">{user.email}</p>
@@ -269,7 +277,7 @@ export function DashboardNav({
           impersonating ? "top-10" : "top-0"
         }`}
       >
-        <Link href={onAdmin ? "/admin" : "/dashboard"} className="flex items-center gap-2">
+        <Link href={onTeam ? "/admin/support" : "/dashboard"} className="flex items-center gap-2">
           <Image
             src={logo}
             alt="Stella Host"
@@ -288,12 +296,16 @@ export function DashboardNav({
       </header>
 
       <nav className="glass-strong fixed inset-x-0 bottom-0 z-40 flex lg:hidden">
-        {(isAdminRole
+        {(staff
           ? [
               { href: "/dashboard", label: "Home", icon: "home" },
               { href: "/dashboard/servers", label: "Server", icon: "server" },
               { href: "/admin/support", label: "Support", icon: "support" },
-              { href: "/admin", label: "Admin", icon: "admin" },
+              {
+                href: admin ? "/admin" : "/admin/support",
+                label: "Team",
+                icon: "admin",
+              },
             ]
           : [
               { href: "/dashboard", label: "Home", icon: "home" },
@@ -305,7 +317,7 @@ export function DashboardNav({
           const active = isActive(l.href, l.href === "/admin");
           return (
             <Link
-              key={l.href}
+              key={l.href + l.label}
               href={l.href}
               className={`nav-link flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-[10px] ${
                 active ? "active text-amber-400" : "text-zinc-500"
