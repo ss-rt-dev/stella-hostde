@@ -45,6 +45,80 @@ function parentPath(path: string) {
   return "/" + parts.join("/") || "/";
 }
 
+function FileIcon({ name, type }: { name: string; type: FileEntry["type"] }) {
+  const cls = "h-4 w-4 shrink-0";
+  if (type === "dir") {
+    return (
+      <svg className={`${cls} text-amber-400`} fill="currentColor" viewBox="0 0 24 24">
+        <path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
+      </svg>
+    );
+  }
+  if (type === "link") {
+    return (
+      <svg className={`${cls} text-sky-400`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+      </svg>
+    );
+  }
+  const ext = name.includes(".") ? name.split(".").pop()!.toLowerCase() : "";
+  if (["js", "ts", "tsx", "jsx", "mjs", "cjs"].includes(ext)) {
+    return (
+      <svg className={`${cls} text-yellow-400`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+      </svg>
+    );
+  }
+  if (["py", "pyw"].includes(ext)) {
+    return (
+      <svg className={`${cls} text-blue-400`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+      </svg>
+    );
+  }
+  if (["json", "yaml", "yml", "toml", "xml"].includes(ext)) {
+    return (
+      <svg className={`${cls} text-emerald-400`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7c-2 0-3 1-3 3z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6M9 8h6M9 16h4" />
+      </svg>
+    );
+  }
+  if (["md", "txt", "log", "conf", "cfg", "ini", "env", "properties"].includes(ext)) {
+    return (
+      <svg className={`${cls} text-zinc-300`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+    );
+  }
+  if (["sh", "bash", "zsh", "service"].includes(ext)) {
+    return (
+      <svg className={`${cls} text-green-400`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+    );
+  }
+  if (["png", "jpg", "jpeg", "gif", "webp", "svg", "ico"].includes(ext)) {
+    return (
+      <svg className={`${cls} text-pink-400`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+    );
+  }
+  if (["zip", "tar", "gz", "tgz", "rar", "7z", "jar"].includes(ext)) {
+    return (
+      <svg className={`${cls} text-orange-400`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+      </svg>
+    );
+  }
+  return (
+    <svg className={`${cls} text-zinc-400`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+    </svg>
+  );
+}
+
 const QUICK = ["/", "/root", "/opt", "/home", "/var/log", "/etc"];
 
 export default function ServerFilesPage() {
@@ -118,7 +192,7 @@ export default function ServerFilesPage() {
       setEditContent(data.content ?? "");
       setEditMeta({ size: data.size, truncated: data.truncated });
     } catch (e: any) {
-      setError(e.message);
+      setError(e.message || "Lesen fehlgeschlagen");
     } finally {
       setBusy(false);
     }
@@ -142,82 +216,123 @@ export default function ServerFilesPage() {
       if (!res.ok) throw new Error(data.error || "Speichern fehlgeschlagen");
       setEditMeta((m) =>
         m
-          ? { ...m, size: new TextEncoder().encode(editContent).length, truncated: false }
+          ? { ...m, size: new Blob([editContent]).size, truncated: false }
           : m
       );
     } catch (e: any) {
-      setError(e.message);
+      setError(e.message || "Speichern fehlgeschlagen");
     } finally {
       setSaving(false);
     }
   }
 
-  async function doAction(
-    body: Record<string, unknown>,
-    reloadPath?: string
-  ) {
+  async function createFolder() {
+    const name = newFolder.trim();
+    if (!name) return;
     setBusy(true);
     setError("");
     try {
+      const full = joinPath(path, name);
       const res = await fetch(`/api/server/${slug}/files`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ action: "mkdir", path: full }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Aktion fehlgeschlagen");
-      await load(reloadPath ?? path);
+      if (!res.ok) throw new Error(data.error || "Ordner fehlgeschlagen");
+      setNewFolder("");
+      setShowNew(false);
+      await load(path);
     } catch (e: any) {
-      setError(e.message);
+      setError(e.message || "Ordner fehlgeschlagen");
     } finally {
       setBusy(false);
     }
   }
 
-  async function createFolder() {
-    const name = newFolder.trim().replace(/\//g, "");
-    if (!name) return;
-    await doAction({ action: "mkdir", path: joinPath(path, name) });
-    setNewFolder("");
-    setShowNew(false);
-  }
-
   async function createFile() {
-    const name = newFile.trim().replace(/\//g, "");
+    const name = newFile.trim();
     if (!name) return;
-    const full = joinPath(path, name);
-    await doAction({ action: "write", path: full, content: "" });
-    setNewFile("");
-    setShowNew(false);
-    openFile(full);
+    setBusy(true);
+    setError("");
+    try {
+      const full = joinPath(path, name);
+      const res = await fetch(`/api/server/${slug}/files`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "write", path: full, content: "" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Datei fehlgeschlagen");
+      setNewFile("");
+      setShowNew(false);
+      await load(path);
+      await openFile(full);
+    } catch (e: any) {
+      setError(e.message || "Datei fehlgeschlagen");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function deleteEntry(name: string, type: string) {
-    const full = joinPath(path, name);
     const msg =
       type === "dir"
-        ? `Ordner „${name}“ inkl. Inhalt wirklich löschen?`
+        ? `Ordner „${name}“ und Inhalt wirklich löschen?`
         : `Datei „${name}“ wirklich löschen?`;
     if (!confirm(msg)) return;
-    await doAction({ action: "delete", path: full });
+    setBusy(true);
+    setError("");
+    try {
+      const full = joinPath(path, name);
+      const res = await fetch(`/api/server/${slug}/files`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete", path: full }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Löschen fehlgeschlagen");
+      if (editPath === full || editPath?.startsWith(full + "/")) {
+        setEditPath(null);
+        setEditContent("");
+        setEditMeta(null);
+      }
+      await load(path);
+    } catch (e: any) {
+      setError(e.message || "Löschen fehlgeschlagen");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function renameEntry(name: string) {
-    const neu = prompt("Neuer Name:", name);
-    if (!neu || neu === name) return;
-    const clean = neu.trim().replace(/\//g, "");
-    if (!clean) return;
-    await doAction({
-      action: "rename",
-      from: joinPath(path, name),
-      to: joinPath(path, clean),
-    });
+    const next = prompt("Neuer Name:", name);
+    if (!next || next === name) return;
+    setBusy(true);
+    setError("");
+    try {
+      const from = joinPath(path, name);
+      const to = joinPath(path, next.trim());
+      const res = await fetch(`/api/server/${slug}/files`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "rename", from, to }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Umbenennen fehlgeschlagen");
+      if (editPath === from) setEditPath(to);
+      await load(path);
+    } catch (e: any) {
+      setError(e.message || "Umbenennen fehlgeschlagen");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
     <div className="flex min-h-screen flex-col bg-[#0a0a0c] text-zinc-100">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
-        <div className="flex flex-wrap items-center gap-3">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-4 py-3">
+        <div className="flex items-center gap-3">
           <Link
             href="/dashboard/servers"
             className="text-sm text-zinc-500 hover:text-amber-400"
@@ -230,9 +345,9 @@ export default function ServerFilesPage() {
         </div>
         <Link
           href={`/server/${slug}/console`}
-          className="rounded-lg bg-amber-400 px-3 py-1.5 text-sm font-semibold text-black"
+          className="text-sm text-amber-400 hover:underline"
         >
-          Console
+          Console →
         </Link>
       </header>
 
@@ -243,29 +358,20 @@ export default function ServerFilesPage() {
       )}
 
       <div className="flex flex-1 flex-col lg:flex-row">
-        <aside className="w-full border-b border-white/10 p-3 lg:w-48 lg:border-b-0 lg:border-r">
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-600">
-            Schnellzugriff
-          </p>
-          <div className="flex flex-wrap gap-1 lg:flex-col">
+        <main className="flex min-w-0 flex-1 flex-col">
+          <div className="flex flex-wrap items-center gap-2 border-b border-white/10 px-4 py-2">
             {QUICK.map((q) => (
               <button
                 key={q}
                 type="button"
                 onClick={() => load(q)}
-                className={`rounded-lg px-2.5 py-1.5 text-left text-xs ${
-                  path === q || path.startsWith(q + "/")
-                    ? "bg-amber-500/15 text-amber-400"
-                    : "text-zinc-400 hover:bg-white/5"
-                }`}
+                className="rounded-lg border border-white/10 px-2 py-1 text-[11px] text-zinc-400 hover:border-amber-500/30 hover:text-amber-400"
               >
                 {q}
               </button>
             ))}
           </div>
-        </aside>
 
-        <main className="flex min-w-0 flex-1 flex-col">
           <div className="flex flex-wrap items-center gap-2 border-b border-white/10 px-4 py-2">
             <button
               type="button"
@@ -347,20 +453,14 @@ export default function ServerFilesPage() {
             {loading ? (
               <p className="p-8 text-center text-sm text-zinc-500">Lade…</p>
             ) : entries.length === 0 ? (
-              <p className="p-8 text-center text-sm text-zinc-500">
-                Ordner ist leer
-              </p>
+              <p className="p-8 text-center text-sm text-zinc-500">Ordner ist leer</p>
             ) : (
               <table className="w-full text-left text-sm">
                 <thead className="sticky top-0 bg-[#0a0a0c] text-xs text-zinc-500">
                   <tr className="border-b border-white/5">
                     <th className="px-4 py-2 font-medium">Name</th>
-                    <th className="hidden px-4 py-2 font-medium sm:table-cell">
-                      Größe
-                    </th>
-                    <th className="hidden px-4 py-2 font-medium md:table-cell">
-                      Geändert
-                    </th>
+                    <th className="hidden px-4 py-2 font-medium sm:table-cell">Größe</th>
+                    <th className="hidden px-4 py-2 font-medium md:table-cell">Geändert</th>
                     <th className="px-4 py-2 font-medium text-right">Aktionen</th>
                   </tr>
                 </thead>
@@ -378,13 +478,7 @@ export default function ServerFilesPage() {
                             }
                             className="flex items-center gap-2 text-left hover:text-amber-400"
                           >
-                            <span className="text-base leading-none">
-                              {e.type === "dir"
-                                ? "📁"
-                                : e.type === "link"
-                                  ? "🔗"
-                                  : "📄"}
-                            </span>
+                            <FileIcon name={e.name} type={e.type} />
                             <span
                               className={
                                 e.type === "dir"
@@ -445,9 +539,7 @@ export default function ServerFilesPage() {
           <div className="flex w-full flex-col border-t border-white/10 lg:w-[min(520px,45%)] lg:border-l lg:border-t-0">
             <div className="flex items-center justify-between gap-2 border-b border-white/10 px-3 py-2">
               <div className="min-w-0">
-                <p className="truncate font-mono text-xs text-amber-400">
-                  {editPath}
-                </p>
+                <p className="truncate font-mono text-xs text-amber-400">{editPath}</p>
                 {editMeta && (
                   <p className="text-[10px] text-zinc-600">
                     {formatSize(editMeta.size)}
