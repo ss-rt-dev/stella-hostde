@@ -68,7 +68,6 @@ function scrollToId(id: string) {
   const top = el.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET;
   window.scrollTo({ top, behavior: "smooth" });
   el.classList.remove("section-flash");
-  // retrigger animation
   void el.offsetWidth;
   el.classList.add("section-flash");
   window.setTimeout(() => el.classList.remove("section-flash"), 900);
@@ -139,7 +138,6 @@ export default function LandingPage() {
   const dashHref = status === "authenticated" ? "/dashboard" : "/login";
 
   useEffect(() => {
-    // falls jemand mit #faq o.ä. kommt
     const hash = window.location.hash.replace("#", "");
     if (hash === "warum" || hash === "ablauf" || hash === "faq") {
       window.setTimeout(() => scrollToId(hash), 80);
@@ -321,12 +319,21 @@ export default function LandingPage() {
           </p>
 
           <div className="relative mt-10">
-            <div className="pointer-events-none absolute left-[0.9rem] top-3 bottom-3 hidden w-px bg-amber-500/30 sm:block" />
+            {/* Linie nur bis Mitte von Punkt 4 – kein Überhang darunter */}
+            <div className="pointer-events-none absolute left-[0.9rem] top-4 bottom-[calc(1rem+0.5lh)] hidden w-px bg-gradient-to-b from-amber-500/40 via-amber-500/25 to-transparent sm:block last:bottom-auto" style={{ bottom: "calc(1rem + var(--last-item, 3.5rem))" }} />
             <ul className="space-y-4">
               {PILLARS.map((p, i) => {
                 const open = activePillar === i;
+                const isLast = i === PILLARS.length - 1;
                 return (
                   <li key={p.kicker} className="relative flex gap-4 sm:gap-6">
+                    {/* Verbindungsstrich nur zwischen den Punkten, nicht unter dem letzten */}
+                    {!isLast && (
+                      <span
+                        className="pointer-events-none absolute left-[0.9rem] top-8 -bottom-4 hidden w-px -translate-x-1/2 bg-amber-500/30 sm:block"
+                        aria-hidden
+                      />
+                    )}
                     <button
                       type="button"
                       onClick={() => setActivePillar(i)}
