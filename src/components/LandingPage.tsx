@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import "../app/landing.css";
 
 const FAQ = [
@@ -24,8 +25,12 @@ const FAQ = [
 ];
 
 export default function LandingPage() {
+  const { data: session, status } = useSession();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [impressum, setImpressum] = useState(false);
+
+  const dashboardHref =
+    status === "authenticated" ? "/dashboard" : "/login";
 
   useEffect(() => {
     const canvas = document.getElementById("starfield") as HTMLCanvasElement | null;
@@ -35,10 +40,12 @@ export default function LandingPage() {
 
     let stars: { x: number; y: number; size: number; speed: number }[] = [];
     let raf = 0;
+    let alive = true;
 
     function resize() {
-      canvas!.width = window.innerWidth;
-      canvas!.height = window.innerHeight;
+      if (!canvas) return;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
     }
     resize();
     window.addEventListener("resize", resize);
@@ -53,16 +60,17 @@ export default function LandingPage() {
     }
 
     function animate() {
-      ctx!.clearRect(0, 0, canvas!.width, canvas!.height);
-      ctx!.fillStyle = "rgba(255,255,255,0.28)";
+      if (!alive || !canvas || !ctx) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "rgba(255,255,255,0.28)";
       stars.forEach((s) => {
-        ctx!.beginPath();
-        ctx!.arc(s.x, s.y, s.size, 0, Math.PI * 2);
-        ctx!.fill();
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+        ctx.fill();
         s.y -= s.speed;
         if (s.y < 0) {
-          s.y = canvas!.height;
-          s.x = Math.random() * canvas!.width;
+          s.y = canvas.height;
+          s.x = Math.random() * canvas.width;
         }
       });
       raf = requestAnimationFrame(animate);
@@ -70,6 +78,7 @@ export default function LandingPage() {
     animate();
 
     return () => {
+      alive = false;
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
     };
@@ -95,7 +104,8 @@ export default function LandingPage() {
               <a href="#faq" className="navlink">
                 FAQ
               </a>
-              <Link href="/dashboard" className="navlink staff-btn">
+              {/* Full page load → kein CSS-/State-Bleed von der Landing */}
+              <a href={dashboardHref} className="navlink staff-btn">
                 <svg
                   width="14"
                   height="14"
@@ -113,7 +123,7 @@ export default function LandingPage() {
                   <rect x="3" y="16" width="7" height="5" rx="1" />
                 </svg>
                 Dashboard
-              </Link>
+              </a>
             </nav>
           </div>
         </header>
@@ -132,12 +142,12 @@ export default function LandingPage() {
                 Transparent, schnell provisioniert, mit Live-Support im Dashboard.
               </p>
               <div className="hero-actions">
-                <Link href="/register" className="btn primary">
+                <a href="/register" className="btn primary">
                   Jetzt starten
-                </Link>
-                <Link href="/login" className="btn">
+                </a>
+                <a href="/login" className="btn">
                   Anmelden
-                </Link>
+                </a>
               </div>
             </div>
 
