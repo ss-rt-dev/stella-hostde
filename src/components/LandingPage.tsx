@@ -5,63 +5,74 @@ import { useSession } from "next-auth/react";
 
 const PILLARS = [
   {
-    kicker: "01",
-    title: "LXC statt Teilen",
-    text: "Jeder Server läuft isoliert. Feste vCPU, RAM und SSD – ohne „Fair-Use“-Überraschungen.",
+    kicker: "1",
+    title: "Eigene LXC, keine geteilte Kiste",
+    text: "Du bekommst feste CPU, RAM und SSD. Nicht das, was gerade übrig ist.",
   },
   {
-    kicker: "02",
-    title: "Minuten bis online",
-    text: "Konfigurator, Provisionierung über Proxmox, fertig. Kein Ticket für den ersten Start.",
+    kicker: "2",
+    title: "Schnell online",
+    text: "Konfigurator ausfüllen, bestätigen – Proxmox legt den Container an. Meist in Minuten.",
   },
   {
-    kicker: "03",
-    title: "Geld bleibt nachvollziehbar",
-    text: "Guthaben per PayPal, klare Monatspreise. Was du siehst, wird abgebucht.",
+    kicker: "3",
+    title: "Guthaben, kein Rätsel",
+    text: "PayPal aufladen, monatlicher Preis pro Server. Keine versteckten „Fair-Use“-Fallen.",
   },
   {
-    kicker: "04",
-    title: "Hilfe im Dashboard",
-    text: "Support-Tickets und Team-Bewerbungen direkt im Dashboard – Discord-Name, Rolle, Kontext.",
+    kicker: "4",
+    title: "Support direkt im Dashboard",
+    text: "Ticket oder Team-Bewerbung – inkl. Discord-Name, wenn du dich bewirbst.",
   },
 ] as const;
 
 const WORKFLOW = [
   {
-    step: "A",
-    title: "Bauen",
-    items: ["CPU / RAM / SSD wählen", "Debian, Minecraft oder Bot", "Rabattcode optional"],
+    title: "Bestellen",
+    items: ["Ressourcen wählen", "Setup (Debian / MC / Bot)", "Optional Rabattcode"],
   },
   {
-    step: "B",
-    title: "Steuern",
-    items: ["Start & Stop", "Live-Status", "Web-Console im Browser"],
+    title: "Laufen lassen",
+    items: ["Start / Stop", "Status sehen", "Console im Browser"],
   },
   {
-    step: "C",
-    title: "Pflegen",
-    items: ["Dateimanager", "Configs anpassen", "Support-Ticket öffnen"],
+    title: "Dranbleiben",
+    items: ["Dateien ändern", "Configs anpassen", "Ticket schreiben"],
   },
 ] as const;
 
 const FAQ = [
   {
-    q: "Wie starte ich?",
-    a: "Registrieren, Guthaben per PayPal aufladen und im Dashboard einen Server konfigurieren. Die Erstellung läuft automatisch.",
+    q: "Wie komme ich rein?",
+    a: "Account anlegen, Guthaben per PayPal laden, im Dashboard Server bauen. Der Rest läuft automatisch.",
   },
   {
-    q: "Welche Zahlungsmittel gibt es?",
-    a: "Aktuell PayPal. Das Guthaben wird für die monatliche Servergebühr verwendet.",
+    q: "Womit zahle ich?",
+    a: "Aktuell nur PayPal. Das Guthaben wird für die monatliche Servergebühr genutzt.",
   },
   {
-    q: "Wie schnell ist ein Server online?",
-    a: "In der Regel innerhalb weniger Minuten nach erfolgreicher Erstellung – abhängig von Setup und Last.",
+    q: "Wie lange dauert es bis der Server da ist?",
+    a: "Meist ein paar Minuten. Hängt von Setup und Auslastung ab.",
   },
   {
-    q: "Kann ich meinen Account löschen?",
-    a: "Ja. Unter Konto → Gefahrenzone kannst du Konto und zugehörige Daten selbst löschen.",
+    q: "Kann ich den Account löschen?",
+    a: "Ja, unter Konto → Gefahrenzone. Daten und Server werden mitgelöscht.",
   },
 ] as const;
+
+const HEADER_OFFSET = 72;
+
+function scrollToId(id: string) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const top = el.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET;
+  window.scrollTo({ top, behavior: "smooth" });
+  el.classList.remove("section-flash");
+  // retrigger animation
+  void el.offsetWidth;
+  el.classList.add("section-flash");
+  window.setTimeout(() => el.classList.remove("section-flash"), 900);
+}
 
 function useInView(threshold = 0.12) {
   const ref = useRef<HTMLDivElement>(null);
@@ -127,16 +138,30 @@ export default function LandingPage() {
 
   const dashHref = status === "authenticated" ? "/dashboard" : "/login";
 
+  useEffect(() => {
+    // falls jemand mit #faq o.ä. kommt
+    const hash = window.location.hash.replace("#", "");
+    if (hash === "warum" || hash === "ablauf" || hash === "faq") {
+      window.setTimeout(() => scrollToId(hash), 80);
+    }
+  }, []);
+
+  function onNavClick(e: React.MouseEvent<HTMLAnchorElement>, id: string) {
+    e.preventDefault();
+    scrollToId(id);
+    history.replaceState(null, "", `#${id}`);
+  }
+
   function onHeroMove(e: React.MouseEvent) {
     const el = heroRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
     const x = (e.clientX - r.left) / r.width - 0.5;
     const y = (e.clientY - r.top) / r.height - 0.5;
-    el.style.setProperty("--hx", `${x * 55}px`);
-    el.style.setProperty("--hy", `${y * 36}px`);
-    el.style.setProperty("--hx2", `${x * -40}px`);
-    el.style.setProperty("--hy2", `${y * -28}px`);
+    el.style.setProperty("--hx", `${x * 40}px`);
+    el.style.setProperty("--hy", `${y * 26}px`);
+    el.style.setProperty("--hx2", `${x * -28}px`);
+    el.style.setProperty("--hy2", `${y * -18}px`);
   }
 
   function onHeroLeave() {
@@ -150,24 +175,21 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0c] text-zinc-100">
-      <div className="border-b border-amber-500/20 bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-transparent">
-        <div className="mx-auto flex max-w-6xl items-center justify-center gap-2 px-4 py-2.5 text-center text-xs sm:text-sm">
-          <span className="text-amber-300">Angebot</span>
-          <span className="text-zinc-400">·</span>
-          <span className="text-zinc-300">
-            Starte im Dashboard – Guthaben aufladen und Server in Minuten online
-          </span>
+      <div className="border-b border-white/5 bg-[#111113]">
+        <div className="mx-auto max-w-6xl px-4 py-2 text-center text-xs text-zinc-400 sm:px-6">
+          Guthaben per PayPal · Server im Dashboard starten
         </div>
       </div>
 
-      <header className="sticky top-0 z-40 border-b border-white/5 bg-[#0a0a0c]/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-white/5 bg-[#0a0a0c]/92 backdrop-blur-md">
         <div className="mx-auto grid h-14 max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-6">
           <a href="/" className="justify-self-start text-[15px] font-semibold tracking-tight">
             Stella <span className="text-amber-400">Host</span>
           </a>
-          <nav className="hidden items-center justify-center gap-1 md:flex">
+          <nav className="hidden items-center justify-center gap-0.5 md:flex">
             <a
               href="#warum"
+              onClick={(e) => onNavClick(e, "warum")}
               className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-amber-300"
             >
               <NavIcon type="warum" />
@@ -175,6 +197,7 @@ export default function LandingPage() {
             </a>
             <a
               href="#ablauf"
+              onClick={(e) => onNavClick(e, "ablauf")}
               className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-amber-300"
             >
               <NavIcon type="ablauf" />
@@ -182,6 +205,7 @@ export default function LandingPage() {
             </a>
             <a
               href="#faq"
+              onClick={(e) => onNavClick(e, "faq")}
               className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-amber-300"
             >
               <NavIcon type="faq" />
@@ -199,12 +223,6 @@ export default function LandingPage() {
               href={dashHref}
               className="inline-flex items-center gap-1.5 rounded-lg bg-amber-400 px-3.5 py-1.5 text-sm font-semibold text-black transition hover:bg-amber-300"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <rect x="3" y="3" width="7" height="9" rx="1" />
-                <rect x="14" y="3" width="7" height="5" rx="1" />
-                <rect x="14" y="12" width="7" height="9" rx="1" />
-                <rect x="3" y="16" width="7" height="5" rx="1" />
-              </svg>
               Dashboard
             </a>
           </div>
@@ -226,179 +244,115 @@ export default function LandingPage() {
         }
       >
         <div
-          className="pointer-events-none absolute -left-24 top-0 h-80 w-80 rounded-full bg-amber-500/30 blur-[90px] transition-transform duration-100 ease-out"
+          className="pointer-events-none absolute -left-20 top-8 h-64 w-64 rounded-full bg-amber-500/20 blur-[80px] transition-transform duration-150 ease-out"
           style={{ transform: "translate(var(--hx), var(--hy))" }}
         />
         <div
-          className="pointer-events-none absolute -right-16 bottom-0 h-72 w-72 rounded-full bg-yellow-500/20 blur-[80px] transition-transform duration-100 ease-out"
+          className="pointer-events-none absolute -right-12 bottom-4 h-56 w-56 rounded-full bg-amber-600/10 blur-[70px] transition-transform duration-150 ease-out"
           style={{ transform: "translate(var(--hx2), var(--hy2))" }}
         />
-        <div className="relative mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-2 lg:items-center">
-          <div
-            className="page-slide-in"
-            style={{
-              transform: "translate(calc(var(--hx) * 0.2), calc(var(--hy) * 0.2))",
-              transition: "transform 0.1s ease-out",
-            }}
-          >
-            <p className="mb-3 text-xs font-medium uppercase tracking-[0.2em] text-amber-400/90">
-              LXC · Proxmox · Dashboard
-            </p>
-            <h1 className="text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl lg:text-[2.75rem]">
-              Hosting mit klarer Kontrolle –
-              <span className="text-amber-400"> ohne Chaos.</span>
+        <div className="relative mx-auto grid max-w-6xl gap-12 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-2 lg:items-center">
+          <div>
+            <p className="mb-3 text-sm text-amber-400/90">LXC · Proxmox · eigenes Dashboard</p>
+            <h1 className="text-3xl font-bold leading-[1.15] text-white sm:text-4xl">
+              Server ohne Theater.
+              <br />
+              <span className="text-amber-400">Einfach laufen lassen.</span>
             </h1>
-            <p className="mt-4 max-w-lg text-[15px] leading-relaxed text-zinc-400">
-              Minecraft, Discord-Bots oder Debian-LXC. Provisionierung über Proxmox,
-              Verwaltung im Dashboard – Console, Dateien und Support an einem Ort.
+            <p className="mt-4 max-w-md text-[15px] leading-relaxed text-zinc-400">
+              Minecraft, Bots oder plain Debian. Du baust im Dashboard, wir provisionieren auf
+              Proxmox. Console und Dateien sind im gleichen Panel.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-7 flex flex-wrap gap-3">
               <a
                 href="/register"
-                className="rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-5 py-2.5 text-sm font-semibold text-black shadow-lg shadow-amber-500/20 transition hover:scale-[1.03] hover:from-amber-300 hover:to-yellow-400 active:scale-[0.98]"
+                className="rounded-lg bg-amber-400 px-5 py-2.5 text-sm font-semibold text-black hover:bg-amber-300"
               >
-                Kostenlos registrieren
+                Registrieren
               </a>
               <a
                 href="#warum"
-                className="rounded-xl border border-white/10 bg-white/[0.03] px-5 py-2.5 text-sm font-medium text-zinc-200 transition hover:border-amber-500/30 hover:bg-white/[0.06]"
+                onClick={(e) => onNavClick(e, "warum")}
+                className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-zinc-300 hover:border-white/20 hover:bg-white/[0.04]"
               >
-                Mehr erfahren
+                Warum Stella?
               </a>
-            </div>
-            <div className="mt-8 flex flex-wrap gap-6 text-xs text-zinc-500">
-              <div>
-                <p className="text-lg font-semibold text-white">Minuten</p>
-                <p>bis zum Server</p>
-              </div>
-              <div>
-                <p className="text-lg font-semibold text-white">LXC</p>
-                <p>isolierte Container</p>
-              </div>
-              <div>
-                <p className="text-lg font-semibold text-white">PayPal</p>
-                <p>Guthaben aufladen</p>
-              </div>
             </div>
           </div>
 
           <div
-            className="rounded-2xl border border-white/10 bg-[#121214] p-1 shadow-2xl shadow-black/40 transition-transform duration-100 ease-out"
+            className="rounded-xl border border-white/10 bg-[#121214] p-4 shadow-xl shadow-black/30 transition-transform duration-150 ease-out"
             style={{
-              transform:
-                "translate(calc(var(--hx2) * 0.55), calc(var(--hy2) * 0.55))",
+              transform: "translate(calc(var(--hx2) * 0.35), calc(var(--hy2) * 0.35))",
             }}
           >
-            <div className="rounded-xl border border-white/5 bg-[#0c0c0e] p-4">
-              <div className="mb-4 flex items-center gap-2 border-b border-white/5 pb-3">
-                <div className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
-                <div className="h-2.5 w-2.5 rounded-full bg-amber-400/80" />
-                <div className="h-2.5 w-2.5 rounded-full bg-emerald-400/80" />
-                <span className="ml-2 text-xs text-zinc-500">stella-host · dashboard</span>
+            <div className="mb-3 flex items-center gap-2 text-xs text-zinc-500">
+              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+              dashboard · live
+            </div>
+            <div className="rounded-lg bg-black/40 px-3 py-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-white">mein-server</p>
+                  <p className="text-xs text-zinc-500">2 vCPU · 2 GB · 20 GB</p>
+                </div>
+                <span className="text-xs text-emerald-400">RUNNING</span>
               </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between rounded-xl bg-white/[0.03] px-3 py-2.5 transition hover:bg-white/[0.06]">
-                  <div>
-                    <p className="text-sm font-medium text-white">mein-server</p>
-                    <p className="text-xs text-zinc-500">2 vCPU · 2 GB RAM · 20 GB</p>
-                  </div>
-                  <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-400">
-                    RUNNING
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {["Console", "Dateien", "Stop"].map((l) => (
-                    <div
-                      key={l}
-                      className="cursor-default rounded-lg border border-white/5 bg-white/[0.03] py-2 text-center text-xs text-zinc-400 transition hover:border-amber-500/30 hover:text-amber-300"
-                    >
-                      {l}
-                    </div>
-                  ))}
-                </div>
-                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
-                  <p className="text-xs font-medium text-amber-400">Status</p>
-                  <p className="mt-1 text-sm text-zinc-300">
-                    Node online · Setup bereit · Support aktiv
-                  </p>
-                </div>
+              <div className="mt-3 flex gap-2 text-xs text-zinc-500">
+                <span className="rounded border border-white/10 px-2 py-1">Console</span>
+                <span className="rounded border border-white/10 px-2 py-1">Dateien</span>
+                <span className="rounded border border-white/10 px-2 py-1">Stop</span>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section id="warum" className="border-t border-white/5">
+      <section id="warum" className="scroll-mt-[72px] border-t border-white/5">
         <div
           ref={warum.ref}
-          className={`mx-auto max-w-6xl px-4 py-16 sm:px-6 transition-all duration-700 ${
-            warum.visible
-              ? "opacity-100 translate-y-0"
-              : "opacity-0 translate-y-12"
+          className={`mx-auto max-w-6xl px-4 py-14 sm:px-6 transition-opacity duration-500 ${
+            warum.visible ? "opacity-100" : "opacity-40"
           }`}
         >
-          <div className="mb-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div className="max-w-lg">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-400/80">
-                Haltung
-              </p>
-              <h2 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
-                Warum Stella anders läuft
-              </h2>
-            </div>
-            <p className="max-w-sm text-sm leading-relaxed text-zinc-500">
-              Klick auf einen Punkt – Details öffnen sich.
-            </p>
-          </div>
+          <h2 className="text-xl font-bold text-white sm:text-2xl">Warum Stella</h2>
+          <p className="mt-2 max-w-lg text-sm text-zinc-500">
+            Kurz und ehrlich – was du wirklich bekommst.
+          </p>
 
-          <div className="relative">
-            <div className="pointer-events-none absolute left-[1.15rem] top-4 bottom-4 hidden w-0.5 bg-gradient-to-b from-amber-400/70 via-amber-500/25 to-transparent sm:block" />
-            <ul className="space-y-5 sm:space-y-6">
+          <div className="relative mt-10">
+            <div className="pointer-events-none absolute left-[0.9rem] top-3 bottom-3 hidden w-px bg-amber-500/30 sm:block" />
+            <ul className="space-y-4">
               {PILLARS.map((p, i) => {
                 const open = activePillar === i;
                 return (
-                  <li
-                    key={p.kicker}
-                    className={`relative flex gap-5 sm:gap-8 transition-all duration-500 ${
-                      warum.visible
-                        ? "opacity-100 translate-x-0"
-                        : "opacity-0 -translate-x-6"
-                    }`}
-                    style={{ transitionDelay: warum.visible ? `${i * 120}ms` : "0ms" }}
-                  >
+                  <li key={p.kicker} className="relative flex gap-4 sm:gap-6">
                     <button
                       type="button"
                       onClick={() => setActivePillar(i)}
-                      className={`timeline-dot timeline-dot-core relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-bold transition ${
+                      className={`timeline-dot timeline-dot-core relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold transition ${
                         open
-                          ? "timeline-dot-active scale-110 border-amber-300 bg-amber-400 text-black"
-                          : "border-amber-500/50 bg-[#0a0a0c] text-amber-400 hover:border-amber-400"
+                          ? "timeline-dot-active border-amber-400 bg-amber-400 text-black"
+                          : "border-amber-500/40 bg-[#0a0a0c] text-amber-400"
                       }`}
-                      style={{ animationDelay: `${i * 0.35}s` }}
+                      style={{ animationDelay: `${i * 0.4}s` }}
                     >
                       {p.kicker}
                     </button>
                     <button
                       type="button"
                       onClick={() => setActivePillar(i)}
-                      className={`flex-1 rounded-2xl border px-5 py-4 text-left transition duration-300 sm:px-6 sm:py-5 ${
+                      className={`flex-1 rounded-xl border px-4 py-3.5 text-left transition ${
                         open
-                          ? "border-amber-500/40 bg-gradient-to-br from-amber-500/15 to-transparent shadow-[0_0_48px_-10px_rgba(251,191,36,0.45)]"
-                          : "border-white/10 bg-gradient-to-br from-white/[0.04] to-transparent hover:border-white/20"
+                          ? "border-amber-500/30 bg-amber-500/[0.07]"
+                          : "border-white/10 bg-[#121214] hover:border-white/15"
                       }`}
                     >
-                      <h3 className="text-base font-semibold text-white sm:text-lg">{p.title}</h3>
-                      <div
-                        className={`grid transition-all duration-350 ${
-                          open ? "mt-2 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                        }`}
-                      >
-                        <p className="overflow-hidden max-w-2xl text-sm leading-relaxed text-zinc-400">
-                          {p.text}
-                        </p>
-                      </div>
-                      {!open && (
-                        <p className="mt-1 text-xs text-zinc-600">Tippen zum Lesen</p>
+                      <h3 className="font-medium text-white">{p.title}</h3>
+                      {open ? (
+                        <p className="mt-1.5 text-sm leading-relaxed text-zinc-400">{p.text}</p>
+                      ) : (
+                        <p className="mt-1 text-xs text-zinc-600">öffnen</p>
                       )}
                     </button>
                   </li>
@@ -409,80 +363,45 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="ablauf" className="border-t border-white/5">
+      <section id="ablauf" className="scroll-mt-[72px] border-t border-white/5 bg-[#0c0c0e]">
         <div
           ref={ablauf.ref}
-          className={`mx-auto max-w-6xl px-4 py-16 sm:px-6 transition-all duration-700 ${
-            ablauf.visible
-              ? "opacity-100 translate-y-0"
-              : "opacity-0 translate-y-12"
+          className={`mx-auto max-w-6xl px-4 py-14 sm:px-6 transition-opacity duration-500 ${
+            ablauf.visible ? "opacity-100" : "opacity-40"
           }`}
         >
-          <div className="mb-10 text-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-400/80">
-              Im Dashboard
-            </p>
-            <h2 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
-              Drei Schritte. Fertig.
-            </h2>
-            <p className="mx-auto mt-2 max-w-md text-sm text-zinc-500">
-              Klicke die Karten – so läuft dein Weg im Dashboard.
-            </p>
-          </div>
+          <h2 className="text-xl font-bold text-white sm:text-2xl">Ablauf</h2>
+          <p className="mt-2 text-sm text-zinc-500">So sieht der Weg im Dashboard aus.</p>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
             {WORKFLOW.map((w, i) => {
               const active = activeStep === i;
               return (
                 <button
-                  key={w.step}
+                  key={w.title}
                   type="button"
                   onClick={() => setActiveStep(i)}
                   onMouseEnter={() => setActiveStep(i)}
-                  className={`relative overflow-hidden rounded-2xl border p-6 text-left transition duration-300 ${
+                  className={`rounded-xl border p-5 text-left transition ${
                     active
-                      ? "scale-[1.03] border-amber-500/50 bg-[#161618] shadow-[0_0_55px_-12px_rgba(251,191,36,0.5)]"
-                      : "border-white/10 bg-[#121214] hover:border-white/20"
-                  } ${
-                    ablauf.visible
-                      ? "opacity-100 translate-y-0"
-                      : "opacity-0 translate-y-8"
+                      ? "border-amber-500/35 bg-[#161618]"
+                      : "border-white/10 bg-[#121214] hover:border-white/15"
                   }`}
-                  style={{
-                    transitionDelay: ablauf.visible ? `${i * 100}ms` : "0ms",
-                  }}
                 >
-                  <span
-                    className={`pointer-events-none absolute -right-2 -top-4 text-7xl font-black transition ${
-                      active ? "text-amber-500/15" : "text-white/[0.03]"
-                    }`}
-                  >
-                    {w.step}
-                  </span>
-                  <div className="mb-4 flex items-center gap-3">
+                  <div className="mb-3 flex items-center gap-2">
                     <span
-                      className={`flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold transition ${
+                      className={`flex h-7 w-7 items-center justify-center rounded-md text-xs font-bold ${
                         active ? "bg-amber-400 text-black" : "bg-white/10 text-zinc-400"
                       }`}
                     >
                       {i + 1}
                     </span>
-                    <h3 className="text-lg font-semibold text-white">{w.title}</h3>
+                    <h3 className="font-medium text-white">{w.title}</h3>
                   </div>
-                  <ul className="space-y-2.5">
+                  <ul className="space-y-1.5">
                     {w.items.map((item) => (
-                      <li
-                        key={item}
-                        className={`flex items-start gap-2 text-sm transition ${
-                          active ? "text-zinc-300" : "text-zinc-500"
-                        }`}
-                      >
-                        <span
-                          className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
-                            active ? "bg-amber-400" : "bg-zinc-600"
-                          }`}
-                        />
-                        {item}
+                      <li key={item} className="text-sm text-zinc-500">
+                        · {item}
                       </li>
                     ))}
                   </ul>
@@ -491,34 +410,27 @@ export default function LandingPage() {
             })}
           </div>
 
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] px-5 py-4 text-center text-sm text-zinc-300">
-            <span>Console · Dateien · Tickets · Team-Bewerbung</span>
-            <a
-              href={dashHref}
-              className="rounded-lg bg-amber-400 px-3 py-1.5 text-xs font-semibold text-black transition hover:scale-105 hover:bg-amber-300"
-            >
-              Dashboard öffnen
+          <div className="mt-6 text-sm text-zinc-500">
+            Console, Dateien, Tickets – alles unter einem Login.{" "}
+            <a href={dashHref} className="text-amber-400 hover:underline">
+              Zum Dashboard
             </a>
           </div>
         </div>
       </section>
 
-      <section id="faq" className="border-t border-white/5">
-        <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
-          <div className="mb-8 text-center">
-            <h2 className="text-2xl font-bold text-white">Häufige Fragen</h2>
-            <p className="mt-2 text-sm text-zinc-400">Kurze Antworten vor dem Start</p>
-          </div>
-          <div className="space-y-2">
+      <section id="faq" className="scroll-mt-[72px] border-t border-white/5">
+        <div className="mx-auto max-w-2xl px-4 py-14 sm:px-6">
+          <h2 className="text-xl font-bold text-white sm:text-2xl">FAQ</h2>
+          <p className="mt-2 text-sm text-zinc-500">Die üblichen Fragen.</p>
+          <div className="mt-8 space-y-2">
             {FAQ.map((item, i) => {
               const open = openFaq === i;
               return (
                 <div
                   key={item.q}
-                  className={`overflow-hidden rounded-xl border transition ${
-                    open
-                      ? "border-amber-500/25 bg-[#121214]"
-                      : "border-white/10 bg-[#121214]/80"
+                  className={`rounded-xl border ${
+                    open ? "border-white/15 bg-[#121214]" : "border-white/10 bg-[#121214]/70"
                   }`}
                 >
                   <button
@@ -527,16 +439,10 @@ export default function LandingPage() {
                     className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left"
                   >
                     <span className="text-sm font-medium text-white">{item.q}</span>
-                    <span
-                      className={`text-lg text-zinc-500 transition ${
-                        open ? "rotate-45 text-amber-400" : ""
-                      }`}
-                    >
-                      +
-                    </span>
+                    <span className="text-zinc-500">{open ? "−" : "+"}</span>
                   </button>
                   {open && (
-                    <div className="border-t border-white/5 px-4 pb-4 pt-2 text-sm leading-relaxed text-zinc-400">
+                    <div className="border-t border-white/5 px-4 pb-3.5 pt-2 text-sm leading-relaxed text-zinc-400">
                       {item.a}
                     </div>
                   )}
@@ -548,41 +454,40 @@ export default function LandingPage() {
       </section>
 
       <section className="border-t border-white/5">
-        <div className="mx-auto max-w-6xl px-4 py-14 text-center sm:px-6">
-          <h2 className="text-xl font-bold text-white sm:text-2xl">
-            Bereit für deinen Server?
-          </h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-zinc-400">
-            Account anlegen, Guthaben laden, Server starten.
-          </p>
-          <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <a
-              href="/register"
-              className="rounded-xl bg-amber-400 px-5 py-2.5 text-sm font-semibold text-black transition hover:scale-[1.02] hover:bg-amber-300"
-            >
-              Registrieren
-            </a>
-            <a
-              href={dashHref}
-              className="rounded-xl border border-white/10 px-5 py-2.5 text-sm text-zinc-300 transition hover:bg-white/5"
-            >
-              Zum Dashboard
-            </a>
+        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+          <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+            <div>
+              <p className="text-lg font-semibold text-white">Bereit?</p>
+              <p className="text-sm text-zinc-500">Account, Guthaben, Server – in der Reihenfolge.</p>
+            </div>
+            <div className="flex gap-2">
+              <a
+                href="/register"
+                className="rounded-lg bg-amber-400 px-4 py-2 text-sm font-semibold text-black hover:bg-amber-300"
+              >
+                Registrieren
+              </a>
+              <a
+                href={dashHref}
+                className="rounded-lg border border-white/10 px-4 py-2 text-sm text-zinc-300 hover:bg-white/5"
+              >
+                Dashboard
+              </a>
+            </div>
           </div>
         </div>
       </section>
 
       <footer className="border-t border-white/5">
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 px-4 py-8 text-center text-xs text-zinc-500 sm:px-6">
-          <p className="font-medium text-zinc-400">
-            Stella <span className="text-amber-400">Host</span> · © 2026
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-xs text-zinc-500 sm:px-6">
+          <p>
+            Stella <span className="text-amber-400">Host</span> · 2026
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <a href="/impressum" className="hover:text-amber-400">
+          <div className="flex gap-4">
+            <a href="/impressum" className="hover:text-zinc-300">
               Impressum
             </a>
-            <span>·</span>
-            <a href="/datenschutz" className="hover:text-amber-400">
+            <a href="/datenschutz" className="hover:text-zinc-300">
               Datenschutz
             </a>
           </div>
