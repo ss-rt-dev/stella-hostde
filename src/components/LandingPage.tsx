@@ -210,7 +210,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="ablauf" className="scroll-mt-[72px] border-t border-white/5 bg-[#0c0c0e]">
+      <section id="ablauf" className="scroll-mt-[72px] border-t border-white/5">
         <div ref={ablauf.ref} className={`mx-auto max-w-6xl px-4 py-14 sm:px-6 transition-opacity duration-500 ${ablauf.visible ? "opacity-100" : "opacity-40"}`}>
           <h2 className="text-xl font-bold text-white sm:text-2xl">Ablauf</h2>
           <p className="mt-2 text-sm text-zinc-500">So sieht der Weg im Dashboard aus.</p>
