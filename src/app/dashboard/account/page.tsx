@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { useState } from "react";
 
 export default function AccountPage() {
@@ -12,6 +12,12 @@ export default function AccountPage() {
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // Gefahrenzone
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   async function saveName(e: React.FormEvent) {
     e.preventDefault();
@@ -57,6 +63,46 @@ export default function AccountPage() {
     setCurrentPassword("");
     setNewPassword("");
     setConfirm("");
+  }
+
+  async function deleteAccount(e: React.FormEvent) {
+    e.preventDefault();
+    setDeleteError("");
+
+    if (deleteConfirm !== "LÖSCHEN") {
+      setDeleteError('Bitte genau „LÖSCHEN“ (in Großbuchstaben) eingeben');
+      return;
+    }
+
+    if (
+      !confirm(
+        "Account wirklich unwiderruflich löschen? Alle Server und Daten gehen verloren."
+      )
+    ) {
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/account", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          password: deletePassword,
+          confirm: deleteConfirm,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setDeleteError(data.error || "Löschen fehlgeschlagen");
+        setDeleting(false);
+        return;
+      }
+      await signOut({ callbackUrl: "/" });
+    } catch {
+      setDeleteError("Netzwerkfehler");
+      setDeleting(false);
+    }
   }
 
   return (
@@ -154,6 +200,61 @@ export default function AccountPage() {
           Passwort ändern
         </button>
       </form>
+
+      {/* Gefahrenzone – Konto löschen (DSGVO) */}
+      <div className="space-y-4 rounded-2xl border border-red-500/30 bg-red-500/[0.06] p-5">
+        <div>
+          <h2 className="font-semibold text-red-400">Gefahrenzone</h2>
+          <p className="mt-1 text-sm text-zinc-400">
+            Konto unwiderruflich löschen. Alle Server werden gestoppt und
+            entfernt, Guthaben, Tickets und Profildaten werden gelöscht. Das
+            kann nicht rückgängig gemacht werden.
+          </p>
+        </div>
+
+        {deleteError && (
+          <p className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm text-red-400">
+            {deleteError}
+          </p>
+        )}
+
+        <form onSubmit={deleteAccount} className="space-y-3">
+          <div>
+            <label className="mb-1 block text-xs text-zinc-500">
+              Passwort zur Bestätigung
+            </label>
+            <input
+              type="password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              required
+              autoComplete="current-password"
+              className="w-full rounded-xl border border-red-500/20 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-red-500/50"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-zinc-500">
+              Zur Bestätigung <span className="font-mono text-red-400">LÖSCHEN</span>{" "}
+              eingeben
+            </label>
+            <input
+              type="text"
+              value={deleteConfirm}
+              onChange={(e) => setDeleteConfirm(e.target.value)}
+              required
+              placeholder="LÖSCHEN"
+              className="w-full rounded-xl border border-red-500/20 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-red-500/50"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={deleting || !deletePassword || deleteConfirm !== "LÖSCHEN"}
+            className="w-full rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-500 disabled:opacity-40"
+          >
+            {deleting ? "Konto wird gelöscht…" : "Konto endgültig löschen"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
