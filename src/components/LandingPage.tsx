@@ -63,7 +63,7 @@ const FAQ = [
   },
 ] as const;
 
-function useInView(threshold = 0.15) {
+function useInView(threshold = 0.12) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   useEffect(() => {
@@ -98,10 +98,10 @@ export default function LandingPage() {
     const r = el.getBoundingClientRect();
     const x = (e.clientX - r.left) / r.width - 0.5;
     const y = (e.clientY - r.top) / r.height - 0.5;
-    el.style.setProperty("--hx", `${x * 30}px`);
-    el.style.setProperty("--hy", `${y * 20}px`);
-    el.style.setProperty("--hx2", `${x * -20}px`);
-    el.style.setProperty("--hy2", `${y * -14}px`);
+    el.style.setProperty("--hx", `${x * 55}px`);
+    el.style.setProperty("--hy", `${y * 36}px`);
+    el.style.setProperty("--hx2", `${x * -40}px`);
+    el.style.setProperty("--hy2", `${y * -28}px`);
   }
 
   function onHeroLeave() {
@@ -125,23 +125,33 @@ export default function LandingPage() {
         </div>
       </div>
 
+      {/* Nav: 3 Spalten → Links mittig */}
       <header className="sticky top-0 z-40 border-b border-white/5 bg-[#0a0a0c]/90 backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <a href="/" className="text-[15px] font-semibold tracking-tight">
+        <div className="mx-auto grid h-14 max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-6">
+          <a href="/" className="justify-self-start text-[15px] font-semibold tracking-tight">
             Stella <span className="text-amber-400">Host</span>
           </a>
-          <nav className="hidden items-center gap-1 md:flex">
-            <a href="#warum" className="rounded-lg px-3 py-1.5 text-sm text-zinc-400 hover:bg-white/5 hover:text-white">
+          <nav className="hidden items-center justify-center gap-1 md:flex">
+            <a
+              href="#warum"
+              className="rounded-lg px-3 py-1.5 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-white"
+            >
               Warum Stella
             </a>
-            <a href="#ablauf" className="rounded-lg px-3 py-1.5 text-sm text-zinc-400 hover:bg-white/5 hover:text-white">
+            <a
+              href="#ablauf"
+              className="rounded-lg px-3 py-1.5 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-white"
+            >
               Ablauf
             </a>
-            <a href="#faq" className="rounded-lg px-3 py-1.5 text-sm text-zinc-400 hover:bg-white/5 hover:text-white">
+            <a
+              href="#faq"
+              className="rounded-lg px-3 py-1.5 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-white"
+            >
               FAQ
             </a>
           </nav>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-end gap-2">
             <a
               href="/login"
               className="hidden rounded-lg px-3 py-1.5 text-sm text-zinc-400 hover:text-white sm:inline"
@@ -164,7 +174,6 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Hero + Parallax */}
       <section
         ref={heroRef}
         onMouseMove={onHeroMove}
@@ -180,19 +189,19 @@ export default function LandingPage() {
         }
       >
         <div
-          className="pointer-events-none absolute -left-24 top-0 h-72 w-72 rounded-full bg-amber-500/20 blur-[100px] transition-transform duration-200 ease-out"
+          className="pointer-events-none absolute -left-24 top-0 h-80 w-80 rounded-full bg-amber-500/30 blur-[90px] transition-transform duration-100 ease-out"
           style={{ transform: "translate(var(--hx), var(--hy))" }}
         />
         <div
-          className="pointer-events-none absolute -right-20 bottom-0 h-64 w-64 rounded-full bg-amber-500/12 blur-[90px] transition-transform duration-200 ease-out"
+          className="pointer-events-none absolute -right-16 bottom-0 h-72 w-72 rounded-full bg-yellow-500/20 blur-[80px] transition-transform duration-100 ease-out"
           style={{ transform: "translate(var(--hx2), var(--hy2))" }}
         />
         <div className="relative mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-2 lg:items-center">
           <div
             className="page-slide-in"
             style={{
-              transform: "translate(calc(var(--hx) * 0.12), calc(var(--hy) * 0.12))",
-              transition: "transform 0.15s ease-out",
+              transform: "translate(calc(var(--hx) * 0.2), calc(var(--hy) * 0.2))",
+              transition: "transform 0.1s ease-out",
             }}
           >
             <p className="mb-3 text-xs font-medium uppercase tracking-[0.2em] text-amber-400/90">
@@ -209,7 +218,7 @@ export default function LandingPage() {
             <div className="mt-8 flex flex-wrap gap-3">
               <a
                 href="/register"
-                className="rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-5 py-2.5 text-sm font-semibold text-black shadow-lg shadow-amber-500/20 transition hover:scale-[1.02] hover:from-amber-300 hover:to-yellow-400 active:scale-[0.98]"
+                className="rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-5 py-2.5 text-sm font-semibold text-black shadow-lg shadow-amber-500/20 transition hover:scale-[1.03] hover:from-amber-300 hover:to-yellow-400 active:scale-[0.98]"
               >
                 Kostenlos registrieren
               </a>
@@ -237,10 +246,10 @@ export default function LandingPage() {
           </div>
 
           <div
-            className="rounded-2xl border border-white/10 bg-[#121214] p-1 shadow-2xl shadow-black/40 transition-transform duration-200 ease-out"
+            className="rounded-2xl border border-white/10 bg-[#121214] p-1 shadow-2xl shadow-black/40 transition-transform duration-100 ease-out"
             style={{
               transform:
-                "translate(calc(var(--hx2) * 0.4), calc(var(--hy2) * 0.4)) rotateY(calc(var(--hx) * 0.15deg))",
+                "translate(calc(var(--hx2) * 0.55), calc(var(--hy2) * 0.55))",
             }}
           >
             <div className="rounded-xl border border-white/5 bg-[#0c0c0e] p-4">
@@ -282,12 +291,14 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Warum – interaktiv */}
+      {/* Warum – Timeline mit animierten Punkten 1–4 */}
       <section id="warum" className="border-t border-white/5">
         <div
           ref={warum.ref}
           className={`mx-auto max-w-6xl px-4 py-16 sm:px-6 transition-all duration-700 ${
-            warum.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+            warum.visible
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-12"
           }`}
         >
           <div className="mb-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -305,35 +316,44 @@ export default function LandingPage() {
           </div>
 
           <div className="relative">
-            <div className="pointer-events-none absolute left-[1.15rem] top-3 bottom-3 hidden w-px bg-gradient-to-b from-amber-500/40 via-white/10 to-transparent sm:block" />
-            <ul className="space-y-4 sm:space-y-5">
+            <div className="pointer-events-none absolute left-[1.15rem] top-4 bottom-4 hidden w-0.5 bg-gradient-to-b from-amber-400/70 via-amber-500/25 to-transparent sm:block" />
+            <ul className="space-y-5 sm:space-y-6">
               {PILLARS.map((p, i) => {
                 const open = activePillar === i;
                 return (
-                  <li key={p.kicker} className="relative flex gap-5 sm:gap-8">
+                  <li
+                    key={p.kicker}
+                    className={`relative flex gap-5 sm:gap-8 transition-all duration-500 ${
+                      warum.visible
+                        ? "opacity-100 translate-x-0"
+                        : "opacity-0 -translate-x-6"
+                    }`}
+                    style={{ transitionDelay: warum.visible ? `${i * 120}ms` : "0ms" }}
+                  >
                     <button
                       type="button"
                       onClick={() => setActivePillar(i)}
-                      className={`relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-bold transition ${
+                      className={`timeline-dot timeline-dot-core relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-bold transition ${
                         open
-                          ? "scale-110 border-amber-400 bg-amber-400 text-black shadow-lg shadow-amber-500/30"
-                          : "border-amber-500/30 bg-[#0a0a0c] text-amber-400 hover:border-amber-400/60"
+                          ? "timeline-dot-active scale-110 border-amber-300 bg-amber-400 text-black"
+                          : "border-amber-500/50 bg-[#0a0a0c] text-amber-400 hover:border-amber-400"
                       }`}
+                      style={{ animationDelay: `${i * 0.35}s` }}
                     >
                       {p.kicker}
                     </button>
                     <button
                       type="button"
                       onClick={() => setActivePillar(i)}
-                      className={`flex-1 rounded-2xl border px-5 py-4 text-left transition sm:px-6 sm:py-5 ${
+                      className={`flex-1 rounded-2xl border px-5 py-4 text-left transition duration-300 sm:px-6 sm:py-5 ${
                         open
-                          ? "border-amber-500/35 bg-gradient-to-br from-amber-500/10 to-transparent shadow-[0_0_40px_-12px_rgba(251,191,36,0.35)]"
+                          ? "border-amber-500/40 bg-gradient-to-br from-amber-500/15 to-transparent shadow-[0_0_48px_-10px_rgba(251,191,36,0.45)]"
                           : "border-white/10 bg-gradient-to-br from-white/[0.04] to-transparent hover:border-white/20"
                       }`}
                     >
                       <h3 className="text-base font-semibold text-white sm:text-lg">{p.title}</h3>
                       <div
-                        className={`grid transition-all duration-300 ${
+                        className={`grid transition-all duration-350 ${
                           open ? "mt-2 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
                         }`}
                       >
@@ -353,12 +373,13 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Ablauf – interaktive Steps */}
       <section id="ablauf" className="border-t border-white/5">
         <div
           ref={ablauf.ref}
-          className={`mx-auto max-w-6xl px-4 py-16 sm:px-6 transition-all duration-700 delay-100 ${
-            ablauf.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+          className={`mx-auto max-w-6xl px-4 py-16 sm:px-6 transition-all duration-700 ${
+            ablauf.visible
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-12"
           }`}
         >
           <div className="mb-10 text-center">
@@ -384,13 +405,20 @@ export default function LandingPage() {
                   onMouseEnter={() => setActiveStep(i)}
                   className={`relative overflow-hidden rounded-2xl border p-6 text-left transition duration-300 ${
                     active
-                      ? "border-amber-500/40 bg-[#161618] scale-[1.02] shadow-[0_0_50px_-15px_rgba(251,191,36,0.4)]"
+                      ? "scale-[1.03] border-amber-500/50 bg-[#161618] shadow-[0_0_55px_-12px_rgba(251,191,36,0.5)]"
                       : "border-white/10 bg-[#121214] hover:border-white/20"
+                  } ${
+                    ablauf.visible
+                      ? "opacity-100 translate-y-0"
+                      : "opacity-0 translate-y-8"
                   }`}
+                  style={{
+                    transitionDelay: ablauf.visible ? `${i * 100}ms` : "0ms",
+                  }}
                 >
                   <span
                     className={`pointer-events-none absolute -right-2 -top-4 text-7xl font-black transition ${
-                      active ? "text-amber-500/10" : "text-white/[0.03]"
+                      active ? "text-amber-500/15" : "text-white/[0.03]"
                     }`}
                   >
                     {w.step}
@@ -431,7 +459,7 @@ export default function LandingPage() {
             <span>Console · Dateien · Tickets · Team-Bewerbung</span>
             <a
               href={dashHref}
-              className="rounded-lg bg-amber-400 px-3 py-1.5 text-xs font-semibold text-black transition hover:bg-amber-300 hover:scale-105"
+              className="rounded-lg bg-amber-400 px-3 py-1.5 text-xs font-semibold text-black transition hover:scale-105 hover:bg-amber-300"
             >
               Dashboard öffnen
             </a>
@@ -494,7 +522,7 @@ export default function LandingPage() {
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <a
               href="/register"
-              className="rounded-xl bg-amber-400 px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-300 hover:scale-[1.02]"
+              className="rounded-xl bg-amber-400 px-5 py-2.5 text-sm font-semibold text-black transition hover:scale-[1.02] hover:bg-amber-300"
             >
               Registrieren
             </a>
