@@ -14,7 +14,12 @@ import {
   getOstemplate,
   shouldSkipSoftwareSetup,
 } from "@/lib/templates";
-import { calcPricePerMonth, clampConfig, PRICING } from "@/lib/pricing";
+import {
+  calcPricePerMonth,
+  clampConfig,
+  maxTotalCpu,
+  PRICING,
+} from "@/lib/pricing";
 import { applyDiscount, incrementDiscountUse } from "@/lib/discounts";
 import {
   runSoftwareSetup,
@@ -91,6 +96,24 @@ export async function POST(req: Request) {
     if (serverType === "MINECRAFT" && !softwareVariant) softwareVariant = "paper";
     if (serverType === "DISCORD_BOT" && !softwareVariant) softwareVariant = "python";
     if (serverType === "DEBIAN") softwareVariant = null;
+
+    // Kapazität: Summe der vCPUs aller aktiven Server
+    const active = await prisma.server.findMany({
+      where: {
+        status: { in: ["CREATING", "RUNNING", "STOPPED", "ERROR"] },
+      },
+      select: { cpu: true },
+    });
+    const usedCpu = active.reduce((sum, s) => sum + (s.cpu ?? 1), 0);
+    const capacity = maxTotalCpu();
+    if (usedCpu + cpu > capacity) {
+      return NextResponse.json(
+        {
+          error: `Nicht genug CPU-Kapazität auf dem Host (belegt ${usedCpu}/${capacity} vCPU, angefragt +${cpu}). Bitte später erneut versuchen oder weniger Kerne wählen.`,
+        },
+        { status: 503 }
+      );
+    }
 
     const basePrice = calcPricePerMonth(cpu, ramMb, diskGb);
     const { price: pricePerMonth, percent, code: appliedCode } = await applyDiscount(
