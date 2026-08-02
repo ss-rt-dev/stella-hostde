@@ -8,7 +8,7 @@ export default function AccountPage() {
   const [name, setName] = useState(session?.user?.name || "");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -41,7 +41,7 @@ export default function AccountPage() {
 
   async function changePassword(e: React.FormEvent) {
     e.preventDefault();
-    if (newPassword !== confirm) {
+    if (newPassword !== passwordConfirm) {
       setError("Passwörter stimmen nicht überein");
       return;
     }
@@ -62,7 +62,7 @@ export default function AccountPage() {
     setMsg("Passwort geändert");
     setCurrentPassword("");
     setNewPassword("");
-    setConfirm("");
+    setPasswordConfirm("");
   }
 
   async function deleteAccount(e: React.FormEvent) {
@@ -75,7 +75,7 @@ export default function AccountPage() {
     }
 
     if (
-      !confirm(
+      !window.confirm(
         "Account wirklich unwiderruflich löschen? Alle Server und Daten gehen verloren."
       )
     ) {
@@ -185,8 +185,8 @@ export default function AccountPage() {
           <label className="mb-1 block text-xs text-zinc-500">Wiederholen</label>
           <input
             type="password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
+            value={passwordConfirm}
+            onChange={(e) => setPasswordConfirm(e.target.value)}
             required
             minLength={6}
             className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-amber-500/50"
@@ -234,8 +234,8 @@ export default function AccountPage() {
           </div>
           <div>
             <label className="mb-1 block text-xs text-zinc-500">
-              Zur Bestätigung <span className="font-mono text-red-400">LÖSCHEN</span>{" "}
-              eingeben
+              Zur Bestätigung{" "}
+              <span className="font-mono text-red-400">LÖSCHEN</span> eingeben
             </label>
             <input
               type="text"
