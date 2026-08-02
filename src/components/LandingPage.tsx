@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useSession } from "next-auth/react";
 import "../app/landing.css";
 
@@ -25,9 +24,8 @@ const FAQ = [
 ];
 
 export default function LandingPage() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [impressum, setImpressum] = useState(false);
 
   const dashboardHref =
     status === "authenticated" ? "/dashboard" : "/login";
@@ -104,7 +102,6 @@ export default function LandingPage() {
               <a href="#faq" className="navlink">
                 FAQ
               </a>
-              {/* Full page load → kein CSS-/State-Bleed von der Landing */}
               <a href={dashboardHref} className="navlink staff-btn">
                 <svg
                   width="14"
@@ -242,106 +239,18 @@ export default function LandingPage() {
             <div className="footer-inner">
               <span className="footer-brand">© 2026 Stella Host</span>
               <div className="footer-links">
-                <button
-                  type="button"
-                  className="footer-link"
-                  onClick={() => setImpressum(true)}
-                >
+                <a href="/impressum" className="footer-link">
                   Impressum
-                </button>
+                </a>
                 <span className="footer-sep">·</span>
-                <span>Hosting für Communities</span>
+                <a href="/datenschutz" className="footer-link">
+                  Datenschutz
+                </a>
               </div>
             </div>
           </footer>
         </div>
       </div>
-
-      {impressum && (
-        <div className="modal-overlay active" onClick={() => setImpressum(false)}>
-          <div
-            className="modal-box impressum-box"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3>Impressum</h3>
-            <div className="impressum-body">
-              <p>
-                <strong>Angaben gemäß § 5 TMG / Art. 3 Abs. 1 E-Commerce-Gesetz</strong>
-              </p>
-              <p>
-                <strong>Diensteanbieter / Betreiber</strong>
-                <br />
-                Justin Scheer
-                <br />
-                Stella Host (privates Projekt)
-              </p>
-              <p>
-                <strong>Kontakt</strong>
-                <br />
-                Telefon: +352 621 399 411
-                <br />
-                E-Mail:{" "}
-                <a href="mailto:teyoorll@gmail.com">teyoorll@gmail.com</a>
-                <br />
-                Web:{" "}
-                <a href="https://stella-host.de" target="_blank" rel="noreferrer">
-                  https://stella-host.de
-                </a>
-              </p>
-              <p>
-                <strong>Verantwortlich für den Inhalt</strong>
-                <br />
-                Justin Scheer (Anschrift auf Anfrage per E-Mail)
-              </p>
-              <p>
-                <strong>Hinweis</strong>
-                <br />
-                Stella Host wird als privates Hobbyprojekt betrieben und ist kein
-                gewerbliches Unternehmen im Sinne eines Handelsregisters. Es besteht
-                keine Umsatzsteuer-Identifikationsnummer.
-              </p>
-              <p>
-                <strong>Haftung für Inhalte</strong>
-                <br />
-                Als Diensteanbieter sind wir für eigene Inhalte auf diesen Seiten nach
-                den allgemeinen Gesetzen verantwortlich. Wir sind jedoch nicht
-                verpflichtet, übermittelte oder gespeicherte fremde Informationen zu
-                überwachen. Bei bekannt werdenden Rechtsverletzungen entfernen wir
-                entsprechende Inhalte umgehend.
-              </p>
-              <p>
-                <strong>Haftung für Links</strong>
-                <br />
-                Unser Angebot enthält ggf. Links zu externen Websites Dritter. Auf deren
-                Inhalte haben wir keinen Einfluss; für diese ist stets der jeweilige
-                Anbieter verantwortlich.
-              </p>
-              <p>
-                <strong>Urheberrecht</strong>
-                <br />
-                Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen
-                Seiten unterliegen dem Urheberrecht. Vervielfältigung und Bearbeitung
-                bedürfen der schriftlichen Zustimmung des Betreibers.
-              </p>
-              <p>
-                <strong>Datenschutz</strong>
-                <br />
-                Personenbezogene Daten werden nur im für den Betrieb notwendigen Umfang
-                verarbeitet (z. B. Konto, Server, Support). Du kannst dein Konto und alle
-                zugehörigen Daten jederzeit unter Konto → Gefahrenzone selbst löschen.
-              </p>
-            </div>
-            <button
-              type="button"
-              className="btn primary"
-              style={{ width: "100%", marginTop: 16 }}
-              onClick={() => setImpressum(false)}
-            >
-              Schließen
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
