@@ -42,7 +42,6 @@ export function WelcomeHero({ displayName }: { displayName: string }) {
         } as React.CSSProperties
       }
     >
-      {/* Animated gold layers */}
       <div className="pointer-events-none absolute inset-0 gold-shimmer opacity-80" />
 
       <div
@@ -61,8 +60,13 @@ export function WelcomeHero({ displayName }: { displayName: string }) {
         }}
       />
 
-      <div className="relative parallax-layer" style={{ transform: "translate(calc(var(--px) * 0.15), calc(var(--py) * 0.15))" }}>
-        <h2 className="text-2xl font-bold text-white sm:text-3xl drop-shadow-sm">
+      <div
+        className="relative parallax-layer"
+        style={{
+          transform: "translate(calc(var(--px) * 0.15), calc(var(--py) * 0.15))",
+        }}
+      >
+        <h2 className="text-2xl font-bold text-white drop-shadow-sm sm:text-3xl">
           Hallo {displayName}!
         </h2>
         <p className="mt-2 max-w-md text-sm text-zinc-300/90">
@@ -70,9 +74,10 @@ export function WelcomeHero({ displayName }: { displayName: string }) {
         </p>
         <Link
           href="/dashboard/servers"
-          className="mt-4 inline-flex rounded-xl border border-amber-400/40 bg-amber-400/15 px-4 py-2 text-sm font-medium text-amber-300 backdrop-blur-sm transition hover:bg-amber-400/25 hover:text-amber-200"
+          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-sky-400 to-cyan-400 px-5 py-2.5 text-sm font-bold text-black shadow-lg shadow-sky-500/30 transition hover:from-sky-300 hover:to-cyan-300 hover:shadow-sky-400/40"
         >
-          Server erstellen →
+          Server erstellen
+          <span aria-hidden>→</span>
         </Link>
       </div>
     </div>
