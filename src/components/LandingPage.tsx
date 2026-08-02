@@ -3,63 +3,44 @@
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 
-const FEATURES = [
+const PILLARS = [
   {
-    title: "Sichere Plattform",
-    text: "SSL, isolierte LXC-Container und sichere Zahlungsabwicklung über PayPal.",
-    icon: "shield",
+    kicker: "01",
+    title: "LXC statt Teilen",
+    text: "Jeder Server läuft isoliert. Feste vCPU, RAM und SSD – ohne „Fair-Use“-Überraschungen.",
   },
   {
-    title: "Schnelle Einrichtung",
-    text: "Server in wenigen Minuten – automatische Provisionierung über Proxmox.",
-    icon: "bolt",
+    kicker: "02",
+    title: "Minuten bis online",
+    text: "Konfigurator, Provisionierung über Proxmox, fertig. Kein Ticket für den ersten Start.",
   },
   {
-    title: "Support im Panel",
-    text: "Tickets und Team-Bewerbungen direkt im Dashboard, ohne Umwege.",
-    icon: "support",
+    kicker: "03",
+    title: "Geld bleibt nachvollziehbar",
+    text: "Guthaben per PayPal, klare Monatspreise. Was du siehst, wird abgebucht.",
   },
   {
-    title: "Stabile Infrastruktur",
-    text: "Feste Ressourcen, SSD und moderne CPU – ohne sinnloses Overselling.",
-    icon: "server",
-  },
-  {
-    title: "Flexibles Guthaben",
-    text: "Guthaben aufladen und Server monatsweise betreiben – transparent und planbar.",
-    icon: "wallet",
-  },
-  {
-    title: "Einfache Verwaltung",
-    text: "Console, Dateimanager und Power-Steuerung an einem Ort.",
-    icon: "panel",
+    kicker: "04",
+    title: "Hilfe im Panel",
+    text: "Support-Tickets und Team-Bewerbungen direkt im Dashboard – Discord-Name, Rolle, Kontext.",
   },
 ] as const;
 
-const PANEL = [
+const WORKFLOW = [
   {
-    title: "Server-Verwaltung",
-    text: "Starten, stoppen und Status im Blick behalten – klar und schnell.",
+    step: "A",
+    title: "Bauen",
+    items: ["CPU / RAM / SSD wählen", "Debian, Minecraft oder Bot", "Rabattcode optional"],
   },
   {
-    title: "Dateimanager",
-    text: "Dateien direkt im Browser bearbeiten, ohne extra Client.",
+    step: "B",
+    title: "Steuern",
+    items: ["Start & Stop", "Live-Status", "Web-Console im Browser"],
   },
   {
-    title: "Web-Console",
-    text: "Terminal im Browser für Setup, Logs und Wartung.",
-  },
-  {
-    title: "Software-Setups",
-    text: "Minecraft, Discord-Bots oder Debian – je nach Bedarf.",
-  },
-  {
-    title: "Support-System",
-    text: "Tickets mit Übersicht und direkter Kommunikation zum Team.",
-  },
-  {
-    title: "Konto & Sicherheit",
-    text: "Profil, Passwort und Konto-Löschung (DSGVO) selbst steuern.",
+    step: "C",
+    title: "Pflegen",
+    items: ["Dateimanager", "Configs anpassen", "Support-Ticket öffnen"],
   },
 ] as const;
 
@@ -82,49 +63,9 @@ const FAQ = [
   },
 ] as const;
 
-function FeatureIcon({ name }: { name: string }) {
-  const cls = "h-5 w-5 text-amber-400";
-  if (name === "shield")
-    return (
-      <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-      </svg>
-    );
-  if (name === "bolt")
-    return (
-      <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-      </svg>
-    );
-  if (name === "support")
-    return (
-      <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
-      </svg>
-    );
-  if (name === "server")
-    return (
-      <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
-      </svg>
-    );
-  if (name === "wallet")
-    return (
-      <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-      </svg>
-    );
-  return (
-    <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-    </svg>
-  );
-}
-
 export default function LandingPage() {
   const { status } = useSession();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
-  const [panelTab, setPanelTab] = useState(0);
 
   const dashHref = status === "authenticated" ? "/dashboard" : "/login";
 
@@ -148,11 +89,11 @@ export default function LandingPage() {
             Stella <span className="text-amber-400">Host</span>
           </a>
           <nav className="hidden items-center gap-1 md:flex">
-            <a href="#features" className="rounded-lg px-3 py-1.5 text-sm text-zinc-400 hover:bg-white/5 hover:text-white">
-              Features
+            <a href="#warum" className="rounded-lg px-3 py-1.5 text-sm text-zinc-400 hover:bg-white/5 hover:text-white">
+              Warum Stella
             </a>
-            <a href="#panel" className="rounded-lg px-3 py-1.5 text-sm text-zinc-400 hover:bg-white/5 hover:text-white">
-              Panel
+            <a href="#ablauf" className="rounded-lg px-3 py-1.5 text-sm text-zinc-400 hover:bg-white/5 hover:text-white">
+              Ablauf
             </a>
             <a href="#faq" className="rounded-lg px-3 py-1.5 text-sm text-zinc-400 hover:bg-white/5 hover:text-white">
               FAQ
@@ -206,10 +147,10 @@ export default function LandingPage() {
                 Kostenlos registrieren
               </a>
               <a
-                href="#features"
+                href="#warum"
                 className="rounded-xl border border-white/10 bg-white/[0.03] px-5 py-2.5 text-sm font-medium text-zinc-200 transition hover:border-amber-500/30 hover:bg-white/[0.06]"
               >
-                Features ansehen
+                Mehr erfahren
               </a>
             </div>
             <div className="mt-8 flex flex-wrap gap-6 text-xs text-zinc-500">
@@ -228,7 +169,6 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Panel preview card */}
           <div className="rounded-2xl border border-white/10 bg-[#121214] p-1 shadow-2xl shadow-black/40">
             <div className="rounded-xl border border-white/5 bg-[#0c0c0e] p-4">
               <div className="mb-4 flex items-center gap-2 border-b border-white/5 pb-3">
@@ -269,82 +209,92 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" className="border-t border-white/5">
+      {/* Warum Stella – statt "Essential Features" 6er-Grid */}
+      <section id="warum" className="border-t border-white/5">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-          <div className="mb-10 max-w-xl">
-            <h2 className="text-2xl font-bold text-white sm:text-3xl">
-              Essential Features
-            </h2>
-            <p className="mt-2 text-sm text-zinc-400">
-              Performance und Kontrolle – die Grundlagen für stabiles Hosting.
+          <div className="mb-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="max-w-lg">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-400/80">
+                Haltung
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
+                Warum Stella anders läuft
+              </h2>
+            </div>
+            <p className="max-w-sm text-sm leading-relaxed text-zinc-500">
+              Keine Feature-Liste zum Abhaken – vier Punkte, die den Alltag bestimmen.
             </p>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map((f) => (
-              <div
-                key={f.title}
-                className="rounded-2xl border border-white/10 bg-[#121214] p-5 transition hover:border-amber-500/25"
-              >
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 ring-1 ring-amber-500/20">
-                  <FeatureIcon name={f.icon} />
-                </div>
-                <h3 className="font-semibold text-white">{f.title}</h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-zinc-400">{f.text}</p>
-              </div>
-            ))}
+
+          <div className="relative">
+            <div className="pointer-events-none absolute left-[1.15rem] top-3 bottom-3 hidden w-px bg-gradient-to-b from-amber-500/40 via-white/10 to-transparent sm:block" />
+            <ul className="space-y-6 sm:space-y-8">
+              {PILLARS.map((p) => (
+                <li key={p.kicker} className="relative flex gap-5 sm:gap-8">
+                  <div className="relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-amber-500/30 bg-[#0a0a0c] text-xs font-bold text-amber-400">
+                    {p.kicker}
+                  </div>
+                  <div className="flex-1 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.04] to-transparent px-5 py-4 sm:px-6 sm:py-5">
+                    <h3 className="text-base font-semibold text-white sm:text-lg">{p.title}</h3>
+                    <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-zinc-400">{p.text}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </section>
 
-      {/* Panel section like Barry "Advanced Server Management" */}
-      <section id="panel" className="border-t border-white/5 bg-[#0c0c0e]">
+      {/* Ablauf – statt "Advanced Server Management" Sidebar-Tabs */}
+      <section id="ablauf" className="border-t border-white/5">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-          <div className="mb-10 max-w-2xl">
-            <h2 className="text-2xl font-bold text-white sm:text-3xl">
-              Advanced Server Management
+          <div className="mb-10 text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-400/80">
+              Im Panel
+            </p>
+            <h2 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
+              Drei Schritte. Fertig.
             </h2>
-            <p className="mt-2 text-sm text-zinc-400">
-              Volle Kontrolle über deine Services – Panel für Performance und einfache Bedienung.
+            <p className="mx-auto mt-2 max-w-md text-sm text-zinc-500">
+              Von der Bestellung bis zur Pflege – ohne komplizierte „Advanced Management“-Show.
             </p>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
-            <div className="flex flex-row gap-2 overflow-x-auto lg:flex-col">
-              {PANEL.map((p, i) => (
-                <button
-                  key={p.title}
-                  type="button"
-                  onClick={() => setPanelTab(i)}
-                  className={`shrink-0 rounded-xl px-3 py-2.5 text-left text-sm transition ${
-                    panelTab === i
-                      ? "bg-amber-500/15 font-medium text-amber-400 ring-1 ring-amber-500/25"
-                      : "text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
-                  }`}
-                >
-                  {p.title}
-                </button>
-              ))}
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-[#121214] p-6 sm:p-8">
-              <h3 className="text-lg font-semibold text-white">
-                {PANEL[panelTab].title}
-              </h3>
-              <p className="mt-3 max-w-xl text-sm leading-relaxed text-zinc-400">
-                {PANEL[panelTab].text}
-              </p>
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                {PANEL.map((p) => (
-                  <div
-                    key={p.title}
-                    className="rounded-xl border border-white/5 bg-black/30 px-4 py-3"
-                  >
-                    <p className="text-sm font-medium text-zinc-200">{p.title}</p>
-                    <p className="mt-1 text-xs text-zinc-500">{p.text}</p>
-                  </div>
-                ))}
+          <div className="grid gap-4 md:grid-cols-3">
+            {WORKFLOW.map((w, i) => (
+              <div
+                key={w.step}
+                className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#121214] p-6"
+              >
+                <span className="pointer-events-none absolute -right-2 -top-4 text-7xl font-black text-white/[0.03]">
+                  {w.step}
+                </span>
+                <div className="mb-4 flex items-center gap-3">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-400 text-sm font-bold text-black">
+                    {i + 1}
+                  </span>
+                  <h3 className="text-lg font-semibold text-white">{w.title}</h3>
+                </div>
+                <ul className="space-y-2.5">
+                  {w.items.map((item) => (
+                    <li key={item} className="flex items-start gap-2 text-sm text-zinc-400">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400/70" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </div>
+            ))}
+          </div>
+
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] px-5 py-4 text-center text-sm text-zinc-300">
+            <span>Console · Dateien · Tickets · Team-Bewerbung</span>
+            <a
+              href={dashHref}
+              className="rounded-lg bg-amber-400 px-3 py-1.5 text-xs font-semibold text-black hover:bg-amber-300"
+            >
+              Panel öffnen
+            </a>
           </div>
         </div>
       </section>
@@ -354,9 +304,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
           <div className="mb-8 text-center">
             <h2 className="text-2xl font-bold text-white">Häufige Fragen</h2>
-            <p className="mt-2 text-sm text-zinc-400">
-              Kurze Antworten vor dem Start
-            </p>
+            <p className="mt-2 text-sm text-zinc-400">Kurze Antworten vor dem Start</p>
           </div>
           <div className="space-y-2">
             {FAQ.map((item, i) => {
@@ -422,7 +370,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="border-t border-white/5">
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 px-4 py-8 text-center text-xs text-zinc-500 sm:px-6">
           <p className="font-medium text-zinc-400">
