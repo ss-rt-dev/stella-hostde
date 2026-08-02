@@ -107,7 +107,6 @@ export const authOptions: NextAuthOptions = {
 
         if (!valid) return null;
 
-        // lastLoginAt + Activity (ohne await blockieren – fire and forget ok in authorize)
         await recordLogin(user.id);
 
         return {
@@ -132,6 +131,25 @@ export const authOptions: NextAuthOptions = {
           delete token.impersonatedBy;
         }
       }
+
+      // Rolle immer aus der DB nachladen (Admin ändert Rolle → ohne Re-Login sichtbar)
+      // Bei Impersonation: Rolle des Ziel-Users behalten, nicht überschreiben mit Admin
+      if (token.id && !(token as any).impersonatedBy) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: String(token.id) },
+            select: { role: true, name: true, email: true },
+          });
+          if (dbUser) {
+            token.role = dbUser.role;
+            if (dbUser.name != null) token.name = dbUser.name;
+            if (dbUser.email) token.email = dbUser.email;
+          }
+        } catch (e) {
+          console.error("jwt role refresh", e);
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
