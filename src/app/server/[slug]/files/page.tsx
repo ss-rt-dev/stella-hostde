@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { FileIcon } from "@/components/FileIcon";
 
 type Entry = {
   name: string;
-  path: string;
-  isDir: boolean;
-  size?: number;
-  mtime?: string;
+  type: "dir" | "file" | "link" | "other";
+  size: number;
+  mtime: number;
 };
 
 function formatSize(n?: number) {
@@ -19,11 +19,16 @@ function formatSize(n?: number) {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function joinPath(base: string, name: string) {
+  if (base === "/") return `/${name}`;
+  return `${base.replace(/\/$/, "")}/${name}`;
+}
+
 function parentPath(p: string) {
   if (!p || p === "/") return "/";
-  const parts = p.replace(/\/$/, "").split("/");
+  const parts = p.replace(/\/$/, "").split("/").filter(Boolean);
   parts.pop();
-  return parts.length <= 1 ? "/" : parts.join("/") || "/";
+  return parts.length ? "/" + parts.join("/") : "/";
 }
 
 export default function ServerFilesPage() {
@@ -35,7 +40,7 @@ export default function ServerFilesPage() {
   const [serverName, setServerName] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [busy, setBusy] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const [uploadOpen, setUploadOpen] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -75,32 +80,33 @@ export default function ServerFilesPage() {
     load("/");
   }, [load]);
 
-  async function openFile(entry: Entry) {
-    if (entry.isDir) {
-      load(entry.path);
+  async function openEntry(e: Entry) {
+    const full = joinPath(path, e.name);
+    if (e.type === "dir") {
+      load(full);
       return;
     }
-    setBusy("Lade Datei…");
+    setBusy(true);
     setError("");
     try {
       const res = await fetch(
-        `/api/server/${slug}/files?action=read&path=${encodeURIComponent(entry.path)}`
+        `/api/server/${slug}/files?action=read&path=${encodeURIComponent(full)}`
       );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Lesen fehlgeschlagen");
-      setEditPath(entry.path);
+      setEditPath(full);
       setEditBinary(!!data.binary);
       setEditContent(data.content ?? data.text ?? "");
-    } catch (e: any) {
-      setError(e.message || "Fehler");
+    } catch (err: any) {
+      setError(err.message || "Fehler");
     } finally {
-      setBusy("");
+      setBusy(false);
     }
   }
 
   async function saveEdit() {
     if (!editPath || editBinary) return;
-    setBusy("Speichern…");
+    setBusy(true);
     try {
       const res = await fetch(`/api/server/${slug}/files`, {
         method: "POST",
@@ -113,20 +119,19 @@ export default function ServerFilesPage() {
     } catch (e: any) {
       setError(e.message || "Fehler");
     } finally {
-      setBusy("");
+      setBusy(false);
     }
   }
 
   async function doMkdir() {
     const name = window.prompt("Ordnername");
     if (!name?.trim()) return;
-    const target = path === "/" ? `/${name.trim()}` : `${path.replace(/\/$/, "")}/${name.trim()}`;
-    setBusy("Ordner…");
+    setBusy(true);
     try {
       const res = await fetch(`/api/server/${slug}/files`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "mkdir", path: target }),
+        body: JSON.stringify({ action: "mkdir", path: joinPath(path, name.trim()) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "mkdir fehlgeschlagen");
@@ -134,26 +139,26 @@ export default function ServerFilesPage() {
     } catch (e: any) {
       setError(e.message || "Fehler");
     } finally {
-      setBusy("");
+      setBusy(false);
     }
   }
 
-  async function doDelete(entry: Entry) {
-    if (!window.confirm(`„${entry.name}“ löschen?`)) return;
-    setBusy("Löschen…");
+  async function doDelete(e: Entry) {
+    if (!window.confirm(`„${e.name}“ löschen?`)) return;
+    setBusy(true);
     try {
       const res = await fetch(`/api/server/${slug}/files`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "delete", path: entry.path }),
+        body: JSON.stringify({ action: "delete", path: joinPath(path, e.name) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Löschen fehlgeschlagen");
       await load(path);
-    } catch (e: any) {
-      setError(e.message || "Fehler");
+    } catch (err: any) {
+      setError(err.message || "Fehler");
     } finally {
-      setBusy("");
+      setBusy(false);
     }
   }
 
@@ -168,14 +173,11 @@ export default function ServerFilesPage() {
       form.append("file", file);
       form.append("path", path);
       try {
-        const res = await fetch(`/api/server/${slug}/files`, {
-          method: "POST",
-          body: form,
-        });
+        const res = await fetch(`/api/server/${slug}/files`, { method: "POST", body: form });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || `Upload fehlgeschlagen: ${file.name}`);
-      } catch (e: any) {
-        setUploadErr(e.message || "Upload-Fehler");
+        if (!res.ok) throw new Error(data.error || `Upload: ${file.name}`);
+      } catch (err: any) {
+        setUploadErr(err.message || "Upload-Fehler");
         setUploadProgress(null);
         return;
       }
@@ -189,169 +191,136 @@ export default function ServerFilesPage() {
     e.preventDefault();
     e.stopPropagation();
     setDragOver(false);
-    if (e.dataTransfer.files?.length) {
-      void uploadFiles(e.dataTransfer.files);
-    }
+    if (e.dataTransfer.files?.length) void uploadFiles(e.dataTransfer.files);
   }
 
-  const crumbs = path === "/" ? ["/"] : ["/", ...path.split("/").filter(Boolean)];
-
   return (
-    <div className="min-h-screen bg-[#0a0a0c] text-zinc-100">
-      {/* Top bar */}
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-[#0c0c0e]/95 backdrop-blur-md">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 text-xs text-zinc-500">
-              <Link href="/dashboard/servers" className="hover:text-amber-400">
-                Server
-              </Link>
-              <span>/</span>
-              <span className="truncate text-zinc-400">{serverName || slug}</span>
-              <span>/</span>
-              <span className="text-amber-400">Dateien</span>
-            </div>
-            <h1 className="mt-0.5 truncate text-lg font-semibold text-white">Dateimanager</h1>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href={`/server/${slug}/console`}
-              className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-zinc-300 hover:bg-white/5"
-            >
-              Console
-            </Link>
-            <button
-              type="button"
-              onClick={() => load(path)}
-              className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-zinc-300 hover:bg-white/5"
-            >
-              Aktualisieren
-            </button>
-            <button
-              type="button"
-              onClick={doMkdir}
-              className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-zinc-300 hover:bg-white/5"
-            >
-              Neuer Ordner
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setUploadErr("");
-                setUploadProgress(null);
-                setUploadOpen(true);
-              }}
-              className="rounded-lg bg-amber-400 px-3.5 py-1.5 text-xs font-semibold text-black hover:bg-amber-300"
-            >
-              Upload
-            </button>
-          </div>
+    <div className="flex min-h-screen flex-col bg-[#0a0a0c] text-zinc-100">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-4 py-3">
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard/servers" className="text-sm text-zinc-500 hover:text-amber-400">
+            ← Server
+          </Link>
+          <span className="text-sm font-medium text-white">
+            Dateien {serverName && `· ${serverName}`}
+          </span>
         </div>
-
-        {/* Breadcrumb */}
-        <div className="mx-auto flex max-w-5xl items-center gap-1 overflow-x-auto px-4 pb-3 text-xs sm:px-6">
-          {crumbs.map((_, i) => {
-            const crumbPath =
-              i === 0 ? "/" : "/" + crumbs.slice(1, i + 1).join("/");
-            const label = i === 0 ? "root" : crumbs[i];
-            return (
-              <span key={crumbPath + i} className="flex items-center gap-1">
-                {i > 0 && <span className="text-zinc-600">/</span>}
-                <button
-                  type="button"
-                  onClick={() => load(crumbPath)}
-                  className="rounded px-1.5 py-0.5 text-zinc-400 hover:bg-white/5 hover:text-amber-300"
-                >
-                  {label}
-                </button>
-              </span>
-            );
-          })}
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href={`/server/${slug}/console`}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-zinc-300 hover:bg-white/5 hover:text-amber-300"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            Console
+          </Link>
+          <button
+            type="button"
+            onClick={() => load(path)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-zinc-300 hover:bg-white/5"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Aktualisieren
+          </button>
+          <button
+            type="button"
+            onClick={doMkdir}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-zinc-300 hover:bg-white/5"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+            </svg>
+            Ordner
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setUploadErr("");
+              setUploadProgress(null);
+              setUploadOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-amber-400 px-3 py-1.5 text-xs font-semibold text-black hover:bg-amber-300"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Upload
+          </button>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 py-5 sm:px-6">
-        {error && (
-          <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-            {error}
-          </div>
-        )}
-        {busy && (
-          <p className="mb-3 text-xs text-zinc-500">{busy}</p>
-        )}
+      {error && (
+        <div className="border-b border-red-500/20 bg-red-500/10 px-4 py-2 text-sm text-red-400">{error}</div>
+      )}
 
-        {/* Drop hint on list */}
-        <div
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragOver(true);
-          }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={onDrop}
-          className={`overflow-hidden rounded-xl border transition ${
-            dragOver
-              ? "border-amber-400/50 bg-amber-500/10"
-              : "border-white/10 bg-[#121214]"
-          }`}
+      <div className="flex items-center gap-2 border-b border-white/10 px-4 py-2 text-xs">
+        <button
+          type="button"
+          disabled={path === "/" || loading}
+          onClick={() => load(parentPath(path))}
+          className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2.5 py-1 text-zinc-300 disabled:opacity-40"
         >
-          <div className="grid grid-cols-[1fr_90px_100px] gap-2 border-b border-white/5 px-4 py-2 text-[11px] uppercase tracking-wide text-zinc-500 sm:grid-cols-[1fr_100px_120px_80px]">
-            <span>Name</span>
-            <span className="hidden sm:inline">Größe</span>
-            <span>Typ</span>
-            <span className="text-right">Aktion</span>
-          </div>
+          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+          </svg>
+          Hoch
+        </button>
+        <span className="truncate font-mono text-amber-400/90">{path}</span>
+      </div>
 
-          {path !== "/" && (
-            <button
-              type="button"
-              onClick={() => load(parentPath(path))}
-              className="flex w-full items-center gap-3 border-b border-white/5 px-4 py-2.5 text-left text-sm text-zinc-400 hover:bg-white/[0.04]"
-            >
-              <span className="text-amber-400/80">↑</span>
-              ..
-            </button>
-          )}
-
-          {loading ? (
-            <p className="px-4 py-10 text-center text-sm text-zinc-500">Laden…</p>
-          ) : entries.length === 0 ? (
-            <p className="px-4 py-10 text-center text-sm text-zinc-500">
-              Ordner leer — Upload oder Datei hierher ziehen
-            </p>
-          ) : (
-            entries.map((e) => (
-              <div
-                key={e.path}
-                className="grid grid-cols-[1fr_90px_100px] items-center gap-2 border-b border-white/5 px-4 py-2.5 last:border-0 hover:bg-white/[0.03] sm:grid-cols-[1fr_100px_120px_80px]"
-              >
-                <button
-                  type="button"
-                  onClick={() => openFile(e)}
-                  className="truncate text-left text-sm text-zinc-200 hover:text-amber-300"
-                >
-                  <span className="mr-2 text-zinc-500">{e.isDir ? "📁" : "📄"}</span>
-                  {e.name}
-                </button>
-                <span className="hidden text-xs text-zinc-500 sm:inline">
-                  {e.isDir ? "—" : formatSize(e.size)}
-                </span>
-                <span className="text-xs text-zinc-500">{e.isDir ? "Ordner" : "Datei"}</span>
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => doDelete(e)}
-                    className="rounded px-2 py-1 text-xs text-red-400/80 hover:bg-red-500/10 hover:text-red-300"
-                  >
-                    Löschen
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+      <main className="flex-1 overflow-auto">
+        {loading ? (
+          <p className="p-8 text-center text-sm text-zinc-500">Lade…</p>
+        ) : entries.length === 0 ? (
+          <p className="p-8 text-center text-sm text-zinc-500">Ordner ist leer</p>
+        ) : (
+          <table className="w-full text-left text-sm">
+            <thead className="sticky top-0 bg-[#0a0a0c] text-xs text-zinc-500">
+              <tr className="border-b border-white/5">
+                <th className="px-4 py-2 font-medium">Name</th>
+                <th className="hidden px-4 py-2 font-medium sm:table-cell">Größe</th>
+                <th className="px-4 py-2 text-right font-medium">Aktionen</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {entries.map((e) => (
+                <tr key={e.name} className="hover:bg-white/[0.03]">
+                  <td className="px-4 py-2">
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => openEntry(e)}
+                      className="flex items-center gap-2 text-left hover:text-amber-400"
+                    >
+                      <FileIcon name={e.name} type={e.type} />
+                      <span className={e.type === "dir" ? "font-medium text-zinc-100" : "text-zinc-300"}>
+                        {e.name}
+                      </span>
+                    </button>
+                  </td>
+                  <td className="hidden px-4 py-2 text-zinc-500 sm:table-cell">
+                    {e.type === "dir" ? "—" : formatSize(e.size)}
+                  </td>
+                  <td className="px-4 py-2 text-right">
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => doDelete(e)}
+                      className="rounded px-2 py-0.5 text-xs text-red-400 hover:bg-red-500/10"
+                    >
+                      Löschen
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </main>
 
-      {/* Upload Modal */}
       {uploadOpen && (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center"
@@ -359,38 +328,32 @@ export default function ServerFilesPage() {
         >
           <div
             className="w-full max-w-md rounded-2xl border border-white/10 bg-[#121214] p-5 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(ev) => ev.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-white">Dateien hochladen</h2>
-              <button
-                type="button"
-                onClick={() => setUploadOpen(false)}
-                className="text-zinc-500 hover:text-white"
-                disabled={!!uploadProgress}
-              >
+              <h2 className="text-base font-semibold text-white">Upload</h2>
+              <button type="button" onClick={() => setUploadOpen(false)} className="text-zinc-500 hover:text-white">
                 ✕
               </button>
             </div>
             <p className="mb-3 text-xs text-zinc-500">
-              Ziel: <span className="text-zinc-300">{path}</span> · max. 1 MB pro Datei
+              Ziel: <span className="text-zinc-300">{path}</span> · max. 1 MB
             </p>
-
             <div
-              onDragOver={(e) => {
-                e.preventDefault();
+              onDragOver={(ev) => {
+                ev.preventDefault();
                 setDragOver(true);
               }}
               onDragLeave={() => setDragOver(false)}
               onDrop={onDrop}
-              className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-10 transition ${
-                dragOver
-                  ? "border-amber-400 bg-amber-500/10"
-                  : "border-white/15 bg-black/30"
+              className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-10 ${
+                dragOver ? "border-amber-400 bg-amber-500/10" : "border-white/15 bg-black/30"
               }`}
             >
+              <svg className="mb-2 h-8 w-8 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
               <p className="text-sm text-zinc-300">Dateien hierher ziehen</p>
-              <p className="mt-1 text-xs text-zinc-500">oder</p>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
@@ -403,56 +366,42 @@ export default function ServerFilesPage() {
                 type="file"
                 multiple
                 className="hidden"
-                onChange={(e) => {
-                  if (e.target.files?.length) void uploadFiles(e.target.files);
-                  e.target.value = "";
+                onChange={(ev) => {
+                  if (ev.target.files?.length) void uploadFiles(ev.target.files);
+                  ev.target.value = "";
                 }}
               />
             </div>
-
-            {uploadProgress && (
-              <p className="mt-3 text-center text-xs text-amber-400">{uploadProgress}</p>
-            )}
-            {uploadErr && (
-              <p className="mt-3 text-center text-xs text-red-400">{uploadErr}</p>
-            )}
+            {uploadProgress && <p className="mt-3 text-center text-xs text-amber-400">{uploadProgress}</p>}
+            {uploadErr && <p className="mt-3 text-center text-xs text-red-400">{uploadErr}</p>}
           </div>
         </div>
       )}
 
-      {/* Editor Modal */}
       {editPath && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center">
-          <div className="flex max-h-[90vh] w-full max-w-3xl flex-col rounded-2xl border border-white/10 bg-[#121214] shadow-2xl">
+          <div className="flex max-h-[90vh] w-full max-w-3xl flex-col rounded-2xl border border-white/10 bg-[#121214]">
             <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-              <p className="truncate text-sm text-zinc-300">{editPath}</p>
+              <p className="truncate font-mono text-xs text-amber-400">{editPath}</p>
               <div className="flex gap-2">
                 {!editBinary && (
-                  <button
-                    type="button"
-                    onClick={saveEdit}
-                    className="rounded-lg bg-amber-400 px-3 py-1.5 text-xs font-semibold text-black"
-                  >
+                  <button type="button" onClick={saveEdit} className="rounded-lg bg-amber-400 px-3 py-1 text-xs font-semibold text-black">
                     Speichern
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={() => setEditPath(null)}
-                  className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-zinc-300"
-                >
+                <button type="button" onClick={() => setEditPath(null)} className="rounded-lg border border-white/10 px-2 py-1 text-xs text-zinc-400">
                   Schließen
                 </button>
               </div>
             </div>
             {editBinary ? (
-              <p className="p-6 text-sm text-zinc-500">Binärdatei – nur Upload/Download, kein Editor.</p>
+              <p className="p-6 text-sm text-zinc-500">Binärdatei – kein Texteditor.</p>
             ) : (
               <textarea
                 value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                className="min-h-[50vh] flex-1 resize-none bg-[#0a0a0c] p-4 font-mono text-xs text-zinc-200 outline-none"
+                onChange={(ev) => setEditContent(ev.target.value)}
                 spellCheck={false}
+                className="min-h-[50vh] flex-1 resize-none bg-[#0c0c0e] p-3 font-mono text-xs text-zinc-200 outline-none"
               />
             )}
           </div>
