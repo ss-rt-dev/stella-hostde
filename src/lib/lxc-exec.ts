@@ -33,7 +33,6 @@ function normalizeSshHost(raw: string): string {
   let h = raw.trim();
   h = h.replace(/^https?:\/\//i, "");
   h = h.split("/")[0] || h;
-  // host:port → nur host (Port separat)
   if (h.includes(":") && !h.startsWith("[")) {
     const parts = h.split(":");
     if (parts.length === 2 && /^\d+$/.test(parts[1]!)) return parts[0]!;
@@ -165,10 +164,8 @@ export function runSsh(
       port,
       username: user,
       readyTimeout: 20000,
-      // Kein System-ssh / kein Agent → verhindert spawn ssh ENOENT auf Vercel
       agent: undefined,
       tryKeyboard: Boolean(password && !keyStr),
-      // Selbstsignierte / unbekannte Host-Keys akzeptieren
       hostVerifier: () => true,
       algorithms: {
         serverHostKey: [
@@ -243,7 +240,6 @@ export async function pctExec(
   innerCmd: string,
   timeoutMs = 45000
 ): Promise<{ ok: boolean; out: string; code: number }> {
-  // pct muss auf dem Proxmox-Host existieren
   const wrapped = `pct exec ${vmid} -- bash -lc ${shellEscape(innerCmd)}`;
   return runSsh(wrapped, timeoutMs);
 }
@@ -257,7 +253,6 @@ export type FileEntry = {
 
 export async function listDir(vmid: number, path: string): Promise<FileEntry[]> {
   const p = sanitizePath(path);
-  // Ohne Python: reines bash (robuster auf minimalen Containern)
   const script = `
 set -e
 P=${shellEscape(p)}
@@ -293,10 +288,11 @@ PY
     );
   }
   const raw = r.out.trim();
-  // Manchmal hängt Login-Banner vor dem JSON
-  const jsonStart = raw.indexOf("[") >= 0 && (raw.indexOf("{") < 0 || raw.indexOf("[") < raw.indexOf("{"))
-    ? raw.indexOf("[")
-    : raw.indexOf("{");
+  const jsonStart =
+    raw.indexOf("[") >= 0 &&
+    (raw.indexOf("{") < 0 || raw.indexOf("[") < raw.indexOf("{"))
+      ? raw.indexOf("[")
+      : raw.indexOf("{");
   const slice = jsonStart >= 0 ? raw.slice(jsonStart) : raw;
   try {
     const parsed = JSON.parse(slice);
@@ -349,13 +345,23 @@ export async function writeFile(
   path: string,
   content: string
 ): Promise<void> {
+  const contentB64 = Buffer.from(content, "utf8").toString("base64");
+  await writeFileBase64(vmid, path, contentB64);
+}
+
+/** Binär/Text-Upload als Base64 (max. ~1 MB roh). */
+export async function writeFileBase64(
+  vmid: number,
+  path: string,
+  contentB64: string
+): Promise<void> {
   const p = sanitizePath(path);
   if (p === "/") throw new Error("Root kann nicht überschrieben werden");
-  const contentB64 = Buffer.from(content, "utf8").toString("base64");
-  if (contentB64.length > 1_500_000) throw new Error("Datei zu groß (max. ~1 MB)");
+  const clean = contentB64.replace(/\s+/g, "");
+  if (clean.length > 1_500_000) throw new Error("Datei zu groß (max. ~1 MB)");
   const dir = p.substring(0, p.lastIndexOf("/")) || "/";
-  const cmd = `mkdir -p ${shellEscape(dir)} && echo ${shellEscape(contentB64)} | base64 -d > ${shellEscape(p)}`;
-  const r = await pctExec(vmid, cmd);
+  const cmd = `mkdir -p ${shellEscape(dir)} && echo ${shellEscape(clean)} | base64 -d > ${shellEscape(p)}`;
+  const r = await pctExec(vmid, cmd, 90000);
   if (!r.ok) throw new Error(r.out.trim() || "Schreiben fehlgeschlagen");
 }
 
@@ -387,7 +393,6 @@ export async function renamePath(
   if (!r.ok) throw new Error(r.out.trim() || "Umbenennen fehlgeschlagen");
 }
 
-/** Verbindungstest (ohne pct) */
 export async function testSsh(): Promise<{ ok: boolean; message: string }> {
   const r = await runSsh("echo stella-ssh-ok && hostname && which pct || true", 20000);
   if (!r.ok) return { ok: false, message: r.out.trim() || "SSH fehlgeschlagen" };
