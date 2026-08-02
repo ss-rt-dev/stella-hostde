@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 
 const PILLARS = [
@@ -21,7 +21,7 @@ const PILLARS = [
   },
   {
     kicker: "04",
-    title: "Hilfe im Panel",
+    title: "Hilfe im Dashboard",
     text: "Support-Tickets und Team-Bewerbungen direkt im Dashboard – Discord-Name, Rolle, Kontext.",
   },
 ] as const;
@@ -63,15 +63,58 @@ const FAQ = [
   },
 ] as const;
 
+function useInView(threshold = 0.15) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) setVisible(true);
+      },
+      { threshold }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [threshold]);
+  return { ref, visible };
+}
+
 export default function LandingPage() {
   const { status } = useSession();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [activePillar, setActivePillar] = useState(0);
+  const [activeStep, setActiveStep] = useState(0);
+  const heroRef = useRef<HTMLElement>(null);
+  const warum = useInView();
+  const ablauf = useInView();
 
   const dashHref = status === "authenticated" ? "/dashboard" : "/login";
 
+  function onHeroMove(e: React.MouseEvent) {
+    const el = heroRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - 0.5;
+    const y = (e.clientY - r.top) / r.height - 0.5;
+    el.style.setProperty("--hx", `${x * 30}px`);
+    el.style.setProperty("--hy", `${y * 20}px`);
+    el.style.setProperty("--hx2", `${x * -20}px`);
+    el.style.setProperty("--hy2", `${y * -14}px`);
+  }
+
+  function onHeroLeave() {
+    const el = heroRef.current;
+    if (!el) return;
+    el.style.setProperty("--hx", "0px");
+    el.style.setProperty("--hy", "0px");
+    el.style.setProperty("--hx2", "0px");
+    el.style.setProperty("--hy2", "0px");
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0c] text-zinc-100">
-      {/* Promo */}
       <div className="border-b border-amber-500/20 bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-transparent">
         <div className="mx-auto flex max-w-6xl items-center justify-center gap-2 px-4 py-2.5 text-center text-xs sm:text-sm">
           <span className="text-amber-300">Angebot</span>
@@ -82,7 +125,6 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Nav */}
       <header className="sticky top-0 z-40 border-b border-white/5 bg-[#0a0a0c]/90 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
           <a href="/" className="text-[15px] font-semibold tracking-tight">
@@ -122,12 +164,37 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div className="pointer-events-none absolute -left-24 top-0 h-72 w-72 rounded-full bg-amber-500/15 blur-[100px]" />
-        <div className="pointer-events-none absolute -right-20 bottom-0 h-64 w-64 rounded-full bg-amber-500/10 blur-[90px]" />
+      {/* Hero + Parallax */}
+      <section
+        ref={heroRef}
+        onMouseMove={onHeroMove}
+        onMouseLeave={onHeroLeave}
+        className="relative overflow-hidden"
+        style={
+          {
+            "--hx": "0px",
+            "--hy": "0px",
+            "--hx2": "0px",
+            "--hy2": "0px",
+          } as React.CSSProperties
+        }
+      >
+        <div
+          className="pointer-events-none absolute -left-24 top-0 h-72 w-72 rounded-full bg-amber-500/20 blur-[100px] transition-transform duration-200 ease-out"
+          style={{ transform: "translate(var(--hx), var(--hy))" }}
+        />
+        <div
+          className="pointer-events-none absolute -right-20 bottom-0 h-64 w-64 rounded-full bg-amber-500/12 blur-[90px] transition-transform duration-200 ease-out"
+          style={{ transform: "translate(var(--hx2), var(--hy2))" }}
+        />
         <div className="relative mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-2 lg:items-center">
-          <div>
+          <div
+            className="page-slide-in"
+            style={{
+              transform: "translate(calc(var(--hx) * 0.12), calc(var(--hy) * 0.12))",
+              transition: "transform 0.15s ease-out",
+            }}
+          >
             <p className="mb-3 text-xs font-medium uppercase tracking-[0.2em] text-amber-400/90">
               LXC · Proxmox · Dashboard
             </p>
@@ -137,12 +204,12 @@ export default function LandingPage() {
             </h1>
             <p className="mt-4 max-w-lg text-[15px] leading-relaxed text-zinc-400">
               Minecraft, Discord-Bots oder Debian-LXC. Provisionierung über Proxmox,
-              Verwaltung im Panel – Console, Dateien und Support an einem Ort.
+              Verwaltung im Dashboard – Console, Dateien und Support an einem Ort.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a
                 href="/register"
-                className="rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-5 py-2.5 text-sm font-semibold text-black shadow-lg shadow-amber-500/20 transition hover:from-amber-300 hover:to-yellow-400"
+                className="rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-5 py-2.5 text-sm font-semibold text-black shadow-lg shadow-amber-500/20 transition hover:scale-[1.02] hover:from-amber-300 hover:to-yellow-400 active:scale-[0.98]"
               >
                 Kostenlos registrieren
               </a>
@@ -169,7 +236,13 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-[#121214] p-1 shadow-2xl shadow-black/40">
+          <div
+            className="rounded-2xl border border-white/10 bg-[#121214] p-1 shadow-2xl shadow-black/40 transition-transform duration-200 ease-out"
+            style={{
+              transform:
+                "translate(calc(var(--hx2) * 0.4), calc(var(--hy2) * 0.4)) rotateY(calc(var(--hx) * 0.15deg))",
+            }}
+          >
             <div className="rounded-xl border border-white/5 bg-[#0c0c0e] p-4">
               <div className="mb-4 flex items-center gap-2 border-b border-white/5 pb-3">
                 <div className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
@@ -178,7 +251,7 @@ export default function LandingPage() {
                 <span className="ml-2 text-xs text-zinc-500">stella-host · dashboard</span>
               </div>
               <div className="space-y-3">
-                <div className="flex items-center justify-between rounded-xl bg-white/[0.03] px-3 py-2.5">
+                <div className="flex items-center justify-between rounded-xl bg-white/[0.03] px-3 py-2.5 transition hover:bg-white/[0.06]">
                   <div>
                     <p className="text-sm font-medium text-white">mein-server</p>
                     <p className="text-xs text-zinc-500">2 vCPU · 2 GB RAM · 20 GB</p>
@@ -191,7 +264,7 @@ export default function LandingPage() {
                   {["Console", "Dateien", "Stop"].map((l) => (
                     <div
                       key={l}
-                      className="rounded-lg border border-white/5 bg-white/[0.03] py-2 text-center text-xs text-zinc-400"
+                      className="cursor-default rounded-lg border border-white/5 bg-white/[0.03] py-2 text-center text-xs text-zinc-400 transition hover:border-amber-500/30 hover:text-amber-300"
                     >
                       {l}
                     </div>
@@ -209,9 +282,14 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Warum Stella – statt "Essential Features" 6er-Grid */}
+      {/* Warum – interaktiv */}
       <section id="warum" className="border-t border-white/5">
-        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+        <div
+          ref={warum.ref}
+          className={`mx-auto max-w-6xl px-4 py-16 sm:px-6 transition-all duration-700 ${
+            warum.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+          }`}
+        >
           <div className="mb-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="max-w-lg">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-400/80">
@@ -222,84 +300,145 @@ export default function LandingPage() {
               </h2>
             </div>
             <p className="max-w-sm text-sm leading-relaxed text-zinc-500">
-              Keine Feature-Liste zum Abhaken – vier Punkte, die den Alltag bestimmen.
+              Klick auf einen Punkt – Details öffnen sich.
             </p>
           </div>
 
           <div className="relative">
             <div className="pointer-events-none absolute left-[1.15rem] top-3 bottom-3 hidden w-px bg-gradient-to-b from-amber-500/40 via-white/10 to-transparent sm:block" />
-            <ul className="space-y-6 sm:space-y-8">
-              {PILLARS.map((p) => (
-                <li key={p.kicker} className="relative flex gap-5 sm:gap-8">
-                  <div className="relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-amber-500/30 bg-[#0a0a0c] text-xs font-bold text-amber-400">
-                    {p.kicker}
-                  </div>
-                  <div className="flex-1 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.04] to-transparent px-5 py-4 sm:px-6 sm:py-5">
-                    <h3 className="text-base font-semibold text-white sm:text-lg">{p.title}</h3>
-                    <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-zinc-400">{p.text}</p>
-                  </div>
-                </li>
-              ))}
+            <ul className="space-y-4 sm:space-y-5">
+              {PILLARS.map((p, i) => {
+                const open = activePillar === i;
+                return (
+                  <li key={p.kicker} className="relative flex gap-5 sm:gap-8">
+                    <button
+                      type="button"
+                      onClick={() => setActivePillar(i)}
+                      className={`relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-bold transition ${
+                        open
+                          ? "scale-110 border-amber-400 bg-amber-400 text-black shadow-lg shadow-amber-500/30"
+                          : "border-amber-500/30 bg-[#0a0a0c] text-amber-400 hover:border-amber-400/60"
+                      }`}
+                    >
+                      {p.kicker}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActivePillar(i)}
+                      className={`flex-1 rounded-2xl border px-5 py-4 text-left transition sm:px-6 sm:py-5 ${
+                        open
+                          ? "border-amber-500/35 bg-gradient-to-br from-amber-500/10 to-transparent shadow-[0_0_40px_-12px_rgba(251,191,36,0.35)]"
+                          : "border-white/10 bg-gradient-to-br from-white/[0.04] to-transparent hover:border-white/20"
+                      }`}
+                    >
+                      <h3 className="text-base font-semibold text-white sm:text-lg">{p.title}</h3>
+                      <div
+                        className={`grid transition-all duration-300 ${
+                          open ? "mt-2 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                        }`}
+                      >
+                        <p className="overflow-hidden max-w-2xl text-sm leading-relaxed text-zinc-400">
+                          {p.text}
+                        </p>
+                      </div>
+                      {!open && (
+                        <p className="mt-1 text-xs text-zinc-600">Tippen zum Lesen</p>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </div>
       </section>
 
-      {/* Ablauf – statt "Advanced Server Management" Sidebar-Tabs */}
+      {/* Ablauf – interaktive Steps */}
       <section id="ablauf" className="border-t border-white/5">
-        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+        <div
+          ref={ablauf.ref}
+          className={`mx-auto max-w-6xl px-4 py-16 sm:px-6 transition-all duration-700 delay-100 ${
+            ablauf.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+          }`}
+        >
           <div className="mb-10 text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-400/80">
-              Im Panel
+              Im Dashboard
             </p>
             <h2 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
               Drei Schritte. Fertig.
             </h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-zinc-500">
-              Von der Bestellung bis zur Pflege – ohne komplizierte „Advanced Management“-Show.
+              Klicke die Karten – so läuft dein Weg im Dashboard.
             </p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
-            {WORKFLOW.map((w, i) => (
-              <div
-                key={w.step}
-                className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#121214] p-6"
-              >
-                <span className="pointer-events-none absolute -right-2 -top-4 text-7xl font-black text-white/[0.03]">
-                  {w.step}
-                </span>
-                <div className="mb-4 flex items-center gap-3">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-400 text-sm font-bold text-black">
-                    {i + 1}
+            {WORKFLOW.map((w, i) => {
+              const active = activeStep === i;
+              return (
+                <button
+                  key={w.step}
+                  type="button"
+                  onClick={() => setActiveStep(i)}
+                  onMouseEnter={() => setActiveStep(i)}
+                  className={`relative overflow-hidden rounded-2xl border p-6 text-left transition duration-300 ${
+                    active
+                      ? "border-amber-500/40 bg-[#161618] scale-[1.02] shadow-[0_0_50px_-15px_rgba(251,191,36,0.4)]"
+                      : "border-white/10 bg-[#121214] hover:border-white/20"
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none absolute -right-2 -top-4 text-7xl font-black transition ${
+                      active ? "text-amber-500/10" : "text-white/[0.03]"
+                    }`}
+                  >
+                    {w.step}
                   </span>
-                  <h3 className="text-lg font-semibold text-white">{w.title}</h3>
-                </div>
-                <ul className="space-y-2.5">
-                  {w.items.map((item) => (
-                    <li key={item} className="flex items-start gap-2 text-sm text-zinc-400">
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400/70" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+                  <div className="mb-4 flex items-center gap-3">
+                    <span
+                      className={`flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold transition ${
+                        active ? "bg-amber-400 text-black" : "bg-white/10 text-zinc-400"
+                      }`}
+                    >
+                      {i + 1}
+                    </span>
+                    <h3 className="text-lg font-semibold text-white">{w.title}</h3>
+                  </div>
+                  <ul className="space-y-2.5">
+                    {w.items.map((item) => (
+                      <li
+                        key={item}
+                        className={`flex items-start gap-2 text-sm transition ${
+                          active ? "text-zinc-300" : "text-zinc-500"
+                        }`}
+                      >
+                        <span
+                          className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
+                            active ? "bg-amber-400" : "bg-zinc-600"
+                          }`}
+                        />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </button>
+              );
+            })}
           </div>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] px-5 py-4 text-center text-sm text-zinc-300">
             <span>Console · Dateien · Tickets · Team-Bewerbung</span>
             <a
               href={dashHref}
-              className="rounded-lg bg-amber-400 px-3 py-1.5 text-xs font-semibold text-black hover:bg-amber-300"
+              className="rounded-lg bg-amber-400 px-3 py-1.5 text-xs font-semibold text-black transition hover:bg-amber-300 hover:scale-105"
             >
-              Panel öffnen
+              Dashboard öffnen
             </a>
           </div>
         </div>
       </section>
 
-      {/* FAQ */}
       <section id="faq" className="border-t border-white/5">
         <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
           <div className="mb-8 text-center">
@@ -344,7 +483,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* CTA */}
       <section className="border-t border-white/5">
         <div className="mx-auto max-w-6xl px-4 py-14 text-center sm:px-6">
           <h2 className="text-xl font-bold text-white sm:text-2xl">
@@ -356,13 +494,13 @@ export default function LandingPage() {
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <a
               href="/register"
-              className="rounded-xl bg-amber-400 px-5 py-2.5 text-sm font-semibold text-black hover:bg-amber-300"
+              className="rounded-xl bg-amber-400 px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-amber-300 hover:scale-[1.02]"
             >
               Registrieren
             </a>
             <a
               href={dashHref}
-              className="rounded-xl border border-white/10 px-5 py-2.5 text-sm text-zinc-300 hover:bg-white/5"
+              className="rounded-xl border border-white/10 px-5 py-2.5 text-sm text-zinc-300 transition hover:bg-white/5"
             >
               Zum Dashboard
             </a>
