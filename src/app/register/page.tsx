@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 
 const LOGO_USER = "https://cdn3.emoji.gg/emojis/40642-darkyellow.png";
 
@@ -39,12 +38,12 @@ export default function RegisterPage() {
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden p-4">
-      <div className="pointer-events-none absolute inset-0 bg-[#060608]" />
+      <div className="pointer-events-none absolute inset-0 bg-[#0a0a0c]" />
       <div
         className="pointer-events-none absolute -right-32 top-1/4 h-[420px] w-[420px] rounded-full opacity-40 blur-[120px]"
         style={{
           background:
-            "radial-gradient(circle, rgba(212,175,55,0.35), transparent 70%)",
+            "radial-gradient(circle, rgba(251,191,36,0.28), transparent 70%)",
         }}
       />
       <div
@@ -65,14 +64,14 @@ export default function RegisterPage() {
 
       <div className="relative w-full max-w-[420px]">
         <div className="mb-8 flex flex-col items-center">
-          <Image
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src={LOGO_USER}
             alt="Stella Host"
             width={56}
             height={56}
-            className="mb-3 h-14 w-14 object-contain drop-shadow-[0_0_20px_rgba(245,158,11,0.35)]"
-            unoptimized
-            priority
+            className="mb-3 h-14 w-14 object-contain drop-shadow-[0_0_20px_rgba(251,191,36,0.4)]"
+            decoding="async"
           />
           <h1 className="text-xl font-semibold tracking-tight text-white">
             Stella<span className="text-amber-400">Host</span>
