@@ -74,7 +74,7 @@ export function WelcomeHero({ displayName }: { displayName: string }) {
         </p>
         <Link
           href="/dashboard/servers"
-          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-sky-400 to-cyan-400 px-5 py-2.5 text-sm font-bold text-black shadow-lg shadow-sky-500/30 transition hover:from-sky-300 hover:to-cyan-300 hover:shadow-sky-400/40"
+          className="mt-4 inline-flex items-center gap-2 rounded-xl border border-white/15 bg-[#1a1a1c] px-5 py-2.5 text-sm font-semibold text-zinc-100 shadow-lg shadow-black/40 transition hover:border-white/25 hover:bg-[#222226] hover:text-white"
         >
           Server erstellen
           <span aria-hidden>→</span>
