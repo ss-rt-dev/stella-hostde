@@ -26,6 +26,9 @@ const APPLY_ROLES = [
   "Sonstiges",
 ] as const;
 
+const fieldCls =
+  "w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-purple-500/50";
+
 export default function SupportPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,6 +37,10 @@ export default function SupportPage() {
   const [type, setType] = useState<TicketType>("GENERAL");
   const [discordName, setDiscordName] = useState("");
   const [applyRole, setApplyRole] = useState("");
+  const [aboutMe, setAboutMe] = useState("");
+  const [whyRole, setWhyRole] = useState("");
+  const [whyBetter, setWhyBetter] = useState("");
+  const [contribution, setContribution] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
@@ -52,6 +59,15 @@ export default function SupportPage() {
     load();
   }, []);
 
+  function resetAppFields() {
+    setDiscordName("");
+    setApplyRole("");
+    setAboutMe("");
+    setWhyRole("");
+    setWhyBetter("");
+    setContribution("");
+  }
+
   async function createTicket(e: React.FormEvent) {
     e.preventDefault();
     setCreating(true);
@@ -69,20 +85,49 @@ export default function SupportPage() {
         setCreating(false);
         return;
       }
+      if (aboutMe.trim().length < 30) {
+        setError("Über dich: bitte mindestens 30 Zeichen");
+        setCreating(false);
+        return;
+      }
+      if (whyRole.trim().length < 30) {
+        setError("Warum diese Rolle: bitte mindestens 30 Zeichen");
+        setCreating(false);
+        return;
+      }
+      if (whyBetter.trim().length < 30) {
+        setError("Warum du geeignet bist: bitte mindestens 30 Zeichen");
+        setCreating(false);
+        return;
+      }
+      if (contribution.trim().length < 30) {
+        setError("Was du verbessern/helfen willst: bitte mindestens 30 Zeichen");
+        setCreating(false);
+        return;
+      }
     }
 
     try {
       const res = await fetch("/api/support/tickets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          subject: type === "TEAM_APPLICATION" ? undefined : subject,
-          description,
-          type,
-          ...(type === "TEAM_APPLICATION"
-            ? { discordName: discordName.trim(), applyRole: applyRole.trim() }
-            : {}),
-        }),
+        body: JSON.stringify(
+          type === "TEAM_APPLICATION"
+            ? {
+                type,
+                discordName: discordName.trim(),
+                applyRole: applyRole.trim(),
+                aboutMe: aboutMe.trim(),
+                whyRole: whyRole.trim(),
+                whyBetter: whyBetter.trim(),
+                contribution: contribution.trim(),
+              }
+            : {
+                type,
+                subject,
+                description,
+              }
+        ),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -91,8 +136,7 @@ export default function SupportPage() {
       }
       setSubject("");
       setDescription("");
-      setDiscordName("");
-      setApplyRole("");
+      resetAppFields();
       setOk(
         type === "TEAM_APPLICATION"
           ? "Bewerbung eingereicht – wir melden uns bei dir."
@@ -140,8 +184,8 @@ export default function SupportPage() {
         </h2>
         {isApp && (
           <p className="text-sm text-purple-200/70">
-            Das ist keine Support-Anfrage – deine Bewerbung geht direkt ans
-            Team zur Prüfung.
+            Bitte fülle alle Felder ernsthaft aus – kurze Einzeiler werden
+            abgelehnt. Das Team prüft jede Bewerbung einzeln.
           </p>
         )}
 
@@ -197,9 +241,10 @@ export default function SupportPage() {
                 value={discordName}
                 onChange={(e) => setDiscordName(e.target.value)}
                 placeholder="z.B. username oder username#0000"
-                className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-purple-500/50"
+                className={fieldCls}
               />
             </div>
+
             <div>
               <label className="mb-1.5 block text-xs font-medium text-zinc-500">
                 Bewerbung als <span className="text-red-400">*</span>
@@ -221,45 +266,125 @@ export default function SupportPage() {
                 ))}
               </div>
             </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-zinc-500">
+                Über dich <span className="text-red-400">*</span>
+              </label>
+              <p className="mb-1.5 text-[11px] text-zinc-600">
+                Wer bist du? Erfahrung, Alter (optional), Verfügbarkeit,
+                bisherige Projekte…
+              </p>
+              <textarea
+                required
+                rows={4}
+                minLength={30}
+                value={aboutMe}
+                onChange={(e) => setAboutMe(e.target.value)}
+                placeholder="Erzähl von dir und deiner Erfahrung…"
+                className={`${fieldCls} resize-y`}
+              />
+              <p className="mt-1 text-[10px] text-zinc-600">
+                {aboutMe.trim().length}/30 min.
+              </p>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-zinc-500">
+                Warum willst du diese Rolle? <span className="text-red-400">*</span>
+              </label>
+              <p className="mb-1.5 text-[11px] text-zinc-600">
+                Motivation: warum gerade diese Position bei Stella Host?
+              </p>
+              <textarea
+                required
+                rows={3}
+                minLength={30}
+                value={whyRole}
+                onChange={(e) => setWhyRole(e.target.value)}
+                placeholder="Warum genau diese Rolle…"
+                className={`${fieldCls} resize-y`}
+              />
+              <p className="mt-1 text-[10px] text-zinc-600">
+                {whyRole.trim().length}/30 min.
+              </p>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-zinc-500">
+                Warum bist du besser / geeignet?{" "}
+                <span className="text-red-400">*</span>
+              </label>
+              <p className="mb-1.5 text-[11px] text-zinc-600">
+                Was unterscheidet dich? Stärken, Skills, Zuverlässigkeit…
+              </p>
+              <textarea
+                required
+                rows={3}
+                minLength={30}
+                value={whyBetter}
+                onChange={(e) => setWhyBetter(e.target.value)}
+                placeholder="Warum du die bessere Wahl bist…"
+                className={`${fieldCls} resize-y`}
+              />
+              <p className="mt-1 text-[10px] text-zinc-600">
+                {whyBetter.trim().length}/30 min.
+              </p>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-zinc-500">
+                Was willst du verbessern oder woran helfen?{" "}
+                <span className="text-red-400">*</span>
+              </label>
+              <p className="mb-1.5 text-[11px] text-zinc-600">
+                Konkrete Ideen: Support, Community, Technik, Design…
+              </p>
+              <textarea
+                required
+                rows={3}
+                minLength={30}
+                value={contribution}
+                onChange={(e) => setContribution(e.target.value)}
+                placeholder="Was du anpacken und verbessern würdest…"
+                className={`${fieldCls} resize-y`}
+              />
+              <p className="mt-1 text-[10px] text-zinc-600">
+                {contribution.trim().length}/30 min.
+              </p>
+            </div>
           </div>
         )}
 
         {!isApp && (
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-zinc-500">
-              Grund
-            </label>
-            <input
-              required
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              placeholder="Kurzer Betreff"
-              className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/50"
-            />
-          </div>
+          <>
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-zinc-500">
+                Grund
+              </label>
+              <input
+                required
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder="Kurzer Betreff"
+                className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/50"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-zinc-500">
+                Beschreibung
+              </label>
+              <textarea
+                required
+                rows={4}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Beschreibe dein Anliegen…"
+                className="w-full resize-y rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/50"
+              />
+            </div>
+          </>
         )}
-
-        <div>
-          <label className="mb-1.5 block text-xs font-medium text-zinc-500">
-            {isApp ? "Erfahrung & Motivation" : "Beschreibung"}
-          </label>
-          <textarea
-            required
-            rows={isApp ? 6 : 4}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder={
-              isApp
-                ? "Erzähl uns von dir: Erfahrung, Verfügbarkeit, warum Stella Host, was du mitbringen kannst…"
-                : "Beschreibe dein Anliegen…"
-            }
-            className={`w-full resize-y rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none ${
-              isApp
-                ? "focus:border-purple-500/50"
-                : "focus:border-amber-500/50"
-            }`}
-          />
-        </div>
 
         <button
           type="submit"
