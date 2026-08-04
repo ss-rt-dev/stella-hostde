@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 const PILLARS = [
   { kicker: "1", title: "Eigene LXC, keine geteilte Kiste", text: "Du bekommst feste CPU, RAM und SSD. Nicht das, was gerade übrig ist." },
   { kicker: "2", title: "Schnell online", text: "Konfigurator ausfüllen, bestätigen – Proxmox legt den Container an. Meist in Minuten." },
-  { kicker: "3", title: "Guthaben, kein Rätsel", text: "PayPal aufladen, monatlicher Preis pro Server. Keine versteckten „Fair-Use“-Fallen." },
+  { kicker: "3", title: "Guthaben, kein Rätsel", text: "PayPal aufladen, monatlicher Preis pro Server. Keine versteckten Fair-Use-Fallen." },
   { kicker: "4", title: "Support direkt im Dashboard", text: "Ticket oder Team-Bewerbung – inkl. Discord-Name, wenn du dich bewirbst." },
 ] as const;
 
@@ -253,7 +253,10 @@ export default function LandingPage() {
             {FAQ.map((item, i) => {
               const open = openFaq === i;
               return (
-                <div key={item.q} className={`rounded-xl border ${open ? "border-white/15 bg-[#121214]" : "border-white/10 bg-[#121214]/70"`}>
+                <div
+                  key={item.q}
+                  className={`rounded-xl border ${open ? "border-white/15 bg-[#121214]" : "border-white/10 bg-[#121214]/70"}`}
+                >
                   <button type="button" onClick={() => setOpenFaq(open ? null : i)} className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left">
                     <span className="text-sm font-medium text-white">{item.q}</span>
                     <span className="text-zinc-500">{open ? "−" : "+"}</span>
