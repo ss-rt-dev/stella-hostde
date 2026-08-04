@@ -10,6 +10,11 @@ import { getMaintenanceMode } from "@/lib/settings";
 export const metadata: Metadata = {
   title: "Stella Host Dashboard",
   description: "Stella Host – Server, Guthaben und Konto verwalten",
+  icons: {
+    icon: [{ url: "/dashboard-icon", type: "image/png" }],
+    shortcut: "/dashboard-icon",
+    apple: "/dashboard-icon",
+  },
 };
 
 export default async function DashboardLayout({
