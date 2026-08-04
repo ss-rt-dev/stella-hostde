@@ -34,9 +34,7 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;600&display=swap"
           rel="stylesheet"
         />
-        <link rel="icon" href="/icon" type="image/svg+xml" sizes="any" />
-        <link rel="shortcut icon" href="/icon" />
-        <link rel="apple-touch-icon" href="/icon" />
+        {/* Favicon wird per DynamicFavicon je Route gesetzt – keine festen /icon-Links hier */}
       </head>
       <body className="min-h-screen bg-[#0a0a0c] text-zinc-100 antialiased">
         <Providers>{children}</Providers>
