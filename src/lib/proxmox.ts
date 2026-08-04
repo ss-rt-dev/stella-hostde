@@ -365,7 +365,6 @@ export async function cloneLxcFromTemplate(opts: {
     }
   );
 
-  // Clone-Task etwas Zeit geben
   await new Promise((r) => setTimeout(r, 5000));
 
   const conf = new URLSearchParams();
@@ -381,6 +380,35 @@ export async function cloneLxcFromTemplate(opts: {
   });
 
   await startLxc(opts.node, opts.newid);
+}
+
+/** RAM (MB) und/oder SSD (GB) eines LXC erhöhen. Disk nur vergrößern. */
+export async function resizeLxc(opts: {
+  node: string;
+  vmid: number;
+  memoryMb?: number;
+  diskGb?: number;
+}) {
+  if (opts.memoryMb != null) {
+    const conf = new URLSearchParams();
+    conf.set("memory", String(Math.round(opts.memoryMb)));
+    await proxmoxRequest(`/nodes/${opts.node}/lxc/${opts.vmid}/config`, {
+      method: "PUT",
+      body: conf.toString(),
+      contentType: "application/x-www-form-urlencoded",
+    });
+  }
+
+  if (opts.diskGb != null) {
+    const body = new URLSearchParams();
+    body.set("disk", "rootfs");
+    body.set("size", `${Math.round(opts.diskGb)}G`);
+    await proxmoxRequest(`/nodes/${opts.node}/lxc/${opts.vmid}/resize`, {
+      method: "PUT",
+      body: body.toString(),
+      contentType: "application/x-www-form-urlencoded",
+    });
+  }
 }
 
 export async function startLxc(node: string, vmid: number) {
