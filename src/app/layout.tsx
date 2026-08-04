@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description:
     "LXC-Hosting für Minecraft, Bots & Server. Schnell, zuverlässig, mit Dashboard.",
   icons: {
-    icon: [{ url: "/icon", type: "image/png" }],
+    icon: [{ url: "/icon", type: "image/svg+xml" }],
     shortcut: "/icon",
     apple: "/icon",
   },
@@ -34,7 +34,7 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;600&display=swap"
           rel="stylesheet"
         />
-        <link rel="icon" href="/icon" type="image/png" sizes="any" />
+        <link rel="icon" href="/icon" type="image/svg+xml" sizes="any" />
         <link rel="shortcut icon" href="/icon" />
         <link rel="apple-touch-icon" href="/icon" />
       </head>
