@@ -7,45 +7,57 @@ function resolveFavicon(pathname: string): { href: string; type: string } {
   if (pathname.startsWith("/admin")) {
     return { href: "/admin-icon", type: "image/png" };
   }
-  if (
-    pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/server")
-  ) {
+  if (pathname.startsWith("/dashboard") || pathname.startsWith("/server")) {
     return { href: "/dashboard-icon", type: "image/png" };
   }
-  // Landing, Login, Produkte, …
-  return { href: "/icon", type: "image/svg+xml" };
+  return { href: "/landing-icon", type: "image/svg+xml" };
 }
 
-function upsertLink(rel: string, href: string, type?: string) {
-  const links = document.querySelectorAll<HTMLLinkElement>(
-    `link[rel="${rel}"]`
-  );
-  if (links.length === 0) {
-    const link = document.createElement("link");
-    link.rel = rel;
-    link.href = href;
-    if (type) link.type = type;
-    document.head.appendChild(link);
-    return;
-  }
-  links.forEach((link) => {
-    link.href = href;
-    if (type) link.type = type;
-  });
+function applyFavicon(href: string, type: string) {
+  // Alle bestehenden Icon-Links entfernen (auch von Next metadata)
+  document
+    .querySelectorAll(
+      'link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]'
+    )
+    .forEach((el) => el.remove());
+
+  const url = `${href}?v=5`;
+
+  const icon = document.createElement("link");
+  icon.rel = "icon";
+  icon.type = type;
+  icon.href = url;
+  document.head.appendChild(icon);
+
+  const shortcut = document.createElement("link");
+  shortcut.rel = "shortcut icon";
+  shortcut.type = type;
+  shortcut.href = url;
+  document.head.appendChild(shortcut);
+
+  const apple = document.createElement("link");
+  apple.rel = "apple-touch-icon";
+  apple.href = url;
+  document.head.appendChild(apple);
 }
 
-/** Setzt Favicon je nach Bereich (Landing / User-Dashboard / Team). */
+/** Favicon je Bereich: Landing S · User gelb · Team weiß */
 export function DynamicFavicon() {
   const pathname = usePathname() || "/";
 
   useEffect(() => {
     const { href, type } = resolveFavicon(pathname);
-    // Cache-Bust, damit Browser das neue Icon sicher lädt
-    const url = `${href}?v=3`;
-    upsertLink("icon", url, type);
-    upsertLink("shortcut icon", url, type);
-    upsertLink("apple-touch-icon", url);
+    applyFavicon(href, type);
+
+    // Falls Next.js nach Hydration wieder Metadata-Links einfügt → erneut setzen
+    const observer = new MutationObserver(() => {
+      const current = document.querySelector('link[rel="icon"]') as HTMLLinkElement | null;
+      if (!current || !current.href.includes(href.replace(/^\//, ""))) {
+        applyFavicon(href, type);
+      }
+    });
+    observer.observe(document.head, { childList: true, subtree: true });
+    return () => observer.disconnect();
   }, [pathname]);
 
   return null;

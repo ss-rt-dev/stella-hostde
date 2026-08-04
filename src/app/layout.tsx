@@ -6,18 +6,13 @@ export const metadata: Metadata = {
   title: "Stella Host — Hosting, das trägt",
   description:
     "LXC-Hosting für Minecraft, Bots & Server. Schnell, zuverlässig, mit Dashboard.",
-  icons: {
-    icon: [{ url: "/icon", type: "image/svg+xml" }],
-    shortcut: "/icon",
-    apple: "/icon",
-  },
+  // Kein globales icons – DynamicFavicon setzt je Route
   openGraph: {
     title: "Stella Host — Hosting, das trägt",
     description:
       "LXC-Hosting für Minecraft, Bots & Server. Schnell, zuverlässig, mit Dashboard.",
     url: "https://stella-host.de",
     siteName: "Stella Host",
-    images: ["https://stella-host.de/icon"],
     type: "website",
   },
 };
@@ -34,7 +29,6 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;600&display=swap"
           rel="stylesheet"
         />
-        {/* Favicon wird per DynamicFavicon je Route gesetzt – keine festen /icon-Links hier */}
       </head>
       <body className="min-h-screen bg-[#0a0a0c] text-zinc-100 antialiased">
         <Providers>{children}</Providers>
