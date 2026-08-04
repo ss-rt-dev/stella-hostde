@@ -49,8 +49,15 @@ function useInView(threshold = 0.12) {
   return { ref, visible };
 }
 
-function NavIcon({ type }: { type: "warum" | "ablauf" | "faq" }) {
+function NavIcon({ type }: { type: "produkte" | "warum" | "ablauf" | "faq" }) {
   const cls = "h-3.5 w-3.5 shrink-0 opacity-80";
+  if (type === "produkte") {
+    return (
+      <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+      </svg>
+    );
+  }
   if (type === "warum") {
     return (
       <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -84,7 +91,7 @@ export default function LandingPage() {
 
   useEffect(() => {
     const hash = window.location.hash.replace("#", "");
-    if (hash === "warum" || hash === "ablauf" || hash === "faq") {
+    if (hash === "produkte" || hash === "warum" || hash === "ablauf" || hash === "faq") {
       window.setTimeout(() => scrollToId(hash), 80);
     }
   }, []);
@@ -130,6 +137,9 @@ export default function LandingPage() {
             Stella <span className="text-amber-400">Host</span>
           </a>
           <nav className="hidden items-center justify-center gap-0.5 md:flex">
+            <a href="#produkte" onClick={(e) => onNavClick(e, "produkte")} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-amber-300">
+              <NavIcon type="produkte" /> Produkte
+            </a>
             <a href="#warum" onClick={(e) => onNavClick(e, "warum")} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-amber-300">
               <NavIcon type="warum" /> Warum Stella
             </a>
@@ -161,7 +171,7 @@ export default function LandingPage() {
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <a href="/register" className="rounded-lg bg-amber-400 px-5 py-2.5 text-sm font-semibold text-black hover:bg-amber-300">Registrieren</a>
-              <a href="#warum" onClick={(e) => onNavClick(e, "warum")} className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-zinc-300 hover:border-white/20 hover:bg-white/[0.04]">Warum Stella?</a>
+              <a href="#produkte" onClick={(e) => onNavClick(e, "produkte")} className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-zinc-300 hover:border-white/20 hover:bg-white/[0.04]">Produkte</a>
             </div>
           </div>
           <div className="rounded-xl border border-white/10 bg-[#121214] p-4 shadow-xl shadow-black/30 transition-transform duration-150 ease-out" style={{ transform: "translate(calc(var(--hx2) * 0.35), calc(var(--hy2) * 0.35))" }}>
@@ -176,6 +186,54 @@ export default function LandingPage() {
                 <span className="rounded border border-white/10 px-2 py-1">Dateien</span>
                 <span className="rounded border border-white/10 px-2 py-1">Stop</span>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="produkte" className="scroll-mt-[72px] border-t border-white/5">
+        <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+          <h2 className="text-xl font-bold text-white sm:text-2xl">Produkte</h2>
+          <p className="mt-2 max-w-lg text-sm text-zinc-500">
+            Wähle dein Setup – starte im Dashboard in wenigen Minuten.
+          </p>
+
+          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <a
+              href="/register"
+              className="group relative flex overflow-hidden rounded-2xl border border-white/10 bg-[#121214] transition hover:border-amber-500/40 hover:shadow-lg hover:shadow-amber-500/5 sm:col-span-2 lg:col-span-2"
+            >
+              <div className="relative z-10 flex min-w-0 flex-1 flex-col justify-between p-5 sm:p-6">
+                <div>
+                  <span className="inline-flex rounded-md bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-400">
+                    Beliebt
+                  </span>
+                  <h3 className="mt-3 text-lg font-semibold text-white sm:text-xl">Minecraft Server</h3>
+                  <p className="mt-2 max-w-sm text-sm leading-relaxed text-zinc-400">
+                    Eigener LXC mit fester CPU, RAM und SSD. Paper, Mods oder Vanilla – du entscheidest im Dashboard.
+                  </p>
+                </div>
+                <div className="mt-5 flex items-center gap-2">
+                  <span className="rounded-lg bg-amber-400 px-3.5 py-1.5 text-xs font-semibold text-black transition group-hover:bg-amber-300">
+                    Jetzt starten
+                  </span>
+                  <span className="text-xs text-zinc-500">ab deinem Guthaben</span>
+                </div>
+              </div>
+              <div className="relative hidden w-[42%] min-w-[160px] shrink-0 sm:block">
+                <img
+                  src="https://wallpapers.com/images/featured/minecraft-bilder-m1p4bwepy03eh8zg.jpg"
+                  alt="Minecraft"
+                  className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-[#121214] via-[#121214]/40 to-transparent" />
+                <div className="absolute inset-0 ring-1 ring-inset ring-white/10" />
+              </div>
+            </a>
+
+            <div className="flex flex-col justify-center rounded-2xl border border-dashed border-white/10 bg-[#121214]/50 p-6 text-center">
+              <p className="text-sm font-medium text-zinc-400">Weitere Produkte</p>
+              <p className="mt-1 text-xs text-zinc-600">Bot-Hosting, plain Debian – bald hier.</p>
             </div>
           </div>
         </div>
