@@ -150,12 +150,11 @@ export default async function ProduktePage() {
             </div>
             <div className="relative hidden w-[40%] min-w-[140px] shrink-0 overflow-hidden sm:block">
               <img
-                src="https://images.unsplash.com/photo-1614680376573-df3480f0c6ff?w=800&q=80"
+                src="https://dxbapps.com/blogimages/Discord.webp"
                 alt="Discord Bot Hosting"
                 className="absolute left-1/2 top-1/2 h-[112%] w-[112%] max-w-none -translate-x-1/2 -translate-y-1/2 object-cover transition-transform duration-500 ease-out will-change-transform group-hover:scale-110"
               />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#121214] via-[#121214]/55 to-transparent" />
-              <div className="pointer-events-none absolute inset-0 bg-[#5865F2]/25 mix-blend-multiply" />
             </div>
           </a>
         </div>
