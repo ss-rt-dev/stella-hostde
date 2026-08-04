@@ -11,7 +11,6 @@ import {
 } from "@/lib/proxmox";
 import { calcPricePerMonth, clampConfig, PRICING } from "@/lib/pricing";
 import { logActivity } from "@/lib/activity";
-import { Decimal } from "@prisma/client/runtime/library";
 
 export async function PATCH(
   req: Request,
@@ -113,9 +112,7 @@ export async function PATCH(
 
         await prisma.user.update({
           where: { id: user.id },
-          data: {
-            balance: new Decimal(Number(user.balance) - delta),
-          },
+          data: { balance: { decrement: delta } },
         });
       }
 
@@ -135,15 +132,11 @@ export async function PATCH(
         },
       });
 
-      try {
-        await logActivity({
-          userId: session.user.id,
-          action: "server.resize",
-          detail: `${server.name}: RAM ${curRam}→${nextRam} MB, SSD ${curDisk}→${nextDisk} GB, +${delta}€/Monat`,
-        });
-      } catch {
-        /* optional */
-      }
+      await logActivity({
+        userId: session.user.id,
+        action: "server.resize",
+        detail: `${server.name}: RAM ${curRam}→${nextRam} MB, SSD ${curDisk}→${nextDisk} GB, +${delta}€/Monat`,
+      });
 
       return NextResponse.json({
         success: true,
