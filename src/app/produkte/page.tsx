@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { SiteFooter } from "@/components/SiteFooter";
 
 export const metadata: Metadata = {
   title: "Produkte — Stella Host",
@@ -19,32 +20,20 @@ function NavIcon({ type }: { type: "produkte" | "warum" | "ablauf" | "faq" }) {
   if (type === "warum") {
     return (
       <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-        />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
       </svg>
     );
   }
   if (type === "ablauf") {
     return (
       <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-        />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
       </svg>
     );
   }
   return (
     <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-      />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   );
 }
@@ -68,44 +57,26 @@ export default async function ProduktePage() {
             Stella <span className="text-amber-400">Host</span>
           </a>
           <nav className="hidden items-center justify-center gap-0.5 md:flex">
-            <a
-              href="/produkte"
-              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-amber-300"
-            >
+            <a href="/produkte" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-amber-300">
               <NavIcon type="produkte" /> Produkte
             </a>
-            <a
-              href="/#warum"
-              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-amber-300"
-            >
+            <a href="/#warum" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-amber-300">
               <NavIcon type="warum" /> Warum Stella
             </a>
-            <a
-              href="/#ablauf"
-              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-amber-300"
-            >
+            <a href="/#ablauf" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-amber-300">
               <NavIcon type="ablauf" /> Ablauf
             </a>
-            <a
-              href="/#faq"
-              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-amber-300"
-            >
+            <a href="/#faq" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-amber-300">
               <NavIcon type="faq" /> FAQ
             </a>
           </nav>
           <div className="flex items-center justify-end gap-2">
             {!session && (
-              <a
-                href="/login"
-                className="hidden rounded-lg px-3 py-1.5 text-sm text-zinc-400 hover:text-white sm:inline"
-              >
+              <a href="/login" className="hidden rounded-lg px-3 py-1.5 text-sm text-zinc-400 hover:text-white sm:inline">
                 Anmelden
               </a>
             )}
-            <a
-              href={dashHref}
-              className="rounded-lg bg-amber-400 px-3.5 py-1.5 text-sm font-semibold text-black transition hover:bg-amber-300"
-            >
+            <a href={dashHref} className="rounded-lg bg-amber-400 px-3.5 py-1.5 text-sm font-semibold text-black transition hover:bg-amber-300">
               Dashboard
             </a>
           </div>
@@ -119,7 +90,6 @@ export default async function ProduktePage() {
         </p>
 
         <div className="mt-10 grid gap-5 lg:grid-cols-2">
-          {/* Minecraft */}
           <a
             href={ctaHref}
             className="group relative flex min-h-[240px] overflow-hidden rounded-2xl border border-white/10 bg-[#121214] transition hover:border-amber-500/40 hover:shadow-lg hover:shadow-amber-500/5"
@@ -129,19 +99,16 @@ export default async function ProduktePage() {
                 <span className="inline-flex rounded-md bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-400">
                   Beliebt
                 </span>
-                <h2 className="mt-3 text-lg font-semibold text-white sm:text-xl">
-                  Minecraft Server
-                </h2>
+                <h2 className="mt-3 text-lg font-semibold text-white sm:text-xl">Minecraft Server</h2>
                 <p className="mt-2 max-w-sm text-sm leading-relaxed text-zinc-400">
-                  Eigener LXC mit fester CPU, RAM und SSD. Paper, Mods oder Vanilla – du
-                  entscheidest im Dashboard.
+                  Eigener LXC mit fester CPU, RAM und SSD. Paper, Mods oder Vanilla – du entscheidest im Dashboard.
                 </p>
                 <p className="mt-3 text-xl font-bold text-amber-400">
                   2,50&nbsp;€
                   <span className="ml-1 text-sm font-normal text-zinc-500">/ Monat</span>
                 </p>
               </div>
-              <div className="mt-5 flex items-center gap-2">
+              <div className="mt-5">
                 <span className="rounded-lg bg-amber-400 px-3.5 py-1.5 text-xs font-semibold text-black transition group-hover:bg-amber-300">
                   Jetzt starten
                 </span>
@@ -157,7 +124,6 @@ export default async function ProduktePage() {
             </div>
           </a>
 
-          {/* Discord Bot */}
           <a
             href={ctaHref}
             className="group relative flex min-h-[240px] overflow-hidden rounded-2xl border border-white/10 bg-[#121214] transition hover:border-[#5865F2]/50 hover:shadow-lg hover:shadow-[#5865F2]/10"
@@ -167,9 +133,7 @@ export default async function ProduktePage() {
                 <span className="inline-flex rounded-md bg-[#5865F2]/15 px-2 py-0.5 text-[11px] font-medium text-[#a5b0ff]">
                   Bot-Hosting
                 </span>
-                <h2 className="mt-3 text-lg font-semibold text-white sm:text-xl">
-                  Discord Bot
-                </h2>
+                <h2 className="mt-3 text-lg font-semibold text-white sm:text-xl">Discord Bot</h2>
                 <p className="mt-2 max-w-sm text-sm leading-relaxed text-zinc-400">
                   Node.js oder Python – stabiler LXC für deinen Bot. 24/7 online, ohne deinen PC.
                 </p>
@@ -178,7 +142,7 @@ export default async function ProduktePage() {
                   <span className="ml-1 text-sm font-normal text-zinc-500">/ Monat</span>
                 </p>
               </div>
-              <div className="mt-5 flex items-center gap-2">
+              <div className="mt-5">
                 <span className="rounded-lg bg-amber-400 px-3.5 py-1.5 text-xs font-semibold text-black transition group-hover:bg-amber-300">
                   Jetzt starten
                 </span>
@@ -197,21 +161,7 @@ export default async function ProduktePage() {
         </div>
       </main>
 
-      <footer className="border-t border-white/5">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-xs text-zinc-500 sm:px-6">
-          <p>
-            Stella <span className="text-amber-400">Host</span> · 2026
-          </p>
-          <div className="flex gap-4">
-            <a href="/impressum" className="hover:text-zinc-300">
-              Impressum
-            </a>
-            <a href="/datenschutz" className="hover:text-zinc-300">
-              Datenschutz
-            </a>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

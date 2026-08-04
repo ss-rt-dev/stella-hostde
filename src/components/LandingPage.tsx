@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
+import { SiteFooter } from "@/components/SiteFooter";
 
 const PILLARS = [
   { kicker: "1", title: "Eigene LXC, keine geteilte Kiste", text: "Du bekommst feste CPU, RAM und SSD. Nicht das, was gerade übrig ist." },
@@ -284,15 +285,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer className="border-t border-white/5">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-xs text-zinc-500 sm:px-6">
-          <p>Stella <span className="text-amber-400">Host</span> · 2026</p>
-          <div className="flex gap-4">
-            <a href="/impressum" className="hover:text-zinc-300">Impressum</a>
-            <a href="/datenschutz" className="hover:text-zinc-300">Datenschutz</a>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
