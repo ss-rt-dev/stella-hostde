@@ -7,8 +7,13 @@ import { PageTransition } from "@/components/dashboard/PageTransition";
 import { isStaffRole } from "@/lib/roles";
 
 export const metadata: Metadata = {
-  title: "Stella Host Dashboard",
-  description: "Stella Host Team",
+  title: "Stella Host Team",
+  description: "Stella Host Team-Dashboard",
+  icons: {
+    icon: [{ url: "/admin-icon", type: "image/png" }],
+    shortcut: "/admin-icon",
+    apple: "/admin-icon",
+  },
 };
 
 export default async function AdminLayout({
