@@ -1,28 +1,31 @@
 /**
  * Monatspreise (EUR / Monat)
  * Host: 8 physische Kerne → max. 2 vCPU pro Server, Kapazitätslimit global
+ *
+ * Preis = Basis + CPU-Zuschlag + RAM + SSD (pro GB über dem Minimum)
  */
 export const PRICING = {
+  /** Basispreis (min. Config: 1 vCPU, 512 MB, 10 GB) */
   minPrice: 2.5,
-  maxPrice: 20,
-  /** Min. vCPU pro Server */
+  /** Deckel, falls Config extrem wird */
+  maxPrice: 35,
   minCpu: 1,
-  /** Max. vCPU pro Server (Host hat nur 8 Kerne) */
   maxCpu: 2,
   minRamMb: 512,
   maxRamMb: 16384,
   minDiskGb: 10,
   maxDiskGb: 100,
   billingDays: 30,
-  /** Physische Kerne des Proxmox-Hosts */
   hostCpuCores: 8,
-  /** Kerne fürs System freilassen */
   hostCpuReserve: 1,
-  /**
-   * Wie stark darf überbucht werden? 1.0 = streng, 1.5 = 50% Overcommit.
-   * Bei 8 Kernen, Reserve 1, Factor 1.5 → max. 10,5 ≈ 10 vCPU gesamt.
-   */
   cpuOvercommit: 1.25,
+
+  /** € pro zusätzlichem vCPU über minCpu */
+  pricePerExtraCpu: 2.0,
+  /** € pro GB RAM über minRam (512 MB = 0,5 GB) */
+  pricePerGbRam: 0.65,
+  /** € pro GB SSD über minDiskGb */
+  pricePerGbDisk: 0.12,
 } as const;
 
 /** Max. Summe vCPU über alle aktiven Server */
@@ -36,21 +39,21 @@ export function calcPricePerMonth(
   ramMb: number,
   diskGb: number
 ): number {
-  const cpuN =
-    (cpu - PRICING.minCpu) / Math.max(1, PRICING.maxCpu - PRICING.minCpu);
-  const ramN =
-    (ramMb - PRICING.minRamMb) / (PRICING.maxRamMb - PRICING.minRamMb);
-  const diskN =
-    (diskGb - PRICING.minDiskGb) / (PRICING.maxDiskGb - PRICING.minDiskGb);
+  const minRamGb = PRICING.minRamMb / 1024;
+  const ramGb = ramMb / 1024;
 
-  const score =
-    Math.min(1, Math.max(0, cpuN)) * 0.4 +
-    Math.min(1, Math.max(0, ramN)) * 0.4 +
-    Math.min(1, Math.max(0, diskN)) * 0.2;
+  const extraCpu = Math.max(0, cpu - PRICING.minCpu);
+  const extraRamGb = Math.max(0, ramGb - minRamGb);
+  const extraDiskGb = Math.max(0, diskGb - PRICING.minDiskGb);
 
   const raw =
-    PRICING.minPrice + score * (PRICING.maxPrice - PRICING.minPrice);
-  return Math.round(raw * 100) / 100;
+    PRICING.minPrice +
+    extraCpu * PRICING.pricePerExtraCpu +
+    extraRamGb * PRICING.pricePerGbRam +
+    extraDiskGb * PRICING.pricePerGbDisk;
+
+  const clamped = Math.min(PRICING.maxPrice, Math.max(PRICING.minPrice, raw));
+  return Math.round(clamped * 100) / 100;
 }
 
 export function calcPricePerHour(
