@@ -36,6 +36,7 @@ export default function ServersPage() {
   const [loading, setLoading] = useState(true);
   const [showConfig, setShowConfig] = useState(false);
   const configRef = useRef<HTMLDivElement>(null);
+  const expandRef = useRef<HTMLDivElement>(null);
 
   const [creating, setCreating] = useState(false);
   const [hostname, setHostname] = useState("");
@@ -56,12 +57,36 @@ export default function ServersPage() {
   const [setupNote, setSetupNote] = useState<string | null>(null);
   const [error, setError] = useState("");
 
+  // Erweitern
+  const [expandServer, setExpandServer] = useState<Server | null>(null);
+  const [expandRam, setExpandRam] = useState(2048);
+  const [expandDisk, setExpandDisk] = useState(20);
+  const [expanding, setExpanding] = useState(false);
+  const [expandError, setExpandError] = useState("");
+  const [expandOk, setExpandOk] = useState("");
+
   const basePrice = useMemo(
     () => calcPricePerMonth(cpu, ramMb, diskGb),
     [cpu, ramMb, diskGb]
   );
   const percent = discountInfo.valid ? discountInfo.percent : 0;
   const price = applyDiscountSync(basePrice, percent);
+
+  const expandDelta = useMemo(() => {
+    if (!expandServer) return 0;
+    const curCpu = expandServer.cpu ?? PRICING.minCpu;
+    const curRam = expandServer.ramMb ?? PRICING.minRamMb;
+    const curDisk = expandServer.diskGb ?? PRICING.minDiskGb;
+    const oldP = calcPricePerMonth(curCpu, curRam, curDisk);
+    const newP = calcPricePerMonth(curCpu, expandRam, expandDisk);
+    return Math.round((newP - oldP) * 100) / 100;
+  }, [expandServer, expandRam, expandDisk]);
+
+  const expandNewPrice = useMemo(() => {
+    if (!expandServer) return 0;
+    const curCpu = expandServer.cpu ?? PRICING.minCpu;
+    return calcPricePerMonth(curCpu, expandRam, expandDisk);
+  }, [expandServer, expandRam, expandDisk]);
 
   useEffect(() => {
     const code = discountCode.trim();
@@ -108,6 +133,17 @@ export default function ServersPage() {
     setShowConfig(true);
     setTimeout(() => {
       configRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  }
+
+  function openExpand(s: Server) {
+    setExpandServer(s);
+    setExpandRam(s.ramMb ?? PRICING.minRamMb);
+    setExpandDisk(s.diskGb ?? PRICING.minDiskGb);
+    setExpandError("");
+    setExpandOk("");
+    setTimeout(() => {
+      expandRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 50);
   }
 
@@ -169,6 +205,51 @@ export default function ServersPage() {
     }
   }
 
+  async function submitExpand(e: React.FormEvent) {
+    e.preventDefault();
+    if (!expandServer) return;
+    setExpanding(true);
+    setExpandError("");
+    setExpandOk("");
+    try {
+      const res = await fetch(`/api/servers/${expandServer.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "resize",
+          ramMb: expandRam,
+          diskGb: expandDisk,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setExpandError(data.error || `Fehler ${res.status}`);
+        return;
+      }
+      setExpandOk(
+        `Erweitert: ${formatCurrency(data.pricePerMonth)}/Monat` +
+          (data.extraPerMonth > 0
+            ? ` (+${formatCurrency(data.extraPerMonth)} Aufpreis)`
+            : "")
+      );
+      load();
+      setExpandServer((prev) =>
+        prev
+          ? {
+              ...prev,
+              ramMb: data.ramMb,
+              diskGb: data.diskGb,
+              pricePerHour: String(data.pricePerMonth),
+            }
+          : null
+      );
+    } catch (err: any) {
+      setExpandError(err?.message || "Netzwerkfehler");
+    } finally {
+      setExpanding(false);
+    }
+  }
+
   async function action(id: string, act: "start" | "stop" | "delete") {
     try {
       const method = act === "delete" ? "DELETE" : "PATCH";
@@ -213,7 +294,6 @@ export default function ServersPage() {
         )}
       </div>
 
-      {/* Server-Liste zuerst */}
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#121214]">
         <div className="border-b border-white/5 px-5 py-4">
           <h2 className="font-semibold text-white">Deine Server</h2>
@@ -277,6 +357,15 @@ export default function ServersPage() {
                       </Link>
                     </>
                   )}
+                  {(s.status === "RUNNING" || s.status === "STOPPED") && (
+                    <button
+                      type="button"
+                      onClick={() => openExpand(s)}
+                      className="rounded-lg bg-sky-500/15 px-3 py-1.5 text-xs font-medium text-sky-400"
+                    >
+                      Erweitern
+                    </button>
+                  )}
                   {s.status === "STOPPED" && (
                     <button
                       onClick={() => action(s.id, "start")}
@@ -309,7 +398,6 @@ export default function ServersPage() {
         )}
       </div>
 
-      {/* CTA unten */}
       {!showConfig && (
         <div className="rounded-2xl border border-amber-500/25 bg-gradient-to-br from-amber-500/10 to-[#121214] px-6 py-8 text-center">
           <h2 className="text-lg font-semibold text-white">
@@ -328,7 +416,6 @@ export default function ServersPage() {
         </div>
       )}
 
-      {/* Konfigurator */}
       {showConfig && (
         <div ref={configRef} className="page-slide-in scroll-mt-4">
           <form
@@ -565,6 +652,114 @@ export default function ServersPage() {
                 className="rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-6 py-2.5 text-sm font-semibold text-black disabled:opacity-50"
               >
                 {creating ? "Wird erstellt…" : "Server erstellen"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Erweitern – bleibt zusätzlich zum Erstellen-Panel */}
+      {expandServer && (
+        <div ref={expandRef} className="page-slide-in scroll-mt-4">
+          <form
+            onSubmit={submitExpand}
+            className="space-y-5 rounded-2xl border border-sky-500/25 bg-[#121214] p-5"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 className="font-semibold text-white">Server erweitern</h2>
+                <p className="text-xs text-zinc-500">
+                  {expandServer.name} · nur mehr RAM / SSD · Aufpreis pro Monat
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setExpandServer(null)}
+                className="text-xs text-zinc-500 hover:text-zinc-300"
+              >
+                Schließen
+              </button>
+            </div>
+
+            {expandError && (
+              <p className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">
+                {expandError}
+              </p>
+            )}
+            {expandOk && (
+              <p className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2.5 text-sm text-emerald-400">
+                {expandOk}
+              </p>
+            )}
+
+            <div>
+              <div className="mb-2 flex items-center justify-between text-sm">
+                <span className="text-zinc-400">RAM</span>
+                <span className="font-semibold text-sky-400">
+                  {expandRam >= 1024
+                    ? `${(expandRam / 1024).toFixed(expandRam % 1024 === 0 ? 0 : 1)} GB`
+                    : `${expandRam} MB`}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={expandServer.ramMb ?? PRICING.minRamMb}
+                max={PRICING.maxRamMb}
+                step={512}
+                value={expandRam}
+                onChange={(e) => setExpandRam(Number(e.target.value))}
+                className="w-full accent-sky-400"
+              />
+              <p className="mt-1 text-[11px] text-zinc-600">
+                Aktuell:{" "}
+                {(expandServer.ramMb ?? 0) >= 1024
+                  ? `${(expandServer.ramMb ?? 0) / 1024} GB`
+                  : `${expandServer.ramMb ?? 0} MB`}
+              </p>
+            </div>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between text-sm">
+                <span className="text-zinc-400">SSD</span>
+                <span className="font-semibold text-sky-400">{expandDisk} GB</span>
+              </div>
+              <input
+                type="range"
+                min={expandServer.diskGb ?? PRICING.minDiskGb}
+                max={PRICING.maxDiskGb}
+                step={10}
+                value={expandDisk}
+                onChange={(e) => setExpandDisk(Number(e.target.value))}
+                className="w-full accent-sky-400"
+              />
+              <p className="mt-1 text-[11px] text-zinc-600">
+                Aktuell: {expandServer.diskGb ?? "?"} GB
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sky-500/20 bg-sky-500/5 px-4 py-3">
+              <div>
+                <p className="text-xs text-zinc-500">Neuer Monatspreis</p>
+                <p className="text-2xl font-bold text-sky-400">
+                  {formatCurrency(expandNewPrice)}
+                  <span className="text-sm font-normal text-zinc-500">/Monat</span>
+                </p>
+                {expandDelta > 0 && (
+                  <p className="text-xs text-amber-400">
+                    +{formatCurrency(expandDelta)} Aufpreis (wird vom Guthaben
+                    abgezogen)
+                  </p>
+                )}
+                {expandDelta <= 0 && (
+                  <p className="text-xs text-zinc-500">Keine Änderung</p>
+                )}
+              </div>
+              <button
+                type="submit"
+                disabled={expanding || expandDelta <= 0}
+                className="rounded-xl bg-sky-500 px-6 py-2.5 text-sm font-semibold text-black disabled:opacity-50"
+              >
+                {expanding ? "Wird erweitert…" : "Erweiterung buchen"}
               </button>
             </div>
           </form>
