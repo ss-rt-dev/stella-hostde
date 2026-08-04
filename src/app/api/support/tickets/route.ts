@@ -12,6 +12,9 @@ const createSchema = z
     type: z.enum(["GENERAL", "SERVER", "TEAM_APPLICATION"]),
     discordName: z.string().max(64).optional(),
     applyRole: z.string().max(64).optional(),
+    realName: z.string().max(80).optional(),
+    age: z.union([z.number(), z.string()]).optional(),
+    availability: z.string().max(500).optional(),
     aboutMe: z.string().max(2000).optional(),
     whyRole: z.string().max(2000).optional(),
     whyBetter: z.string().max(2000).optional(),
@@ -31,6 +34,31 @@ const createSchema = z
           code: z.ZodIssueCode.custom,
           message: "Bitte eine Rolle wählen",
           path: ["applyRole"],
+        });
+      }
+      if (!data.realName?.trim() || data.realName.trim().length < 2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Bitte deinen Namen angeben",
+          path: ["realName"],
+        });
+      }
+      const ageNum =
+        typeof data.age === "number"
+          ? data.age
+          : parseInt(String(data.age ?? "").trim(), 10);
+      if (!Number.isFinite(ageNum) || ageNum < 13 || ageNum > 99) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Bitte ein gültiges Alter angeben (13–99)",
+          path: ["age"],
+        });
+      }
+      if (!data.availability?.trim() || data.availability.trim().length < 5) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Bitte deine Verfügbarkeit angeben",
+          path: ["availability"],
         });
       }
       const min = 30;
@@ -76,12 +104,20 @@ const createSchema = z
   });
 
 function buildApplicationDescription(data: {
+  realName: string;
+  age: number;
+  availability: string;
   aboutMe: string;
   whyRole: string;
   whyBetter: string;
   contribution: string;
 }) {
   return [
+    "【 Persönliche Angaben 】",
+    `Name: ${data.realName.trim()}`,
+    `Alter: ${data.age}`,
+    `Verfügbarkeit: ${data.availability.trim()}`,
+    "",
     "【 Über mich 】",
     data.aboutMe.trim(),
     "",
@@ -134,14 +170,24 @@ export async function POST(req: Request) {
     const discordName = isApp ? parsed.discordName!.trim() : null;
     const applyRole = isApp ? parsed.applyRole!.trim() : null;
 
-    const description = isApp
-      ? buildApplicationDescription({
-          aboutMe: parsed.aboutMe!,
-          whyRole: parsed.whyRole!,
-          whyBetter: parsed.whyBetter!,
-          contribution: parsed.contribution!,
-        })
-      : parsed.description!.trim();
+    let description: string;
+    if (isApp) {
+      const ageNum =
+        typeof parsed.age === "number"
+          ? parsed.age
+          : parseInt(String(parsed.age).trim(), 10);
+      description = buildApplicationDescription({
+        realName: parsed.realName!,
+        age: ageNum,
+        availability: parsed.availability!,
+        aboutMe: parsed.aboutMe!,
+        whyRole: parsed.whyRole!,
+        whyBetter: parsed.whyBetter!,
+        contribution: parsed.contribution!,
+      });
+    } else {
+      description = parsed.description!.trim();
+    }
 
     const subject = isApp
       ? `Team-Bewerbung · ${applyRole}`

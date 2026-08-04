@@ -37,6 +37,9 @@ export default function SupportPage() {
   const [type, setType] = useState<TicketType>("GENERAL");
   const [discordName, setDiscordName] = useState("");
   const [applyRole, setApplyRole] = useState("");
+  const [realName, setRealName] = useState("");
+  const [age, setAge] = useState("");
+  const [availability, setAvailability] = useState("");
   const [aboutMe, setAboutMe] = useState("");
   const [whyRole, setWhyRole] = useState("");
   const [whyBetter, setWhyBetter] = useState("");
@@ -62,6 +65,9 @@ export default function SupportPage() {
   function resetAppFields() {
     setDiscordName("");
     setApplyRole("");
+    setRealName("");
+    setAge("");
+    setAvailability("");
     setAboutMe("");
     setWhyRole("");
     setWhyBetter("");
@@ -75,6 +81,17 @@ export default function SupportPage() {
     setOk("");
 
     if (type === "TEAM_APPLICATION") {
+      if (!realName.trim() || realName.trim().length < 2) {
+        setError("Bitte deinen Namen angeben");
+        setCreating(false);
+        return;
+      }
+      const ageNum = parseInt(age.trim(), 10);
+      if (!Number.isFinite(ageNum) || ageNum < 13 || ageNum > 99) {
+        setError("Bitte ein gültiges Alter angeben (13–99)");
+        setCreating(false);
+        return;
+      }
       if (!discordName.trim()) {
         setError("Discord-Name ist Pflicht");
         setCreating(false);
@@ -82,6 +99,11 @@ export default function SupportPage() {
       }
       if (!applyRole.trim()) {
         setError("Bitte wähle, als was du dich bewirbst");
+        setCreating(false);
+        return;
+      }
+      if (availability.trim().length < 5) {
+        setError("Bitte deine Verfügbarkeit angeben");
         setCreating(false);
         return;
       }
@@ -115,8 +137,11 @@ export default function SupportPage() {
           type === "TEAM_APPLICATION"
             ? {
                 type,
+                realName: realName.trim(),
+                age: parseInt(age.trim(), 10),
                 discordName: discordName.trim(),
                 applyRole: applyRole.trim(),
+                availability: availability.trim(),
                 aboutMe: aboutMe.trim(),
                 whyRole: whyRole.trim(),
                 whyBetter: whyBetter.trim(),
@@ -232,6 +257,36 @@ export default function SupportPage() {
 
         {isApp && (
           <div className="space-y-4 rounded-xl border border-purple-500/20 bg-black/30 p-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-zinc-500">
+                  Name <span className="text-red-400">*</span>
+                </label>
+                <input
+                  required
+                  value={realName}
+                  onChange={(e) => setRealName(e.target.value)}
+                  placeholder="Vorname / Anzeigename"
+                  className={fieldCls}
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-zinc-500">
+                  Alter <span className="text-red-400">*</span>
+                </label>
+                <input
+                  required
+                  type="number"
+                  min={13}
+                  max={99}
+                  value={age}
+                  onChange={(e) => setAge(e.target.value)}
+                  placeholder="z.B. 18"
+                  className={fieldCls}
+                />
+              </div>
+            </div>
+
             <div>
               <label className="mb-1.5 block text-xs font-medium text-zinc-500">
                 Discord-Name <span className="text-red-400">*</span>
@@ -269,11 +324,26 @@ export default function SupportPage() {
 
             <div>
               <label className="mb-1.5 block text-xs font-medium text-zinc-500">
+                Verfügbarkeit <span className="text-red-400">*</span>
+              </label>
+              <p className="mb-1.5 text-[11px] text-zinc-600">
+                z.B. Wochentage, Uhrzeiten, Stunden pro Woche
+              </p>
+              <input
+                required
+                value={availability}
+                onChange={(e) => setAvailability(e.target.value)}
+                placeholder="z.B. Mo–Fr abends, ca. 10 Std./Woche"
+                className={fieldCls}
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-zinc-500">
                 Über dich <span className="text-red-400">*</span>
               </label>
               <p className="mb-1.5 text-[11px] text-zinc-600">
-                Wer bist du? Erfahrung, Alter (optional), Verfügbarkeit,
-                bisherige Projekte…
+                Erfahrung, bisherige Projekte, Skills…
               </p>
               <textarea
                 required
@@ -293,16 +363,13 @@ export default function SupportPage() {
               <label className="mb-1.5 block text-xs font-medium text-zinc-500">
                 Warum willst du diese Rolle? <span className="text-red-400">*</span>
               </label>
-              <p className="mb-1.5 text-[11px] text-zinc-600">
-                Motivation: warum gerade diese Position bei Stella Host?
-              </p>
               <textarea
                 required
                 rows={3}
                 minLength={30}
                 value={whyRole}
                 onChange={(e) => setWhyRole(e.target.value)}
-                placeholder="Warum genau diese Rolle…"
+                placeholder="Warum genau diese Rolle bei Stella Host…"
                 className={`${fieldCls} resize-y`}
               />
               <p className="mt-1 text-[10px] text-zinc-600">
@@ -315,16 +382,13 @@ export default function SupportPage() {
                 Warum bist du besser / geeignet?{" "}
                 <span className="text-red-400">*</span>
               </label>
-              <p className="mb-1.5 text-[11px] text-zinc-600">
-                Was unterscheidet dich? Stärken, Skills, Zuverlässigkeit…
-              </p>
               <textarea
                 required
                 rows={3}
                 minLength={30}
                 value={whyBetter}
                 onChange={(e) => setWhyBetter(e.target.value)}
-                placeholder="Warum du die bessere Wahl bist…"
+                placeholder="Stärken, Skills, Zuverlässigkeit…"
                 className={`${fieldCls} resize-y`}
               />
               <p className="mt-1 text-[10px] text-zinc-600">
@@ -337,16 +401,13 @@ export default function SupportPage() {
                 Was willst du verbessern oder woran helfen?{" "}
                 <span className="text-red-400">*</span>
               </label>
-              <p className="mb-1.5 text-[11px] text-zinc-600">
-                Konkrete Ideen: Support, Community, Technik, Design…
-              </p>
               <textarea
                 required
                 rows={3}
                 minLength={30}
                 value={contribution}
                 onChange={(e) => setContribution(e.target.value)}
-                placeholder="Was du anpacken und verbessern würdest…"
+                placeholder="Konkrete Ideen für Support, Community, Technik…"
                 className={`${fieldCls} resize-y`}
               />
               <p className="mt-1 text-[10px] text-zinc-600">
