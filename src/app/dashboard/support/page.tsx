@@ -11,6 +11,7 @@ interface Ticket {
   discordName?: string | null;
   applyRole?: string | null;
   createdAt: string;
+  user?: { name: string | null; email: string };
   _count?: { messages: number };
 }
 
@@ -50,7 +51,15 @@ export default function SupportPage() {
   async function load() {
     try {
       const res = await fetch("/api/support/tickets");
-      if (res.ok) setTickets(await res.json());
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Tickets konnten nicht geladen werden");
+        setTickets([]);
+      } else if (Array.isArray(data)) {
+        setTickets(data);
+      } else {
+        setTickets(data.tickets || []);
+      }
     } catch {
       setError("Tickets konnten nicht geladen werden");
     }
@@ -106,7 +115,12 @@ export default function SupportPage() {
         setCreating(false);
         return;
       }
-      if (aboutMe.trim().length < 30 || whyRole.trim().length < 30 || whyBetter.trim().length < 30 || contribution.trim().length < 30) {
+      if (
+        aboutMe.trim().length < 30 ||
+        whyRole.trim().length < 30 ||
+        whyBetter.trim().length < 30 ||
+        contribution.trim().length < 30
+      ) {
         setError("Bitte alle Bewerbungstexte ausführlich ausfüllen (min. 30 Zeichen)");
         setCreating(false);
         return;
@@ -135,7 +149,8 @@ export default function SupportPage() {
                 type,
                 subject,
                 description,
-                discordName: type === "DISCORD" ? discordName.trim() || undefined : undefined,
+                discordName:
+                  type === "DISCORD" ? discordName.trim() || undefined : undefined,
               }
         ),
       });
@@ -148,9 +163,7 @@ export default function SupportPage() {
       setDescription("");
       resetAppFields();
       setOk(
-        type === "TEAM_APPLICATION"
-          ? "Bewerbung eingereicht."
-          : "Ticket erstellt."
+        type === "TEAM_APPLICATION" ? "Bewerbung eingereicht." : "Ticket erstellt."
       );
       load();
     } catch {
@@ -177,7 +190,7 @@ export default function SupportPage() {
       <div>
         <h1 className="text-xl font-bold text-white sm:text-2xl">Support</h1>
         <p className="text-sm text-zinc-500">
-          Unabhängig vom Team-Workspace · Hilfe, Discord, Bewerbungen
+          Nur für dein aktuelles Team · Tickets sind team-intern
         </p>
       </div>
 
@@ -189,10 +202,16 @@ export default function SupportPage() {
             : "border-white/10 bg-[#121214]"
         }`}
       >
-        <h2 className="font-semibold text-white">{isApp ? "Team-Bewerbung" : "Neues Ticket"}</h2>
+        <h2 className="font-semibold text-white">
+          {isApp ? "Team-Bewerbung" : "Neues Ticket"}
+        </h2>
 
-        {error && <p className="rounded-xl bg-red-500/10 px-4 py-2 text-sm text-red-400">{error}</p>}
-        {ok && <p className="rounded-xl bg-emerald-500/10 px-4 py-2 text-sm text-emerald-400">{ok}</p>}
+        {error && (
+          <p className="rounded-xl bg-red-500/10 px-4 py-2 text-sm text-red-400">{error}</p>
+        )}
+        {ok && (
+          <p className="rounded-xl bg-emerald-500/10 px-4 py-2 text-sm text-emerald-400">{ok}</p>
+        )}
 
         <div>
           <label className="mb-1.5 block text-xs font-medium text-zinc-500">Art</label>
@@ -227,16 +246,35 @@ export default function SupportPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1.5 block text-xs text-zinc-500">Name *</label>
-                <input required value={realName} onChange={(e) => setRealName(e.target.value)} className={fieldCls} />
+                <input
+                  required
+                  value={realName}
+                  onChange={(e) => setRealName(e.target.value)}
+                  className={fieldCls}
+                />
               </div>
               <div>
                 <label className="mb-1.5 block text-xs text-zinc-500">Alter *</label>
-                <input required type="number" min={13} max={99} value={age} onChange={(e) => setAge(e.target.value)} className={fieldCls} />
+                <input
+                  required
+                  type="number"
+                  min={13}
+                  max={99}
+                  value={age}
+                  onChange={(e) => setAge(e.target.value)}
+                  className={fieldCls}
+                />
               </div>
             </div>
             <div>
               <label className="mb-1.5 block text-xs text-zinc-500">Discord-Name *</label>
-              <input required value={discordName} onChange={(e) => setDiscordName(e.target.value)} placeholder="username" className={fieldCls} />
+              <input
+                required
+                value={discordName}
+                onChange={(e) => setDiscordName(e.target.value)}
+                placeholder="username"
+                className={fieldCls}
+              />
             </div>
             <div>
               <label className="mb-1.5 block text-xs text-zinc-500">Bewerbung als *</label>
@@ -247,7 +285,9 @@ export default function SupportPage() {
                     type="button"
                     onClick={() => setApplyRole(role)}
                     className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-                      applyRole === role ? "bg-purple-500 text-white" : "bg-white/5 text-zinc-400"
+                      applyRole === role
+                        ? "bg-purple-500 text-white"
+                        : "bg-white/5 text-zinc-400"
                     }`}
                   >
                     {role}
@@ -257,7 +297,12 @@ export default function SupportPage() {
             </div>
             <div>
               <label className="mb-1.5 block text-xs text-zinc-500">Verfügbarkeit *</label>
-              <input required value={availability} onChange={(e) => setAvailability(e.target.value)} className={fieldCls} />
+              <input
+                required
+                value={availability}
+                onChange={(e) => setAvailability(e.target.value)}
+                className={fieldCls}
+              />
             </div>
             {(
               [
@@ -269,7 +314,14 @@ export default function SupportPage() {
             ).map(([label, val, set]) => (
               <div key={label}>
                 <label className="mb-1.5 block text-xs text-zinc-500">{label} *</label>
-                <textarea required rows={3} minLength={30} value={val} onChange={(e) => set(e.target.value)} className={`${fieldCls} resize-y`} />
+                <textarea
+                  required
+                  rows={3}
+                  minLength={30}
+                  value={val}
+                  onChange={(e) => set(e.target.value)}
+                  className={`${fieldCls} resize-y`}
+                />
               </div>
             ))}
           </div>
@@ -279,17 +331,35 @@ export default function SupportPage() {
           <>
             {type === "DISCORD" && (
               <div>
-                <label className="mb-1.5 block text-xs text-zinc-500">Discord-Name (optional)</label>
-                <input value={discordName} onChange={(e) => setDiscordName(e.target.value)} placeholder="username" className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/50" />
+                <label className="mb-1.5 block text-xs text-zinc-500">
+                  Discord-Name (optional)
+                </label>
+                <input
+                  value={discordName}
+                  onChange={(e) => setDiscordName(e.target.value)}
+                  placeholder="username"
+                  className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/50"
+                />
               </div>
             )}
             <div>
               <label className="mb-1.5 block text-xs text-zinc-500">Betreff</label>
-              <input required value={subject} onChange={(e) => setSubject(e.target.value)} className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/50" />
+              <input
+                required
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/50"
+              />
             </div>
             <div>
               <label className="mb-1.5 block text-xs text-zinc-500">Beschreibung</label>
-              <textarea required rows={4} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full resize-y rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/50" />
+              <textarea
+                required
+                rows={4}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full resize-y rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/50"
+              />
             </div>
           </>
         )}
@@ -307,7 +377,8 @@ export default function SupportPage() {
 
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#121214]">
         <div className="border-b border-white/5 px-5 py-4">
-          <h2 className="font-semibold text-white">Deine Anfragen</h2>
+          <h2 className="font-semibold text-white">Team-Tickets</h2>
+          <p className="text-xs text-zinc-500">Nur sichtbar in diesem Team</p>
         </div>
         {loading ? (
           <p className="px-5 py-8 text-sm text-zinc-500">Lade…</p>
@@ -324,14 +395,27 @@ export default function SupportPage() {
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium text-zinc-200">{t.subject}</span>
-                    <span className={`rounded-full px-2 py-0.5 text-xs ${t.status === "OPEN" ? "bg-emerald-500/15 text-emerald-400" : "bg-zinc-500/15 text-zinc-400"}`}>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs ${
+                        t.status === "OPEN"
+                          ? "bg-emerald-500/15 text-emerald-400"
+                          : "bg-zinc-500/15 text-zinc-400"
+                      }`}
+                    >
                       {t.status === "OPEN" ? "Offen" : "Geschlossen"}
                     </span>
                     <span className="rounded-full bg-white/5 px-2 py-0.5 text-xs text-zinc-400">
-                      {t.type === "TEAM_APPLICATION" ? "Bewerbung" : t.type === "DISCORD" ? "Discord" : "Support"}
+                      {t.type === "TEAM_APPLICATION"
+                        ? "Bewerbung"
+                        : t.type === "DISCORD"
+                          ? "Discord"
+                          : "Support"}
                     </span>
                   </div>
-                  <p className="mt-0.5 text-xs text-zinc-500">{fmt(t.createdAt)}</p>
+                  <p className="mt-0.5 text-xs text-zinc-500">
+                    {fmt(t.createdAt)}
+                    {t.user ? ` · ${t.user.name || t.user.email}` : ""}
+                  </p>
                 </div>
                 <span className="text-xs text-amber-400">Öffnen →</span>
               </Link>
