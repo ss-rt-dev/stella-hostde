@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 type Member = {
   id: string;
@@ -18,15 +19,20 @@ const ROLE_COLOR: Record<string, string> = {
   MEMBER: "#71717a",
 };
 
-export default function TeamPage() {
+export default function TeamMembersPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [canManage, setCanManage] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetch("/api/team/members")
-      .then((r) => r.json())
-      .then((d) => {
+      .then(async (r) => {
+        const d = await r.json();
+        if (!r.ok) {
+          setError(d.error || "Fehler");
+          return;
+        }
         setMembers(d.members || []);
         setCanManage(Boolean(d.canManage));
       })
@@ -35,14 +41,31 @@ export default function TeamPage() {
 
   if (loading) return <p className="text-zinc-500">Laden…</p>;
 
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-8 text-center">
+        <p className="text-sm text-red-400">{error}</p>
+        <Link href="/dashboard/teams" className="mt-3 inline-block text-sm text-amber-400">
+          Team wählen
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-white sm:text-2xl">Mitglieder</h1>
-        <p className="text-sm text-zinc-500">
-          Nur Mitglieder dieses Teams · {members.length} Personen
-          {canManage ? " · du kannst verwalten" : ""}
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-white sm:text-2xl">Mitglieder</h1>
+          <p className="text-sm text-zinc-500">
+            Nur dieses Team · {members.length} Person{members.length === 1 ? "" : "en"}
+          </p>
+        </div>
+        {canManage && (
+          <p className="text-xs text-zinc-500">
+            Einladungscode siehst du auf der Übersicht
+          </p>
+        )}
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#121214]">

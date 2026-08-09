@@ -6,7 +6,6 @@ import { authOptions } from "@/lib/auth";
 import { DashboardNav } from "@/components/dashboard/Nav";
 import { PageTransition } from "@/components/dashboard/PageTransition";
 import { getUserMemberships, resolveActiveTeamId } from "@/lib/teams";
-import { prisma } from "@/lib/db";
 
 export const metadata: Metadata = {
   title: "Stella Team Dashboard",
@@ -27,32 +26,25 @@ export default async function DashboardLayout({
   if (!session) redirect("/login");
 
   const h = await headers();
-  const path = h.get("x-pathname") || h.get("x-invoke-path") || "";
-  // Fallback: next url header
-  const url = h.get("x-url") || h.get("referer") || "";
-  const isOnboarding =
-    path.includes("/dashboard/onboarding") ||
-    path.includes("/dashboard/teams") ||
-    url.includes("/dashboard/onboarding") ||
-    url.includes("/dashboard/teams");
+  const path = h.get("x-pathname") || "";
+  const isSetup =
+    path === "/dashboard/onboarding" ||
+    path.startsWith("/dashboard/onboarding/") ||
+    path === "/dashboard/teams" ||
+    path.startsWith("/dashboard/teams/");
 
   const memberships = await getUserMemberships(session.user.id);
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { onboardingDone: true },
-  });
 
-  // Kein Team → Onboarding (außer schon dort)
-  if (memberships.length === 0 && !isOnboarding) {
+  // Kein Team → Onboarding (Einladungscode oder Team erstellen)
+  if (memberships.length === 0 && !isSetup) {
     redirect("/dashboard/onboarding");
   }
 
-  // Teams vorhanden aber keins gewählt → Team-Auswahl
-  const activeTeamId = memberships.length
-    ? await resolveActiveTeamId(session.user.id)
-    : null;
+  const activeTeamId =
+    memberships.length > 0 ? await resolveActiveTeamId(session.user.id) : null;
 
-  if (memberships.length > 0 && !activeTeamId && !isOnboarding) {
+  // Teams vorhanden, aber keins aktiv → Auswahl
+  if (memberships.length > 0 && !activeTeamId && !isSetup) {
     redirect("/dashboard/teams");
   }
 
@@ -60,6 +52,7 @@ export default async function DashboardLayout({
     ? memberships.find((m) => m.teamId === activeTeamId)
     : null;
 
+  // Setup-Seiten ohne volle Nav-Sidebar-Team-Kontext (immer Nav, aber ohne aktives Team)
   return (
     <div className="min-h-screen bg-[#0a0a0c] text-zinc-100">
       <DashboardNav
@@ -79,6 +72,7 @@ export default async function DashboardLayout({
             : null
         }
         teamCount={memberships.length}
+        setupMode={isSetup || memberships.length === 0}
       />
       <main className="lg:pl-[240px]">
         <div className="mx-auto max-w-[1100px] px-4 py-5 pb-20 lg:px-6 lg:py-6 lg:pb-8">

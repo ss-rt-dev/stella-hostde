@@ -10,8 +10,12 @@ const workspaceLinks = [
   { href: "/dashboard/todos", label: "Todos", icon: "check" },
   { href: "/dashboard/team", label: "Mitglieder", icon: "users" },
   { href: "/dashboard/board", label: "Board", icon: "board" },
+];
+
+const accountLinks = [
   { href: "/dashboard/support", label: "Support", icon: "support" },
   { href: "/dashboard/account", label: "Konto", icon: "user" },
+  { href: "/dashboard/teams", label: "Meine Teams", icon: "switch" },
 ];
 
 function Icon({ type }: { type: string }) {
@@ -52,6 +56,12 @@ function Icon({ type }: { type: string }) {
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
       </svg>
     );
+  if (type === "switch")
+    return (
+      <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+      </svg>
+    );
   return null;
 }
 
@@ -61,6 +71,7 @@ export function DashboardNav({
   user,
   activeTeam,
   teamCount = 0,
+  setupMode = false,
 }: {
   user: {
     name?: string | null;
@@ -74,6 +85,7 @@ export function DashboardNav({
     inviteCode?: string;
   } | null;
   teamCount?: number;
+  setupMode?: boolean;
 }) {
   const pathname = usePathname();
 
@@ -92,10 +104,15 @@ export function DashboardNav({
           </span>
         </div>
 
-        {activeTeam && (
+        {activeTeam && !setupMode && (
           <div className="border-b border-white/10 px-4 py-3">
             <p className="truncate text-sm font-medium text-white">{activeTeam.name}</p>
             <p className="text-[11px] text-zinc-500">{activeTeam.role}</p>
+            {activeTeam.inviteCode && (
+              <p className="mt-1 font-mono text-[10px] tracking-wider text-amber-400/80">
+                {activeTeam.inviteCode}
+              </p>
+            )}
             <Link
               href="/dashboard/teams"
               className="mt-1.5 inline-block text-[11px] text-amber-400 hover:underline"
@@ -106,10 +123,35 @@ export function DashboardNav({
         )}
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-5">
-          <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
-            Workspace
+          {!setupMode && (
+            <>
+              <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
+                Workspace
+              </p>
+              {workspaceLinks.map((l) => {
+                const active = isActive(l.href);
+                return (
+                  <Link
+                    key={l.href}
+                    href={l.href}
+                    className={`nav-link group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition ${
+                      active
+                        ? "active bg-amber-500/15 font-medium text-amber-400 ring-1 ring-amber-500/25"
+                        : "text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100"
+                    }`}
+                  >
+                    <Icon type={l.icon} />
+                    {l.label}
+                  </Link>
+                );
+              })}
+            </>
+          )}
+
+          <p className="mb-2 mt-5 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
+            Account
           </p>
-          {workspaceLinks.map((l) => {
+          {accountLinks.map((l) => {
             const active = isActive(l.href);
             return (
               <Link
@@ -148,7 +190,7 @@ export function DashboardNav({
       </aside>
 
       <header className="glass-strong sticky top-0 z-40 flex items-center justify-between px-4 py-3 lg:hidden">
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <Link href={setupMode ? "/dashboard/teams" : "/dashboard"} className="flex items-center gap-2">
           <Image src={LOGO} alt="Stella" width={28} height={28} className="h-7 w-7 object-contain" unoptimized />
           <span className="font-semibold text-white">
             {activeTeam?.name || (
@@ -163,28 +205,30 @@ export function DashboardNav({
         </Link>
       </header>
 
-      <nav className="glass-strong fixed inset-x-0 bottom-0 z-40 flex lg:hidden">
-        {[
-          { href: "/dashboard", label: "Home", icon: "home" },
-          { href: "/dashboard/todos", label: "Todos", icon: "check" },
-          { href: "/dashboard/team", label: "Team", icon: "users" },
-          { href: "/dashboard/support", label: "Support", icon: "support" },
-        ].map((l) => {
-          const active = isActive(l.href);
-          return (
-            <Link
-              key={l.href}
-              href={l.href}
-              className={`nav-link flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-[10px] ${
-                active ? "active text-amber-400" : "text-zinc-500"
-              }`}
-            >
-              <Icon type={l.icon} />
-              {l.label}
-            </Link>
-          );
-        })}
-      </nav>
+      {!setupMode && (
+        <nav className="glass-strong fixed inset-x-0 bottom-0 z-40 flex lg:hidden">
+          {[
+            { href: "/dashboard", label: "Home", icon: "home" },
+            { href: "/dashboard/todos", label: "Todos", icon: "check" },
+            { href: "/dashboard/team", label: "Team", icon: "users" },
+            { href: "/dashboard/support", label: "Support", icon: "support" },
+          ].map((l) => {
+            const active = isActive(l.href);
+            return (
+              <Link
+                key={l.href}
+                href={l.href}
+                className={`nav-link flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-[10px] ${
+                  active ? "active text-amber-400" : "text-zinc-500"
+                }`}
+              >
+                <Icon type={l.icon} />
+                {l.label}
+              </Link>
+            );
+          })}
+        </nav>
+      )}
     </>
   );
 }
