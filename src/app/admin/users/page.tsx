@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { ROLES, ROLE_LABELS, type AppRole, roleLabel, roleColor } from "@/lib/roles";
 
@@ -24,6 +25,14 @@ interface Activity {
   createdAt: string;
 }
 
+interface UserTeam {
+  id: string;
+  name: string;
+  inviteCode: string;
+  role: string;
+  joinedAt: string;
+}
+
 interface User {
   id: string;
   email: string;
@@ -33,9 +42,16 @@ interface User {
   createdAt: string;
   lastLoginAt: string | null;
   servers: Server[];
+  teams?: UserTeam[];
   activities?: Activity[];
   activityCount?: number;
 }
+
+const TEAM_ROLE_LABEL: Record<string, string> = {
+  OWNER: "Owner",
+  ADMIN: "Admin",
+  MEMBER: "Member",
+};
 
 function fmtDate(iso: string | null | undefined) {
   if (!iso) return "Noch nie";
@@ -77,13 +93,7 @@ export default function AdminUsersPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [creditAmount, setCreditAmount] = useState("10");
-  const [hostname, setHostname] = useState("");
-  const [cpu, setCpu] = useState(2);
-  const [ramMb, setRamMb] = useState(2048);
-  const [diskGb, setDiskGb] = useState(20);
-  const [free, setFree] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [rootPw, setRootPw] = useState<string | null>(null);
 
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
@@ -122,7 +132,6 @@ export default function AdminUsersPage() {
     setPassword("");
     setMsg("");
     setError("");
-    setRootPw(null);
   }
 
   async function createUser(e: React.FormEvent) {
@@ -157,17 +166,10 @@ export default function AdminUsersPage() {
 
   async function deleteUser() {
     if (!selected) return;
-    if (
-      !confirm(
-        `Nutzer ${selected.email} wirklich löschen? Server werden als gelöscht markiert.`
-      )
-    )
-      return;
+    if (!confirm(`Nutzer ${selected.email} wirklich löschen?`)) return;
     setBusy(true);
     setError("");
-    const res = await fetch(`/api/admin/users/${selected.id}`, {
-      method: "DELETE",
-    });
+    const res = await fetch(`/api/admin/users/${selected.id}`, { method: "DELETE" });
     const data = await res.json();
     setBusy(false);
     if (!res.ok) {
@@ -280,50 +282,6 @@ export default function AdminUsersPage() {
     load();
   }
 
-  async function assignServer(e: React.FormEvent) {
-    e.preventDefault();
-    if (!selected) return;
-    setBusy(true);
-    setError("");
-    setRootPw(null);
-    const res = await fetch("/api/admin/servers", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId: selected.id,
-        hostname,
-        cpu,
-        ramMb,
-        diskGb,
-        free,
-      }),
-    });
-    const data = await res.json();
-    setBusy(false);
-    if (!res.ok) {
-      setError(data.error || "Fehler");
-      return;
-    }
-    setRootPw(data.rootPassword);
-    setMsg(`Server ${data.hostname} zugewiesen (VMID ${data.vmid})`);
-    setHostname("");
-    load();
-  }
-
-  async function cancelServer(serverId: string) {
-    if (!confirm("Server wirklich kündigen/löschen?")) return;
-    setBusy(true);
-    const res = await fetch(`/api/admin/servers/${serverId}`, { method: "DELETE" });
-    const data = await res.json();
-    setBusy(false);
-    if (!res.ok) {
-      setError(data.error || "Fehler");
-      return;
-    }
-    setMsg("Server gekündigt");
-    load();
-  }
-
   if (loading) {
     return <p className="text-zinc-500">Lade Nutzer…</p>;
   }
@@ -333,9 +291,7 @@ export default function AdminUsersPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-white sm:text-2xl">Nutzer</h1>
-          <p className="text-sm text-zinc-500">
-            Login, Aktivität, Guthaben, Server, Rollen
-          </p>
+          <p className="text-sm text-zinc-500">Accounts, Teams, Rollen, Aktivität</p>
         </div>
         <button
           type="button"
@@ -406,12 +362,12 @@ export default function AdminUsersPage() {
         </form>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
-        <div className="rounded-2xl border border-white/10 bg-[#121214] overflow-hidden max-h-[70vh] flex flex-col">
+      <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
+        <div className="flex max-h-[70vh] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#121214]">
           <div className="border-b border-white/5 px-4 py-3 text-sm font-semibold text-zinc-300">
             Kunden ({users.length})
           </div>
-          <div className="overflow-y-auto flex-1">
+          <div className="flex-1 overflow-y-auto">
             {users.map((u) => (
               <button
                 key={u.id}
@@ -419,7 +375,7 @@ export default function AdminUsersPage() {
                 onClick={() => selectUser(u)}
                 className={`w-full border-b border-white/5 px-4 py-3 text-left transition ${
                   selected?.id === u.id
-                    ? "bg-amber-500/10 border-l-2 border-l-amber-400"
+                    ? "border-l-2 border-l-amber-400 bg-amber-500/10"
                     : "hover:bg-white/[0.03]"
                 }`}
               >
@@ -433,13 +389,27 @@ export default function AdminUsersPage() {
                   </span>
                 </p>
                 <p className="truncate text-xs text-zinc-500">{u.email}</p>
-                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]">
-                  <span className="text-amber-400/80">{u.balance.toFixed(2)} €</span>
-                  <span className="text-zinc-600">·</span>
-                  <span className="text-zinc-500" title={fmtDate(u.lastLoginAt)}>
-                    Login: {relativeLogin(u.lastLoginAt)}
-                  </span>
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {(u.teams || []).length === 0 ? (
+                    <span className="text-[10px] text-zinc-600">Kein Team</span>
+                  ) : (
+                    (u.teams || []).slice(0, 3).map((t) => (
+                      <span
+                        key={t.id}
+                        className="rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-400/90"
+                      >
+                        {t.name}
+                        <span className="text-zinc-500"> · {TEAM_ROLE_LABEL[t.role] || t.role}</span>
+                      </span>
+                    ))
+                  )}
+                  {(u.teams || []).length > 3 && (
+                    <span className="text-[10px] text-zinc-500">+{(u.teams || []).length - 3}</span>
+                  )}
                 </div>
+                <p className="mt-1 text-[11px] text-zinc-500" title={fmtDate(u.lastLoginAt)}>
+                  Login: {relativeLogin(u.lastLoginAt)}
+                </p>
               </button>
             ))}
           </div>
@@ -456,20 +426,11 @@ export default function AdminUsersPage() {
                 <div
                   className={`rounded-xl px-4 py-2.5 text-sm ${
                     error
-                      ? "bg-red-500/10 text-red-400 border border-red-500/20"
-                      : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                      ? "border border-red-500/20 bg-red-500/10 text-red-400"
+                      : "border border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
                   }`}
                 >
                   {error || msg}
-                </div>
-              )}
-
-              {rootPw && (
-                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-                  Root-Passwort (nur einmal):{" "}
-                  <code className="rounded bg-black/40 px-2 py-0.5 font-mono text-amber-400">
-                    {rootPw}
-                  </code>
                 </div>
               )}
 
@@ -478,22 +439,50 @@ export default function AdminUsersPage() {
                   <p className="text-[10px] uppercase tracking-wide text-zinc-600">Registriert</p>
                   <p className="mt-1 text-xs text-zinc-300">{fmtDate(selected.createdAt)}</p>
                 </div>
-                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 col-span-1 sm:col-span-2">
-                  <p className="text-[10px] uppercase tracking-wide text-amber-400/70">
-                    Letzter Login
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-white">
-                    {fmtDate(selected.lastLoginAt)}
-                  </p>
+                <div className="col-span-1 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 sm:col-span-2">
+                  <p className="text-[10px] uppercase tracking-wide text-amber-400/70">Letzter Login</p>
+                  <p className="mt-1 text-sm font-medium text-white">{fmtDate(selected.lastLoginAt)}</p>
                   <p className="text-[11px] text-zinc-500">{relativeLogin(selected.lastLoginAt)}</p>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-[#121214] p-3">
-                  <p className="text-[10px] uppercase tracking-wide text-zinc-600">Aktivitäten</p>
+                  <p className="text-[10px] uppercase tracking-wide text-zinc-600">Teams</p>
                   <p className="mt-1 text-lg font-semibold text-white">
-                    {selected.activityCount ?? selected.activities?.length ?? 0}
+                    {(selected.teams || []).length}
                   </p>
                 </div>
               </div>
+
+              <section className="overflow-hidden rounded-2xl border border-white/10 bg-[#121214]">
+                <div className="border-b border-white/5 px-5 py-3 font-semibold text-white">
+                  Teams dieses Nutzers
+                </div>
+                {(selected.teams || []).length === 0 ? (
+                  <p className="px-5 py-8 text-center text-sm text-zinc-500">In keinem Team</p>
+                ) : (
+                  <ul className="divide-y divide-white/5">
+                    {(selected.teams || []).map((t) => (
+                      <li
+                        key={t.id}
+                        className="flex flex-wrap items-center justify-between gap-2 px-5 py-3"
+                      >
+                        <div>
+                          <p className="font-medium text-zinc-200">{t.name}</p>
+                          <p className="text-xs text-zinc-500">
+                            {TEAM_ROLE_LABEL[t.role] || t.role} · Code {t.inviteCode} · seit{" "}
+                            {fmtDate(t.joinedAt)}
+                          </p>
+                        </div>
+                        <Link
+                          href={`/admin/teams/${t.id}`}
+                          className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-amber-400 hover:bg-white/5"
+                        >
+                          Team öffnen
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
 
               <div className="flex flex-wrap gap-2">
                 <button
@@ -514,16 +503,14 @@ export default function AdminUsersPage() {
                 </button>
               </div>
 
-              <section className="rounded-2xl border border-white/10 bg-[#121214] overflow-hidden">
+              <section className="overflow-hidden rounded-2xl border border-white/10 bg-[#121214]">
                 <div className="border-b border-white/5 px-5 py-3 font-semibold text-white">
                   Aktivität (letzte 30)
                 </div>
                 {!selected.activities?.length ? (
-                  <p className="px-5 py-8 text-center text-sm text-zinc-500">
-                    Noch keine Einträge – erscheinen nach dem nächsten Login / Aktionen
-                  </p>
+                  <p className="px-5 py-8 text-center text-sm text-zinc-500">Noch keine Einträge</p>
                 ) : (
-                  <div className="max-h-64 overflow-y-auto divide-y divide-white/5">
+                  <div className="max-h-64 divide-y divide-white/5 overflow-y-auto">
                     {selected.activities.map((a) => (
                       <div key={a.id} className="flex gap-3 px-5 py-2.5 text-sm">
                         <div className="w-[9.5rem] shrink-0 text-[11px] text-zinc-500">
@@ -531,9 +518,7 @@ export default function AdminUsersPage() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="font-medium text-zinc-200">{a.label}</p>
-                          {a.detail && (
-                            <p className="truncate text-xs text-zinc-500">{a.detail}</p>
-                          )}
+                          {a.detail && <p className="truncate text-xs text-zinc-500">{a.detail}</p>}
                         </div>
                       </div>
                     ))}
@@ -541,7 +526,7 @@ export default function AdminUsersPage() {
                 )}
               </section>
 
-              <section className="rounded-2xl border border-white/10 bg-[#121214] p-5 space-y-3">
+              <section className="space-y-3 rounded-2xl border border-white/10 bg-[#121214] p-5">
                 <h2 className="font-semibold text-white">Profil & Rolle</h2>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
@@ -587,7 +572,7 @@ export default function AdminUsersPage() {
                 </button>
               </section>
 
-              <section className="rounded-2xl border border-white/10 bg-[#121214] p-5 space-y-3">
+              <section className="space-y-3 rounded-2xl border border-white/10 bg-[#121214] p-5">
                 <h2 className="font-semibold text-white">Passwort ändern</h2>
                 <input
                   type="password"
@@ -606,10 +591,9 @@ export default function AdminUsersPage() {
                 </button>
               </section>
 
-              <section className="rounded-2xl border border-white/10 bg-[#121214] p-5 space-y-3">
+              <section className="space-y-3 rounded-2xl border border-white/10 bg-[#121214] p-5">
                 <h2 className="font-semibold text-white">
-                  Guthaben{" "}
-                  <span className="text-amber-400">{selected.balance.toFixed(2)} €</span>
+                  Guthaben <span className="text-amber-400">{selected.balance.toFixed(2)} €</span>
                 </h2>
                 <div className="flex flex-wrap gap-2">
                   <input
@@ -623,7 +607,7 @@ export default function AdminUsersPage() {
                     type="button"
                     disabled={busy}
                     onClick={() => addCredit(1)}
-                    className="rounded-xl bg-emerald-500/20 px-4 py-2 text-sm font-medium text-emerald-400 hover:bg-emerald-500/30 disabled:opacity-50"
+                    className="rounded-xl bg-emerald-500/20 px-4 py-2 text-sm font-medium text-emerald-400 disabled:opacity-50"
                   >
                     + Gutschreiben
                   </button>
@@ -631,118 +615,11 @@ export default function AdminUsersPage() {
                     type="button"
                     disabled={busy}
                     onClick={() => addCredit(-1)}
-                    className="rounded-xl bg-red-500/20 px-4 py-2 text-sm font-medium text-red-400 hover:bg-red-500/30 disabled:opacity-50"
+                    className="rounded-xl bg-red-500/20 px-4 py-2 text-sm font-medium text-red-400 disabled:opacity-50"
                   >
                     − Abziehen
                   </button>
                 </div>
-              </section>
-
-              <section className="rounded-2xl border border-white/10 bg-[#121214] p-5 space-y-3">
-                <h2 className="font-semibold text-white">Server zuweisen</h2>
-                <form onSubmit={assignServer} className="space-y-3">
-                  <div>
-                    <label className="mb-1 block text-xs text-zinc-500">Hostname</label>
-                    <input
-                      required
-                      pattern="[a-z0-9-]+"
-                      value={hostname}
-                      onChange={(e) => setHostname(e.target.value.toLowerCase())}
-                      placeholder="kunde-server"
-                      className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-amber-500/50"
-                    />
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    <div>
-                      <label className="mb-1 block text-xs text-zinc-500">vCPU</label>
-                      <input
-                        type="number"
-                        min={1}
-                        max={8}
-                        value={cpu}
-                        onChange={(e) => setCpu(Number(e.target.value))}
-                        className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-amber-500/50"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs text-zinc-500">RAM (MB)</label>
-                      <input
-                        type="number"
-                        min={512}
-                        max={32768}
-                        step={512}
-                        value={ramMb}
-                        onChange={(e) => setRamMb(Number(e.target.value))}
-                        className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-amber-500/50"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs text-zinc-500">SSD (GB)</label>
-                      <input
-                        type="number"
-                        min={10}
-                        max={250}
-                        step={10}
-                        value={diskGb}
-                        onChange={(e) => setDiskGb(Number(e.target.value))}
-                        className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-amber-500/50"
-                      />
-                    </div>
-                  </div>
-                  <label className="flex items-center gap-2 text-sm text-zinc-400">
-                    <input
-                      type="checkbox"
-                      checked={free}
-                      onChange={(e) => setFree(e.target.checked)}
-                      className="rounded border-white/20"
-                    />
-                    Kostenlos zuweisen
-                  </label>
-                  <button
-                    type="submit"
-                    disabled={busy}
-                    className="rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
-                  >
-                    Server zuweisen
-                  </button>
-                </form>
-              </section>
-
-              <section className="rounded-2xl border border-white/10 bg-[#121214] overflow-hidden">
-                <div className="border-b border-white/5 px-5 py-3 font-semibold text-white">
-                  Server dieses Nutzers
-                </div>
-                {selected.servers.length === 0 ? (
-                  <p className="px-5 py-8 text-center text-sm text-zinc-500">Keine Server</p>
-                ) : (
-                  <div className="divide-y divide-white/5">
-                    {selected.servers.map((s) => (
-                      <div
-                        key={s.id}
-                        className="flex flex-wrap items-center justify-between gap-2 px-5 py-3"
-                      >
-                        <div>
-                          <p className="text-sm font-medium text-zinc-200">
-                            {s.name}{" "}
-                            <span className="text-xs text-zinc-500">({s.status})</span>
-                          </p>
-                          <p className="text-xs text-zinc-500">
-                            {s.cpu ?? "?"}vCPU · {s.ramMb ?? "?"}MB · {s.diskGb ?? "?"}GB
-                            {s.proxmoxVmid != null && ` · VMID ${s.proxmoxVmid}`}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          disabled={busy}
-                          onClick={() => cancelServer(s.id)}
-                          className="rounded-lg bg-red-500/15 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/25 disabled:opacity-50"
-                        >
-                          Kündigen
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </section>
             </>
           )}
