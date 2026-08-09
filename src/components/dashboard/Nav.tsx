@@ -12,33 +12,25 @@ import {
   roleColor,
 } from "@/lib/roles";
 
-const customerLinks = [
-  { href: "/dashboard", label: "Dashboard", icon: "home" },
+const workspaceLinks = [
+  { href: "/dashboard", label: "Übersicht", icon: "home" },
+  { href: "/dashboard/todos", label: "Todos", icon: "check" },
+  { href: "/dashboard/team", label: "Mitglieder", icon: "users" },
+  { href: "/dashboard/board", label: "Board", icon: "board" },
+  { href: "/dashboard/account", label: "Konto", icon: "user" },
+];
+
+const extraLinks = [
   { href: "/dashboard/servers", label: "Server", icon: "server" },
   { href: "/dashboard/deposit", label: "Billing", icon: "wallet" },
   { href: "/dashboard/support", label: "Support", icon: "support" },
-  { href: "/dashboard/account", label: "Konto", icon: "user" },
-];
-
-const staffServiceLinks = [
-  { href: "/dashboard", label: "Dashboard", icon: "home" },
-  { href: "/dashboard/servers", label: "Server", icon: "server" },
-  { href: "/dashboard/deposit", label: "Billing", icon: "wallet" },
-  { href: "/dashboard/account", label: "Konto", icon: "user" },
 ];
 
 const adminTeamLinks = [
-  { href: "/admin", label: "Overview", icon: "admin", exact: true },
-  { href: "/admin/support", label: "Support", icon: "support" },
-  { href: "/admin/users", label: "Nutzer", icon: "users" },
-  { href: "/admin/discounts", label: "Rabatte", icon: "tag" },
-  { href: "/admin/servers", label: "Server", icon: "server" },
-  { href: "/admin/transactions", label: "Transaktionen", icon: "receipt" },
+  { href: "/admin", label: "Admin", icon: "admin", exact: true },
+  { href: "/admin/users", label: "Rollen", icon: "users" },
+  { href: "/admin/support", label: "Support-Tickets", icon: "support" },
   { href: "/admin/activity", label: "Aktivitäten", icon: "activity" },
-];
-
-const staffTeamLinks = [
-  { href: "/admin/support", label: "Support", icon: "support" },
 ];
 
 function Icon({ type }: { type: string }) {
@@ -47,6 +39,18 @@ function Icon({ type }: { type: string }) {
     return (
       <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z" />
+      </svg>
+    );
+  if (type === "check")
+    return (
+      <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+      </svg>
+    );
+  if (type === "board")
+    return (
+      <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
       </svg>
     );
   if (type === "server")
@@ -85,18 +89,6 @@ function Icon({ type }: { type: string }) {
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
       </svg>
     );
-  if (type === "tag")
-    return (
-      <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-      </svg>
-    );
-  if (type === "receipt")
-    return (
-      <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z" />
-      </svg>
-    );
   if (type === "activity")
     return (
       <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
@@ -125,11 +117,8 @@ export function DashboardNav({
   const role = user.role;
   const staff = isStaffRole(role) && !impersonating;
   const admin = isAdminRole(role) && !impersonating;
-  const onTeam = pathname.startsWith("/admin") && !impersonating;
-  const logo = onTeam ? LOGO_ADMIN : LOGO_USER;
-
-  const serviceLinks = staff ? staffServiceLinks : customerLinks;
-  const teamLinks = admin ? adminTeamLinks : staff ? staffTeamLinks : [];
+  const onAdmin = pathname.startsWith("/admin") && !impersonating;
+  const logo = onAdmin ? LOGO_ADMIN : LOGO_USER;
 
   function isActive(href: string, exact?: boolean) {
     if (exact) return pathname === href;
@@ -157,6 +146,23 @@ export function DashboardNav({
     }
   }
 
+  function NavItem({ href, label, icon, exact }: { href: string; label: string; icon: string; exact?: boolean }) {
+    const active = isActive(href, exact);
+    return (
+      <Link
+        href={href}
+        className={`nav-link group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition ${
+          active
+            ? "active bg-amber-500/15 font-medium text-amber-400 ring-1 ring-amber-500/25"
+            : "text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100"
+        }`}
+      >
+        <Icon type={icon} />
+        {label}
+      </Link>
+    );
+  }
+
   return (
     <>
       {impersonating && (
@@ -175,63 +181,37 @@ export function DashboardNav({
 
       <aside className="glass-strong fixed inset-y-0 left-0 z-40 hidden w-[240px] flex-col lg:flex">
         <div className="flex h-16 items-center gap-2.5 border-b border-white/10 px-4">
-          <Image
-            src={logo}
-            alt="Stella Host"
-            width={36}
-            height={36}
-            className="h-9 w-9 object-contain"
-            unoptimized
-          />
+          <Image src={logo} alt="Stella" width={36} height={36} className="h-9 w-9 object-contain" unoptimized />
           <span className="text-[15px] font-semibold tracking-tight text-white">
-            Stella <span className="text-amber-400">Host</span>
+            Stella <span className="text-amber-400">Dashboard</span>
           </span>
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-5">
           <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
-            Service
+            Workspace
           </p>
-          {serviceLinks.map((l) => {
-            const active = isActive(l.href);
-            return (
-              <Link
-                key={l.href}
-                href={l.href}
-                className={`nav-link group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition ${
-                  active
-                    ? "active bg-amber-500/15 font-medium text-amber-400 ring-1 ring-amber-500/25"
-                    : "text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100"
-                }`}
-              >
-                <Icon type={l.icon} />
-                {l.label}
-              </Link>
-            );
-          })}
+          {workspaceLinks.map((l) => (
+            <NavItem key={l.href} {...l} />
+          ))}
 
-          {staff && teamLinks.length > 0 && (
+          <p className="mb-2 mt-5 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
+            Mehr
+          </p>
+          {extraLinks.map((l) => (
+            <NavItem key={l.href} {...l} />
+          ))}
+
+          {staff && (
             <>
               <p className="mb-2 mt-5 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
-                Team
+                Admin
               </p>
-              {teamLinks.map((l) => {
-                const active = isActive(l.href, (l as any).exact);
-                return (
-                  <Link
-                    key={l.href}
-                    href={l.href}
-                    className={`nav-link group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition ${
-                      active
-                        ? "active bg-amber-500/15 font-medium text-amber-400 ring-1 ring-amber-500/25"
-                        : "text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100"
-                    }`}
-                  >
-                    <Icon type={l.icon} />
-                    {l.label}
-                  </Link>
-                );
-              })}
+              {(admin ? adminTeamLinks : [{ href: "/admin/support", label: "Support-Tickets", icon: "support" }]).map(
+                (l) => (
+                  <NavItem key={l.href} {...l} exact={(l as any).exact} />
+                )
+              )}
             </>
           )}
         </nav>
@@ -240,14 +220,7 @@ export function DashboardNav({
           <div className="mb-3 flex items-center gap-3">
             {staff ? (
               <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/10 ring-1 ring-amber-500/30">
-                <Image
-                  src={LOGO_ADMIN}
-                  alt="Team"
-                  width={28}
-                  height={28}
-                  className="h-7 w-7 object-contain"
-                  unoptimized
-                />
+                <Image src={LOGO_ADMIN} alt="Team" width={28} height={28} className="h-7 w-7 object-contain" unoptimized />
               </div>
             ) : (
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-sm font-semibold text-amber-400 ring-1 ring-amber-500/25">
@@ -256,12 +229,9 @@ export function DashboardNav({
             )}
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-zinc-200">
-                {user.name || "Kunde"}
+                {user.name || "Mitglied"}
                 {role && (
-                  <span
-                    className="ml-1.5 text-[10px] font-semibold"
-                    style={{ color: roleColor(role) }}
-                  >
+                  <span className="ml-1.5 text-[10px] font-semibold" style={{ color: roleColor(role) }}>
                     {roleLabel(role)}
                   </span>
                 )}
@@ -283,17 +253,10 @@ export function DashboardNav({
           impersonating ? "top-10" : "top-0"
         }`}
       >
-        <Link href={onTeam ? "/admin/support" : "/dashboard"} className="flex items-center gap-2">
-          <Image
-            src={logo}
-            alt="Stella Host"
-            width={28}
-            height={28}
-            className="h-7 w-7 object-contain"
-            unoptimized
-          />
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <Image src={logo} alt="Stella" width={28} height={28} className="h-7 w-7 object-contain" unoptimized />
           <span className="font-semibold text-white">
-            Stella <span className="text-amber-400">Host</span>
+            Stella <span className="text-amber-400">Dashboard</span>
           </span>
         </Link>
         <button onClick={() => signOut({ callbackUrl: "/" })} className="text-xs text-zinc-400">
@@ -302,28 +265,16 @@ export function DashboardNav({
       </header>
 
       <nav className="glass-strong fixed inset-x-0 bottom-0 z-40 flex lg:hidden">
-        {(staff
-          ? [
-              { href: "/dashboard", label: "Home", icon: "home" },
-              { href: "/dashboard/servers", label: "Server", icon: "server" },
-              { href: "/admin/support", label: "Support", icon: "support" },
-              {
-                href: admin ? "/admin" : "/admin/support",
-                label: "Team",
-                icon: "admin",
-              },
-            ]
-          : [
-              { href: "/dashboard", label: "Home", icon: "home" },
-              { href: "/dashboard/servers", label: "Server", icon: "server" },
-              { href: "/dashboard/support", label: "Support", icon: "support" },
-              { href: "/dashboard/account", label: "Konto", icon: "user" },
-            ]
-        ).map((l) => {
-          const active = isActive(l.href, l.href === "/admin");
+        {[
+          { href: "/dashboard", label: "Home", icon: "home" },
+          { href: "/dashboard/todos", label: "Todos", icon: "check" },
+          { href: "/dashboard/team", label: "Team", icon: "users" },
+          { href: "/dashboard/board", label: "Board", icon: "board" },
+        ].map((l) => {
+          const active = isActive(l.href, l.href === "/dashboard");
           return (
             <Link
-              key={l.href + l.label}
+              key={l.href}
               href={l.href}
               className={`nav-link flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-[10px] ${
                 active ? "active text-amber-400" : "text-zinc-500"
