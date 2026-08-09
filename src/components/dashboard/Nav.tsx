@@ -8,7 +8,7 @@ import { isAdminRole } from "@/lib/roles";
 
 const workspaceLinks = [
   { href: "/dashboard", label: "Übersicht", icon: "home" },
-  { href: "/dashboard/todos", label: "Todos", icon: "check" },
+  { href: "/dashboard/todos", label: "Aufgaben", icon: "check" },
   { href: "/dashboard/team", label: "Mitglieder", icon: "users" },
   { href: "/dashboard/board", label: "Board", icon: "board" },
 ];
@@ -23,7 +23,7 @@ const platformLinks = [
   { href: "/admin", label: "Overview", icon: "admin", exact: true },
   { href: "/admin/teams", label: "Teams", icon: "switch" },
   { href: "/admin/users", label: "Nutzer", icon: "users" },
-  { href: "/admin/todos", label: "Todos", icon: "check" },
+  { href: "/admin/todos", label: "Aufgaben", icon: "check" },
   { href: "/admin/support", label: "Support", icon: "support" },
   { href: "/admin/activity", label: "Aktivitäten", icon: "activity" },
 ];
@@ -110,7 +110,6 @@ export function DashboardNav({
   } | null;
   teamCount?: number;
   setupMode?: boolean;
-  /** true wenn Layout /admin – eigene Nav-Sektion */
   platformAdmin?: boolean;
 }) {
   const pathname = usePathname();
@@ -166,7 +165,7 @@ export function DashboardNav({
         {onAdmin ? (
           <div className="border-b border-white/10 px-4 py-3">
             <p className="text-sm font-medium text-white">Platform Admin</p>
-            <p className="text-[11px] text-zinc-500">Alle Teams · Nutzer · Todos</p>
+            <p className="text-[11px] text-zinc-500">Alle Teams · Nutzer · Aufgaben</p>
             <Link href="/dashboard" className="mt-1.5 inline-block text-[11px] text-amber-400 hover:underline">
               ← Zum Workspace
             </Link>
@@ -284,7 +283,7 @@ export function DashboardNav({
           {[
             { href: "/admin", label: "Home", icon: "admin" },
             { href: "/admin/teams", label: "Teams", icon: "switch" },
-            { href: "/admin/todos", label: "Todos", icon: "check" },
+            { href: "/admin/todos", label: "Aufgaben", icon: "check" },
             { href: "/admin/support", label: "Support", icon: "support" },
           ].map((l) => {
             const active = isActive(l.href, l.href === "/admin");
@@ -307,7 +306,7 @@ export function DashboardNav({
           <nav className="glass-strong fixed inset-x-0 bottom-0 z-40 flex lg:hidden">
             {[
               { href: "/dashboard", label: "Home", icon: "home" },
-              { href: "/dashboard/todos", label: "Todos", icon: "check" },
+              { href: "/dashboard/todos", label: "Aufgaben", icon: "check" },
               { href: "/dashboard/team", label: "Team", icon: "users" },
               { href: "/dashboard/support", label: "Support", icon: "support" },
             ].map((l) => {
