@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { isStaffRole } from "@/lib/roles";
+import { getMembership, isTeamStaff, resolveActiveTeamId } from "@/lib/teams";
 import { logActivity } from "@/lib/activity";
 import { z } from "zod";
 
@@ -21,12 +21,22 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Nicht eingeloggt" }, { status: 401 });
   }
 
-  const { searchParams } = new URL(req.url);
-  const scope = searchParams.get("scope"); // PERSONAL | TEAM | ALL
-  const status = searchParams.get("status");
-  const staff = isStaffRole((session.user as any).role);
+  const teamId = await resolveActiveTeamId(session.user.id);
+  if (!teamId) {
+    return NextResponse.json({ error: "Kein Team gewählt" }, { status: 400 });
+  }
 
-  const where: any = {};
+  const membership = await getMembership(session.user.id, teamId);
+  if (!membership) {
+    return NextResponse.json({ error: "Kein Zugriff" }, { status: 403 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const scope = searchParams.get("scope");
+  const status = searchParams.get("status");
+  const staff = isTeamStaff(membership.role);
+
+  const where: any = { teamId };
 
   if (scope === "TEAM") {
     where.scope = "TEAM";
@@ -37,7 +47,6 @@ export async function GET(req: Request) {
       { assigneeId: session.user.id },
     ];
   } else {
-    // ALL: eigene + Team-Todos (Team nur sichtbar für alle eingeloggt)
     where.OR = [
       { scope: "TEAM" },
       { createdById: session.user.id },
@@ -52,14 +61,14 @@ export async function GET(req: Request) {
   const todos = await prisma.todo.findMany({
     where,
     include: {
-      assignee: { select: { id: true, name: true, email: true, role: true } },
-      createdBy: { select: { id: true, name: true, email: true, role: true } },
+      assignee: { select: { id: true, name: true, email: true } },
+      createdBy: { select: { id: true, name: true, email: true } },
     },
     orderBy: [{ status: "asc" }, { priority: "desc" }, { createdAt: "desc" }],
     take: 100,
   });
 
-  return NextResponse.json({ todos, canAssign: staff });
+  return NextResponse.json({ todos, canAssign: staff, teamId });
 }
 
 export async function POST(req: Request) {
@@ -68,46 +77,65 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Nicht eingeloggt" }, { status: 401 });
   }
 
-  const staff = isStaffRole((session.user as any).role);
-  const body = await req.json();
-  const parsed = createSchema.safeParse(body);
+  const teamId = await resolveActiveTeamId(session.user.id);
+  if (!teamId) {
+    return NextResponse.json({ error: "Kein Team gewählt" }, { status: 400 });
+  }
+
+  const membership = await getMembership(session.user.id, teamId);
+  if (!membership) {
+    return NextResponse.json({ error: "Kein Zugriff" }, { status: 403 });
+  }
+
+  const staff = isTeamStaff(membership.role);
+  const parsed = createSchema.safeParse(await req.json());
   if (!parsed.success) {
     return NextResponse.json({ error: "Ungültige Daten" }, { status: 400 });
   }
 
   const data = parsed.data;
 
-  // Team-Todos und Zuweisung nur für Staff/Admin
   if (data.scope === "TEAM" && !staff) {
     return NextResponse.json(
-      { error: "Nur Team-Mitglieder mit Admin-Rechten können Team-Todos anlegen." },
+      { error: "Nur Owner/Admin können Team-Todos anlegen." },
       { status: 403 }
     );
   }
 
-  if (data.assigneeId && !staff) {
-    // persönliche Todos können nur sich selbst zugewiesen werden
-    if (data.assigneeId !== session.user.id) {
+  if (data.assigneeId && !staff && data.assigneeId !== session.user.id) {
+    return NextResponse.json(
+      { error: "Du kannst Aufgaben nur dir selbst zuweisen." },
+      { status: 403 }
+    );
+  }
+
+  // Assignee muss im Team sein
+  if (data.assigneeId) {
+    const am = await getMembership(data.assigneeId, teamId);
+    if (!am) {
       return NextResponse.json(
-        { error: "Du kannst Aufgaben nur dir selbst zuweisen." },
-        { status: 403 }
+        { error: "Assignee ist kein Team-Mitglied" },
+        { status: 400 }
       );
     }
   }
 
   const todo = await prisma.todo.create({
     data: {
+      teamId,
       title: data.title,
       description: data.description || null,
       priority: data.priority,
       scope: data.scope,
-      assigneeId: data.assigneeId || (data.scope === "PERSONAL" ? session.user.id : null),
+      assigneeId:
+        data.assigneeId ||
+        (data.scope === "PERSONAL" ? session.user.id : null),
       createdById: session.user.id,
       dueAt: data.dueAt ? new Date(data.dueAt) : null,
     },
     include: {
-      assignee: { select: { id: true, name: true, email: true, role: true } },
-      createdBy: { select: { id: true, name: true, email: true, role: true } },
+      assignee: { select: { id: true, name: true, email: true } },
+      createdBy: { select: { id: true, name: true, email: true } },
     },
   });
 

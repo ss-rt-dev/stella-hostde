@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { isStaffRole } from "@/lib/roles";
+import { getMembership, isTeamStaff, resolveActiveTeamId } from "@/lib/teams";
 import { z } from "zod";
 
 export async function GET() {
@@ -11,7 +11,18 @@ export async function GET() {
     return NextResponse.json({ error: "Nicht eingeloggt" }, { status: 401 });
   }
 
+  const teamId = await resolveActiveTeamId(session.user.id);
+  if (!teamId) {
+    return NextResponse.json({ error: "Kein Team gewählt" }, { status: 400 });
+  }
+
+  const membership = await getMembership(session.user.id, teamId);
+  if (!membership) {
+    return NextResponse.json({ error: "Kein Zugriff" }, { status: 403 });
+  }
+
   const items = await prisma.teamAnnouncement.findMany({
+    where: { teamId },
     include: {
       author: { select: { id: true, name: true, email: true } },
     },
@@ -19,7 +30,10 @@ export async function GET() {
     take: 30,
   });
 
-  return NextResponse.json({ announcements: items });
+  return NextResponse.json({
+    announcements: items,
+    canPost: isTeamStaff(membership.role),
+  });
 }
 
 const createSchema = z.object({
@@ -33,8 +47,15 @@ export async function POST(req: Request) {
   if (!session?.user) {
     return NextResponse.json({ error: "Nicht eingeloggt" }, { status: 401 });
   }
-  if (!isStaffRole((session.user as any).role)) {
-    return NextResponse.json({ error: "Nur Team" }, { status: 403 });
+
+  const teamId = await resolveActiveTeamId(session.user.id);
+  if (!teamId) {
+    return NextResponse.json({ error: "Kein Team gewählt" }, { status: 400 });
+  }
+
+  const membership = await getMembership(session.user.id, teamId);
+  if (!membership || !isTeamStaff(membership.role)) {
+    return NextResponse.json({ error: "Nur Owner/Admin" }, { status: 403 });
   }
 
   const parsed = createSchema.safeParse(await req.json());
@@ -44,6 +65,7 @@ export async function POST(req: Request) {
 
   const item = await prisma.teamAnnouncement.create({
     data: {
+      teamId,
       title: parsed.data.title,
       body: parsed.data.body,
       pinned: parsed.data.pinned ?? false,

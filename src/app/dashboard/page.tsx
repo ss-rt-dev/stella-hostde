@@ -2,44 +2,47 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
-import { isStaffRole } from "@/lib/roles";
+import { resolveActiveTeamId, getMembership, isTeamStaff } from "@/lib/teams";
+import { redirect } from "next/navigation";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) return null;
 
-  const userId = session.user.id;
-  const role = (session.user as any).role as string;
-  const staff = isStaffRole(role);
+  const teamId = await resolveActiveTeamId(session.user.id);
+  if (!teamId) redirect("/dashboard/teams");
 
-  const [user, membersCount, openTeamTodos, myOpenTodos, announcements, recentTodos] =
+  const membership = await getMembership(session.user.id, teamId);
+  if (!membership) redirect("/dashboard/onboarding");
+
+  const userId = session.user.id;
+  const staff = isTeamStaff(membership.role);
+
+  const [user, memberCount, openTeamTodos, myOpenTodos, announcements, recentTodos] =
     await Promise.all([
       prisma.user.findUnique({ where: { id: userId } }),
-      prisma.user.count(),
-      prisma.todo.count({ where: { scope: "TEAM", status: { not: "DONE" } } }),
+      prisma.teamMember.count({ where: { teamId } }),
+      prisma.todo.count({ where: { teamId, scope: "TEAM", status: { not: "DONE" } } }),
       prisma.todo.count({
         where: {
+          teamId,
           status: { not: "DONE" },
           OR: [{ assigneeId: userId }, { createdById: userId, scope: "PERSONAL" }],
         },
       }),
       prisma.teamAnnouncement.findMany({
+        where: { teamId },
         include: { author: { select: { name: true, email: true } } },
         orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
         take: 4,
       }),
       prisma.todo.findMany({
         where: {
-          OR: [
-            { scope: "TEAM" },
-            { assigneeId: userId },
-            { createdById: userId },
-          ],
+          teamId,
           status: { not: "DONE" },
+          OR: [{ scope: "TEAM" }, { assigneeId: userId }, { createdById: userId }],
         },
-        include: {
-          assignee: { select: { name: true, email: true } },
-        },
+        include: { assignee: { select: { name: true, email: true } } },
         orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
         take: 6,
       }),
@@ -53,38 +56,36 @@ export default async function DashboardPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-wider text-amber-400/80">
-            Stella Team Dashboard
+            {membership.team.name}
           </p>
           <h1 className="mt-1 text-2xl font-bold text-white sm:text-3xl">
             Hallo, {displayName}
           </h1>
           <p className="mt-1 text-sm text-zinc-500">
-            Überblick über Team, Aufgaben und Updates
+            Rolle: {membership.role} · getrenntes Team-Workspace
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
             href="/dashboard/todos"
-            className="rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-4 py-2 text-sm font-semibold text-black shadow-lg shadow-amber-500/20"
+            className="rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-4 py-2 text-sm font-semibold text-black"
           >
             + Todo
           </Link>
-          {staff && (
-            <Link
-              href="/dashboard/team"
-              className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-zinc-200 hover:bg-white/[0.07]"
-            >
-              Mitglieder
-            </Link>
-          )}
+          <Link
+            href="/dashboard/teams"
+            className="rounded-xl border border-white/10 px-4 py-2 text-sm text-zinc-300 hover:bg-white/5"
+          >
+            Teams wechseln
+          </Link>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Mitglieder" value={String(membersCount)} href="/dashboard/team" />
-        <Stat label="Team-Todos offen" value={String(openTeamTodos)} href="/dashboard/todos?scope=TEAM" />
-        <Stat label="Meine offen" value={String(myOpenTodos)} href="/dashboard/todos?scope=PERSONAL" />
-        <Stat label="Ankündigungen" value={String(announcements.length)} href="/dashboard/board" />
+        <Stat label="Mitglieder" value={String(memberCount)} href="/dashboard/team" />
+        <Stat label="Team-Todos" value={String(openTeamTodos)} href="/dashboard/todos" />
+        <Stat label="Meine offen" value={String(myOpenTodos)} href="/dashboard/todos" />
+        <Stat label="Board" value={String(announcements.length)} href="/dashboard/board" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-5">
@@ -96,9 +97,7 @@ export default async function DashboardPage() {
             </Link>
           </div>
           {recentTodos.length === 0 ? (
-            <p className="px-5 py-12 text-center text-sm text-zinc-500">
-              Keine offenen Todos – Zeit für neue Ziele.
-            </p>
+            <p className="px-5 py-12 text-center text-sm text-zinc-500">Keine offenen Todos</p>
           ) : (
             <ul className="divide-y divide-white/5">
               {recentTodos.map((t) => (
@@ -107,21 +106,11 @@ export default async function DashboardPage() {
                     <p className="truncate font-medium text-zinc-200">{t.title}</p>
                     <p className="text-xs text-zinc-500">
                       {t.scope === "TEAM" ? "Team" : "Persönlich"}
-                      {t.assignee
-                        ? ` · ${t.assignee.name || t.assignee.email}`
-                        : ""}
+                      {t.assignee ? ` · ${t.assignee.name || t.assignee.email}` : ""}
                     </p>
                   </div>
-                  <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                      t.status === "IN_PROGRESS"
-                        ? "bg-sky-500/15 text-sky-400"
-                        : t.priority === "HIGH"
-                          ? "bg-red-500/15 text-red-400"
-                          : "bg-amber-500/15 text-amber-400"
-                    }`}
-                  >
-                    {t.status === "IN_PROGRESS" ? "läuft" : t.priority}
+                  <span className="shrink-0 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-400">
+                    {t.priority}
                   </span>
                 </li>
               ))}
@@ -137,19 +126,12 @@ export default async function DashboardPage() {
             </Link>
           </div>
           {announcements.length === 0 ? (
-            <p className="px-5 py-12 text-center text-sm text-zinc-500">
-              Noch keine Ankündigungen
-            </p>
+            <p className="px-5 py-12 text-center text-sm text-zinc-500">Keine Ankündigungen</p>
           ) : (
             <ul className="divide-y divide-white/5">
               {announcements.map((a) => (
                 <li key={a.id} className="px-5 py-3.5">
-                  <div className="flex items-center gap-2">
-                    {a.pinned && (
-                      <span className="text-[10px] font-medium text-amber-400">PIN</span>
-                    )}
-                    <p className="font-medium text-zinc-200">{a.title}</p>
-                  </div>
+                  <p className="font-medium text-zinc-200">{a.title}</p>
                   <p className="mt-0.5 line-clamp-2 text-xs text-zinc-500">{a.body}</p>
                 </li>
               ))}
@@ -160,47 +142,37 @@ export default async function DashboardPage() {
 
       <div className="grid gap-3 sm:grid-cols-3">
         <QuickLink href="/dashboard/todos" title="Todos" desc="Team & persönlich" />
-        <QuickLink href="/dashboard/team" title="Mitglieder" desc="Rollen & Aufgaben" />
-        <QuickLink href="/dashboard/board" title="Board" desc="Ankündigungen" />
+        <QuickLink href="/dashboard/team" title="Mitglieder" desc="Nur dieses Team" />
+        <QuickLink href="/dashboard/support" title="Support" desc="Hilfe & Bewerbung" />
       </div>
+
+      {staff && membership.team.inviteCode && (
+        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 px-5 py-4">
+          <p className="text-xs text-zinc-500">Einladungscode für dieses Team</p>
+          <p className="mt-1 font-mono text-lg tracking-wider text-amber-400">
+            {membership.team.inviteCode}
+          </p>
+          <p className="mt-1 text-xs text-zinc-600">
+            Format: Buchstaben + 3 Ziffern · teile ihn nur mit Leuten, die beitreten sollen
+          </p>
+        </div>
+      )}
     </div>
   );
 }
 
-function Stat({
-  label,
-  value,
-  href,
-}: {
-  label: string;
-  value: string;
-  href: string;
-}) {
+function Stat({ label, value, href }: { label: string; value: string; href: string }) {
   return (
-    <Link
-      href={href}
-      className="rounded-2xl border border-white/10 bg-[#121214] p-4 transition hover:border-amber-500/35"
-    >
+    <Link href={href} className="rounded-2xl border border-white/10 bg-[#121214] p-4 transition hover:border-amber-500/35">
       <p className="text-xs text-zinc-500">{label}</p>
       <p className="mt-1 text-xl font-bold text-white">{value}</p>
     </Link>
   );
 }
 
-function QuickLink({
-  href,
-  title,
-  desc,
-}: {
-  href: string;
-  title: string;
-  desc: string;
-}) {
+function QuickLink({ href, title, desc }: { href: string; title: string; desc: string }) {
   return (
-    <Link
-      href={href}
-      className="rounded-2xl border border-white/10 bg-[#121214] p-4 transition hover:border-amber-500/30 hover:bg-white/[0.03]"
-    >
+    <Link href={href} className="rounded-2xl border border-white/10 bg-[#121214] p-4 transition hover:border-amber-500/30">
       <p className="font-semibold text-white">{title}</p>
       <p className="mt-0.5 text-xs text-zinc-500">{desc}</p>
     </Link>
