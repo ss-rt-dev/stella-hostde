@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
+import { isAdminRole } from "@/lib/roles";
 
 const workspaceLinks = [
   { href: "/dashboard", label: "Übersicht", icon: "home" },
@@ -16,6 +17,15 @@ const accountLinks = [
   { href: "/dashboard/support", label: "Support", icon: "support" },
   { href: "/dashboard/account", label: "Konto", icon: "user" },
   { href: "/dashboard/teams", label: "Meine Teams", icon: "switch" },
+];
+
+const platformLinks = [
+  { href: "/admin", label: "Overview", icon: "admin", exact: true },
+  { href: "/admin/teams", label: "Teams", icon: "switch" },
+  { href: "/admin/users", label: "Nutzer", icon: "users" },
+  { href: "/admin/todos", label: "Todos", icon: "check" },
+  { href: "/admin/support", label: "Support", icon: "support" },
+  { href: "/admin/activity", label: "Aktivitäten", icon: "activity" },
 ];
 
 function Icon({ type }: { type: string }) {
@@ -62,16 +72,30 @@ function Icon({ type }: { type: string }) {
         <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
       </svg>
     );
+  if (type === "admin")
+    return (
+      <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+      </svg>
+    );
+  if (type === "activity")
+    return (
+      <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>
+    );
   return null;
 }
 
-const LOGO = "https://cdn3.emoji.gg/emojis/40642-darkyellow.png";
+const LOGO_USER = "https://cdn3.emoji.gg/emojis/40642-darkyellow.png";
+const LOGO_ADMIN = "https://cdn3.emoji.gg/emojis/18092-white.png";
 
 export function DashboardNav({
   user,
   activeTeam,
   teamCount = 0,
   setupMode = false,
+  platformAdmin = false,
 }: {
   user: {
     name?: string | null;
@@ -86,94 +110,138 @@ export function DashboardNav({
   } | null;
   teamCount?: number;
   setupMode?: boolean;
+  /** true wenn Layout /admin – eigene Nav-Sektion */
+  platformAdmin?: boolean;
 }) {
   const pathname = usePathname();
+  const isPlatformAdmin = platformAdmin || isAdminRole(user.role);
+  const onAdmin = pathname.startsWith("/admin");
+  const logo = onAdmin ? LOGO_ADMIN : LOGO_USER;
 
-  function isActive(href: string) {
+  function isActive(href: string, exact?: boolean) {
+    if (exact) return pathname === href;
     if (href === "/dashboard") return pathname === "/dashboard";
+    if (href === "/admin") return pathname === "/admin";
     return pathname.startsWith(href);
+  }
+
+  function NavLink({
+    href,
+    label,
+    icon,
+    exact,
+  }: {
+    href: string;
+    label: string;
+    icon: string;
+    exact?: boolean;
+  }) {
+    const active = isActive(href, exact);
+    return (
+      <Link
+        href={href}
+        className={`nav-link group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition ${
+          active
+            ? "active bg-amber-500/15 font-medium text-amber-400 ring-1 ring-amber-500/25"
+            : "text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100"
+        }`}
+      >
+        <Icon type={icon} />
+        {label}
+      </Link>
+    );
   }
 
   return (
     <>
       <aside className="glass-strong fixed inset-y-0 left-0 z-40 hidden w-[240px] flex-col lg:flex">
         <div className="flex h-16 items-center gap-2.5 border-b border-white/10 px-4">
-          <Image src={LOGO} alt="Stella" width={36} height={36} className="h-9 w-9 object-contain" unoptimized />
+          <Image src={logo} alt="Stella" width={36} height={36} className="h-9 w-9 object-contain" unoptimized />
           <span className="text-[15px] font-semibold tracking-tight text-white">
-            Stella <span className="text-amber-400">Dashboard</span>
+            Stella{" "}
+            <span className="text-amber-400">{onAdmin ? "Admin" : "Dashboard"}</span>
           </span>
         </div>
 
-        {activeTeam && !setupMode && (
+        {onAdmin ? (
           <div className="border-b border-white/10 px-4 py-3">
-            <p className="truncate text-sm font-medium text-white">{activeTeam.name}</p>
-            <p className="text-[11px] text-zinc-500">{activeTeam.role}</p>
-            {activeTeam.inviteCode && (
-              <p className="mt-1 font-mono text-[10px] tracking-wider text-amber-400/80">
-                {activeTeam.inviteCode}
-              </p>
-            )}
-            <Link
-              href="/dashboard/teams"
-              className="mt-1.5 inline-block text-[11px] text-amber-400 hover:underline"
-            >
-              Teams wechseln ({teamCount})
+            <p className="text-sm font-medium text-white">Platform Admin</p>
+            <p className="text-[11px] text-zinc-500">Alle Teams · Nutzer · Todos</p>
+            <Link href="/dashboard" className="mt-1.5 inline-block text-[11px] text-amber-400 hover:underline">
+              ← Zum Workspace
             </Link>
           </div>
+        ) : (
+          activeTeam &&
+          !setupMode && (
+            <div className="border-b border-white/10 px-4 py-3">
+              <p className="truncate text-sm font-medium text-white">{activeTeam.name}</p>
+              <p className="text-[11px] text-zinc-500">{activeTeam.role}</p>
+              {activeTeam.inviteCode && (
+                <p className="mt-1 font-mono text-[10px] tracking-wider text-amber-400/80">
+                  {activeTeam.inviteCode}
+                </p>
+              )}
+              <Link
+                href="/dashboard/teams"
+                className="mt-1.5 inline-block text-[11px] text-amber-400 hover:underline"
+              >
+                Teams wechseln ({teamCount})
+              </Link>
+            </div>
+          )
         )}
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-5">
-          {!setupMode && (
+          {onAdmin ? (
             <>
               <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
-                Workspace
+                Platform
               </p>
-              {workspaceLinks.map((l) => {
-                const active = isActive(l.href);
-                return (
-                  <Link
-                    key={l.href}
-                    href={l.href}
-                    className={`nav-link group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition ${
-                      active
-                        ? "active bg-amber-500/15 font-medium text-amber-400 ring-1 ring-amber-500/25"
-                        : "text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100"
-                    }`}
-                  >
-                    <Icon type={l.icon} />
-                    {l.label}
-                  </Link>
-                );
-              })}
+              {platformLinks.map((l) => (
+                <NavLink key={l.href} {...l} exact={(l as any).exact} />
+              ))}
+            </>
+          ) : (
+            <>
+              {!setupMode && (
+                <>
+                  <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
+                    Workspace
+                  </p>
+                  {workspaceLinks.map((l) => (
+                    <NavLink key={l.href} {...l} />
+                  ))}
+                </>
+              )}
+
+              <p className="mb-2 mt-5 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
+                Account
+              </p>
+              {accountLinks.map((l) => (
+                <NavLink key={l.href} {...l} />
+              ))}
+
+              {isPlatformAdmin && (
+                <>
+                  <p className="mb-2 mt-5 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
+                    Platform Admin
+                  </p>
+                  <NavLink href="/admin" label="Admin-Bereich" icon="admin" exact />
+                </>
+              )}
             </>
           )}
-
-          <p className="mb-2 mt-5 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
-            Account
-          </p>
-          {accountLinks.map((l) => {
-            const active = isActive(l.href);
-            return (
-              <Link
-                key={l.href}
-                href={l.href}
-                className={`nav-link group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition ${
-                  active
-                    ? "active bg-amber-500/15 font-medium text-amber-400 ring-1 ring-amber-500/25"
-                    : "text-zinc-400 hover:bg-white/[0.05] hover:text-zinc-100"
-                }`}
-              >
-                <Icon type={l.icon} />
-                {l.label}
-              </Link>
-            );
-          })}
         </nav>
 
         <div className="border-t border-white/10 p-4">
           <div className="mb-3 flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-sm font-semibold text-amber-400 ring-1 ring-amber-500/25">
-              {(user.name || user.email || "U")[0].toUpperCase()}
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-amber-500/15 text-sm font-semibold text-amber-400 ring-1 ring-amber-500/25">
+              {isPlatformAdmin ? (
+                <Image src={LOGO_ADMIN} alt="Admin" width={28} height={28} className="h-7 w-7 object-contain" unoptimized />
+              ) : (
+                (user.name || user.email || "U")[0].toUpperCase()
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-zinc-200">{user.name || "Mitglied"}</p>
@@ -190,30 +258,36 @@ export function DashboardNav({
       </aside>
 
       <header className="glass-strong sticky top-0 z-40 flex items-center justify-between px-4 py-3 lg:hidden">
-        <Link href={setupMode ? "/dashboard/teams" : "/dashboard"} className="flex items-center gap-2">
-          <Image src={LOGO} alt="Stella" width={28} height={28} className="h-7 w-7 object-contain" unoptimized />
+        <Link href={onAdmin ? "/admin" : setupMode ? "/dashboard/teams" : "/dashboard"} className="flex items-center gap-2">
+          <Image src={logo} alt="Stella" width={28} height={28} className="h-7 w-7 object-contain" unoptimized />
           <span className="font-semibold text-white">
-            {activeTeam?.name || (
+            {onAdmin ? (
               <>
-                Stella <span className="text-amber-400">Dashboard</span>
+                Stella <span className="text-amber-400">Admin</span>
               </>
+            ) : (
+              activeTeam?.name || (
+                <>
+                  Stella <span className="text-amber-400">Dashboard</span>
+                </>
+              )
             )}
           </span>
         </Link>
-        <Link href="/dashboard/teams" className="text-xs text-amber-400">
-          Teams
+        <Link href={onAdmin ? "/dashboard" : "/dashboard/teams"} className="text-xs text-amber-400">
+          {onAdmin ? "Workspace" : "Teams"}
         </Link>
       </header>
 
-      {!setupMode && (
+      {onAdmin ? (
         <nav className="glass-strong fixed inset-x-0 bottom-0 z-40 flex lg:hidden">
           {[
-            { href: "/dashboard", label: "Home", icon: "home" },
-            { href: "/dashboard/todos", label: "Todos", icon: "check" },
-            { href: "/dashboard/team", label: "Team", icon: "users" },
-            { href: "/dashboard/support", label: "Support", icon: "support" },
+            { href: "/admin", label: "Home", icon: "admin" },
+            { href: "/admin/teams", label: "Teams", icon: "switch" },
+            { href: "/admin/todos", label: "Todos", icon: "check" },
+            { href: "/admin/support", label: "Support", icon: "support" },
           ].map((l) => {
-            const active = isActive(l.href);
+            const active = isActive(l.href, l.href === "/admin");
             return (
               <Link
                 key={l.href}
@@ -228,6 +302,31 @@ export function DashboardNav({
             );
           })}
         </nav>
+      ) : (
+        !setupMode && (
+          <nav className="glass-strong fixed inset-x-0 bottom-0 z-40 flex lg:hidden">
+            {[
+              { href: "/dashboard", label: "Home", icon: "home" },
+              { href: "/dashboard/todos", label: "Todos", icon: "check" },
+              { href: "/dashboard/team", label: "Team", icon: "users" },
+              { href: "/dashboard/support", label: "Support", icon: "support" },
+            ].map((l) => {
+              const active = isActive(l.href);
+              return (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className={`nav-link flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-[10px] ${
+                    active ? "active text-amber-400" : "text-zinc-500"
+                  }`}
+                >
+                  <Icon type={l.icon} />
+                  {l.label}
+                </Link>
+              );
+            })}
+          </nav>
+        )
       )}
     </>
   );
