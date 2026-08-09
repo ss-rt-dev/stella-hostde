@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 
 type Member = {
   id: string;
@@ -14,13 +13,9 @@ type Member = {
 };
 
 const ROLE_COLOR: Record<string, string> = {
+  OWNER: "#f59e0b",
   ADMIN: "#ef4444",
-  MODERATOR: "#22c55e",
-  SUPPORTER: "#c026ff",
-  VIP: "#eab308",
-  SPONSOR: "#f97316",
-  PARTNER: "#3b82f6",
-  CUSTOMER: "#71717a",
+  MEMBER: "#71717a",
 };
 
 export default function TeamPage() {
@@ -42,21 +37,12 @@ export default function TeamPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-white sm:text-2xl">Mitglieder</h1>
-          <p className="text-sm text-zinc-500">
-            {members.length} Personen im Workspace
-          </p>
-        </div>
-        {canManage && (
-          <Link
-            href="/admin/users"
-            className="rounded-xl border border-white/10 px-4 py-2 text-sm text-zinc-300 hover:bg-white/5"
-          >
-            Rollen verwalten
-          </Link>
-        )}
+      <div>
+        <h1 className="text-xl font-bold text-white sm:text-2xl">Mitglieder</h1>
+        <p className="text-sm text-zinc-500">
+          Nur Mitglieder dieses Teams · {members.length} Personen
+          {canManage ? " · du kannst verwalten" : ""}
+        </p>
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#121214]">
@@ -68,7 +54,7 @@ export default function TeamPage() {
             >
               <div className="flex items-center gap-3">
                 <div
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold"
                   style={{
                     backgroundColor: `${ROLE_COLOR[m.role] || "#71717a"}33`,
                     color: ROLE_COLOR[m.role] || "#a1a1aa",
@@ -99,12 +85,6 @@ export default function TeamPage() {
                     ? new Date(m.lastLoginAt).toLocaleDateString("de-DE")
                     : "nie"}
                 </span>
-                <Link
-                  href={`/dashboard/todos?scope=ALL`}
-                  className="rounded-lg bg-amber-500/15 px-2.5 py-1 font-medium text-amber-400"
-                >
-                  Todos
-                </Link>
               </div>
             </div>
           ))}

@@ -24,17 +24,15 @@ export default function BoardPage() {
   async function load() {
     const res = await fetch("/api/team/announcements");
     const data = await res.json();
-    if (res.ok) setItems(data.announcements || []);
+    if (res.ok) {
+      setItems(data.announcements || []);
+      setCanPost(Boolean(data.canPost));
+    }
     setLoading(false);
   }
 
   useEffect(() => {
     load();
-    // Staff check via members endpoint
-    fetch("/api/team/members")
-      .then((r) => r.json())
-      .then((d) => setCanPost(Boolean(d.canManage)))
-      .catch(() => {});
   }, []);
 
   async function submit(e: React.FormEvent) {
@@ -67,7 +65,7 @@ export default function BoardPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-bold text-white sm:text-2xl">Board</h1>
-        <p className="text-sm text-zinc-500">Ankündigungen fürs Team</p>
+        <p className="text-sm text-zinc-500">Ankündigungen nur in diesem Team</p>
       </div>
 
       {canPost && (
@@ -115,15 +113,12 @@ export default function BoardPage() {
         <p className="text-zinc-500">Laden…</p>
       ) : items.length === 0 ? (
         <p className="rounded-2xl border border-white/10 bg-[#121214] px-5 py-12 text-center text-sm text-zinc-500">
-          Noch keine Ankündigungen
+          Noch keine Ankündigungen in diesem Team
         </p>
       ) : (
         <div className="space-y-3">
           {items.map((a) => (
-            <article
-              key={a.id}
-              className="rounded-2xl border border-white/10 bg-[#121214] p-5"
-            >
+            <article key={a.id} className="rounded-2xl border border-white/10 bg-[#121214] p-5">
               <div className="flex flex-wrap items-center gap-2">
                 {a.pinned && (
                   <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-400">
@@ -132,9 +127,7 @@ export default function BoardPage() {
                 )}
                 <h2 className="font-semibold text-white">{a.title}</h2>
               </div>
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-zinc-400">
-                {a.body}
-              </p>
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-zinc-400">{a.body}</p>
               <p className="mt-3 text-[11px] text-zinc-600">
                 {a.author.name || a.author.email} ·{" "}
                 {new Date(a.createdAt).toLocaleString("de-DE")}
