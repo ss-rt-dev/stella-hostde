@@ -28,6 +28,7 @@ interface User {
   role: string;
   createdAt: string;
   lastLoginAt: string | null;
+  lastLoginIp?: string | null;
   teams?: UserTeam[];
   activities?: Activity[];
   activityCount?: number;
@@ -229,7 +230,7 @@ export default function AdminUsersPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-white sm:text-2xl">Nutzer</h1>
-          <p className="text-sm text-zinc-500">Accounts, Teams, Rollen, Aktivität</p>
+          <p className="text-sm text-zinc-500">Accounts, Teams, IP, Rollen, Aktivität</p>
         </div>
         <button
           type="button"
@@ -318,30 +319,10 @@ export default function AdminUsersPage() {
                   </span>
                 </p>
                 <p className="truncate text-xs text-zinc-500">{u.email}</p>
-                <div className="mt-1.5 flex flex-wrap gap-1">
-                  {(u.teams || []).length === 0 ? (
-                    <span className="text-[10px] text-zinc-600">Kein Team</span>
-                  ) : (
-                    (u.teams || []).slice(0, 3).map((t) => (
-                      <span
-                        key={t.id}
-                        className="rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-400/90"
-                      >
-                        {t.name}
-                        <span className="text-zinc-500">
-                          {" "}
-                          · {TEAM_ROLE_LABEL[t.role] || t.role}
-                        </span>
-                      </span>
-                    ))
-                  )}
-                  {(u.teams || []).length > 3 && (
-                    <span className="text-[10px] text-zinc-500">
-                      +{(u.teams || []).length - 3}
-                    </span>
-                  )}
-                </div>
-                <p className="mt-1 text-[11px] text-zinc-500" title={fmtDate(u.lastLoginAt)}>
+                <p className="mt-1 font-mono text-[11px] text-sky-400/90">
+                  IP: {u.lastLoginIp || "—"}
+                </p>
+                <p className="mt-0.5 text-[11px] text-zinc-500" title={fmtDate(u.lastLoginAt)}>
                   Login: {relativeLogin(u.lastLoginAt)}
                 </p>
               </button>
@@ -373,7 +354,7 @@ export default function AdminUsersPage() {
                   <p className="text-[10px] uppercase tracking-wide text-zinc-600">Registriert</p>
                   <p className="mt-1 text-xs text-zinc-300">{fmtDate(selected.createdAt)}</p>
                 </div>
-                <div className="col-span-1 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 sm:col-span-2">
+                <div className="col-span-1 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 sm:col-span-1">
                   <p className="text-[10px] uppercase tracking-wide text-amber-400/70">
                     Letzter Login
                   </p>
@@ -382,6 +363,12 @@ export default function AdminUsersPage() {
                   </p>
                   <p className="text-[11px] text-zinc-500">
                     {relativeLogin(selected.lastLoginAt)}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 p-3">
+                  <p className="text-[10px] uppercase tracking-wide text-sky-400/70">IP-Adresse</p>
+                  <p className="mt-1 break-all font-mono text-sm font-medium text-sky-300">
+                    {selected.lastLoginIp || "noch keine"}
                   </p>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-[#121214] p-3">
@@ -452,6 +439,9 @@ export default function AdminUsersPage() {
                           <p className="font-medium text-zinc-200">{a.label}</p>
                           {a.detail && (
                             <p className="truncate text-xs text-zinc-500">{a.detail}</p>
+                          )}
+                          {a.ip && (
+                            <p className="mt-0.5 font-mono text-[11px] text-sky-400/80">IP {a.ip}</p>
                           )}
                         </div>
                       </div>
