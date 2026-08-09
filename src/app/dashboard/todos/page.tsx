@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 
 type Todo = {
   id: string;
@@ -19,14 +18,11 @@ type Todo = {
 type Member = { id: string; name: string | null; email: string };
 
 export default function TodosPage() {
-  const searchParams = useSearchParams();
-  const initialScope = searchParams.get("scope") || "ALL";
-
   const [todos, setTodos] = useState<Todo[]>([]);
   const [canAssign, setCanAssign] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
-  const [scope, setScope] = useState(initialScope);
+  const [scope, setScope] = useState("ALL");
   const [error, setError] = useState("");
 
   const [title, setTitle] = useState("");
@@ -36,6 +32,15 @@ export default function TodosPage() {
   const [assigneeId, setAssigneeId] = useState("");
   const [creating, setCreating] = useState(false);
   const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    try {
+      const s = new URLSearchParams(window.location.search).get("scope");
+      if (s === "TEAM" || s === "PERSONAL" || s === "ALL") setScope(s);
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -232,19 +237,9 @@ export default function TodosPage() {
         <p className="text-zinc-500">Laden…</p>
       ) : (
         <div className="space-y-4">
-          <TodoList
-            title="Offen"
-            items={open}
-            onStatus={setStatus}
-            onDelete={removeTodo}
-          />
+          <TodoList title="Offen" items={open} onStatus={setStatus} onDelete={removeTodo} />
           {done.length > 0 && (
-            <TodoList
-              title="Erledigt"
-              items={done}
-              onStatus={setStatus}
-              onDelete={removeTodo}
-            />
+            <TodoList title="Erledigt" items={done} onStatus={setStatus} onDelete={removeTodo} />
           )}
         </div>
       )}
@@ -302,45 +297,27 @@ function TodoList({
                 <p className="mt-1 text-xs text-zinc-500 line-clamp-2">{t.description}</p>
               )}
               <p className="mt-1 text-[11px] text-zinc-600">
-                {t.assignee
-                  ? `→ ${t.assignee.name || t.assignee.email}`
-                  : "ohne Assignee"}{" "}
-                · von {t.createdBy.name || t.createdBy.email}
+                {t.assignee ? `→ ${t.assignee.name || t.assignee.email}` : "ohne Assignee"} · von{" "}
+                {t.createdBy.name || t.createdBy.email}
               </p>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {t.status !== "OPEN" && (
-                <button
-                  type="button"
-                  onClick={() => onStatus(t.id, "OPEN")}
-                  className="rounded-lg bg-white/5 px-2.5 py-1 text-[11px] text-zinc-400"
-                >
+                <button type="button" onClick={() => onStatus(t.id, "OPEN")} className="rounded-lg bg-white/5 px-2.5 py-1 text-[11px] text-zinc-400">
                   Offen
                 </button>
               )}
               {t.status !== "IN_PROGRESS" && (
-                <button
-                  type="button"
-                  onClick={() => onStatus(t.id, "IN_PROGRESS")}
-                  className="rounded-lg bg-sky-500/15 px-2.5 py-1 text-[11px] text-sky-400"
-                >
+                <button type="button" onClick={() => onStatus(t.id, "IN_PROGRESS")} className="rounded-lg bg-sky-500/15 px-2.5 py-1 text-[11px] text-sky-400">
                   Läuft
                 </button>
               )}
               {t.status !== "DONE" && (
-                <button
-                  type="button"
-                  onClick={() => onStatus(t.id, "DONE")}
-                  className="rounded-lg bg-emerald-500/15 px-2.5 py-1 text-[11px] text-emerald-400"
-                >
+                <button type="button" onClick={() => onStatus(t.id, "DONE")} className="rounded-lg bg-emerald-500/15 px-2.5 py-1 text-[11px] text-emerald-400">
                   Fertig
                 </button>
               )}
-              <button
-                type="button"
-                onClick={() => onDelete(t.id)}
-                className="rounded-lg bg-red-500/10 px-2.5 py-1 text-[11px] text-red-400"
-              >
+              <button type="button" onClick={() => onDelete(t.id)} className="rounded-lg bg-red-500/10 px-2.5 py-1 text-[11px] text-red-400">
                 Löschen
               </button>
             </div>
