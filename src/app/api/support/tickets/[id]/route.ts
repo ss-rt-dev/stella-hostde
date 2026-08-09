@@ -2,7 +2,18 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { isStaffRole } from "@/lib/roles";
+import { isAdminRole } from "@/lib/roles";
+import { getMembership, isTeamStaff } from "@/lib/teams";
+
+async function canAccessTicket(userId: string, role: string, ticket: { teamId: string | null; userId: string }) {
+  if (isAdminRole(role)) return { ok: true, staff: true };
+  if (!ticket.teamId) {
+    return { ok: ticket.userId === userId, staff: false };
+  }
+  const m = await getMembership(userId, ticket.teamId);
+  if (!m) return { ok: false, staff: false };
+  return { ok: true, staff: isTeamStaff(m.role) };
+}
 
 export async function GET(
   _req: Request,
@@ -14,12 +25,13 @@ export async function GET(
   }
 
   const { id } = await params;
-  const staff = isStaffRole((session.user as any).role);
+  const role = (session.user as any).role as string;
 
   const ticket = await prisma.supportTicket.findUnique({
     where: { id },
     include: {
       user: { select: { id: true, name: true, email: true } },
+      team: { select: { id: true, name: true } },
       messages: {
         orderBy: { createdAt: "asc" },
         include: {
@@ -33,11 +45,12 @@ export async function GET(
     return NextResponse.json({ error: "Ticket nicht gefunden" }, { status: 404 });
   }
 
-  if (!staff && ticket.userId !== session.user.id) {
+  const access = await canAccessTicket(session.user.id, role, ticket);
+  if (!access.ok) {
     return NextResponse.json({ error: "Kein Zugriff" }, { status: 403 });
   }
 
-  return NextResponse.json(ticket);
+  return NextResponse.json({ ...ticket, canManage: access.staff });
 }
 
 export async function PATCH(
@@ -50,7 +63,7 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const staff = isStaffRole((session.user as any).role);
+  const role = (session.user as any).role as string;
   const body = await req.json().catch(() => ({}));
 
   const ticket = await prisma.supportTicket.findUnique({ where: { id } });
@@ -58,17 +71,27 @@ export async function PATCH(
     return NextResponse.json({ error: "Ticket nicht gefunden" }, { status: 404 });
   }
 
-  if (!staff && ticket.userId !== session.user.id) {
+  const access = await canAccessTicket(session.user.id, role, ticket);
+  if (!access.ok) {
     return NextResponse.json({ error: "Kein Zugriff" }, { status: 403 });
   }
 
   if (body.status === "CLOSED" || body.status === "OPEN") {
-    if (body.status === "OPEN" && !staff) {
+    if (body.status === "OPEN" && !access.staff) {
       return NextResponse.json(
-        { error: "Nur Team kann Tickets wieder öffnen" },
+        { error: "Nur Team-Owner/Admin können Tickets wieder öffnen" },
         { status: 403 }
       );
     }
+    // Schließen: Ersteller oder Team-Staff
+    if (
+      body.status === "CLOSED" &&
+      !access.staff &&
+      ticket.userId !== session.user.id
+    ) {
+      return NextResponse.json({ error: "Kein Zugriff" }, { status: 403 });
+    }
+
     const updated = await prisma.supportTicket.update({
       where: { id },
       data: {

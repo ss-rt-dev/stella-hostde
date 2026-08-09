@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { isStaffRole } from "@/lib/roles";
+import { isAdminRole } from "@/lib/roles";
+import { getMembership, isTeamStaff } from "@/lib/teams";
 import { z } from "zod";
 
 const schema = z.object({
@@ -19,7 +20,7 @@ export async function POST(
   }
 
   const { id } = await params;
-  const staff = isStaffRole((session.user as any).role);
+  const role = (session.user as any).role as string;
 
   try {
     const { body } = schema.parse(await req.json());
@@ -29,15 +30,19 @@ export async function POST(
       return NextResponse.json({ error: "Ticket nicht gefunden" }, { status: 404 });
     }
 
-    if (!staff && ticket.userId !== session.user.id) {
+    let staff = isAdminRole(role);
+    if (ticket.teamId) {
+      const m = await getMembership(session.user.id, ticket.teamId);
+      if (!m) {
+        return NextResponse.json({ error: "Kein Zugriff" }, { status: 403 });
+      }
+      staff = staff || isTeamStaff(m.role);
+    } else if (ticket.userId !== session.user.id && !staff) {
       return NextResponse.json({ error: "Kein Zugriff" }, { status: 403 });
     }
 
     if (ticket.status === "CLOSED") {
-      return NextResponse.json(
-        { error: "Ticket ist geschlossen" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Ticket ist geschlossen" }, { status: 400 });
     }
 
     const msg = await prisma.supportMessage.create({

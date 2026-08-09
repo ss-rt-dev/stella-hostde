@@ -2,27 +2,30 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { isStaffRole } from "@/lib/roles";
+import { isAdminRole } from "@/lib/roles";
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || !isStaffRole((session.user as any).role)) {
+  if (!session?.user || !isAdminRole((session.user as any).role)) {
     return NextResponse.json({ error: "Kein Zugriff" }, { status: 403 });
   }
 
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
+  const teamId = searchParams.get("team");
 
-  const where =
+  const where: any =
     status === "OPEN" || status === "CLOSED"
       ? { status: status as "OPEN" | "CLOSED" }
       : {};
+  if (teamId) where.teamId = teamId;
 
   const tickets = await prisma.supportTicket.findMany({
     where,
     orderBy: { updatedAt: "desc" },
     include: {
       user: { select: { id: true, name: true, email: true } },
+      team: { select: { id: true, name: true } },
       _count: { select: { messages: true } },
     },
   });

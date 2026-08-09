@@ -192,6 +192,7 @@ enum SupportStatus {
 
 model SupportTicket {
   id          String           @id @default(cuid())
+  teamId      String?
   userId      String
   subject     String
   description String           @db.Text
@@ -202,9 +203,11 @@ model SupportTicket {
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   closedAt    DateTime?
+  team        Team?            @relation(fields: [teamId], references: [id], onDelete: Cascade)
   user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages    SupportMessage[]
 
+  @@index([teamId, status])
   @@index([userId, createdAt])
   @@index([status, createdAt])
 }
@@ -221,8 +224,6 @@ model SupportMessage {
 
   @@index([ticketId, createdAt])
 }
-
-/* ── Multi-Team Workspace ── */
 
 enum TeamMemberRole {
   OWNER
@@ -241,6 +242,7 @@ model Team {
   members       TeamMember[]
   todos         Todo[]
   announcements TeamAnnouncement[]
+  supportTickets SupportTicket[]
 
   @@index([ownerId])
 }

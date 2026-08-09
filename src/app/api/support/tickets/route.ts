@@ -3,13 +3,19 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { sendSupportTicketWebhook } from "@/lib/discord";
+import {
+  getMembership,
+  isTeamStaff,
+  resolveActiveTeamId,
+} from "@/lib/teams";
+import { isAdminRole } from "@/lib/roles";
 import { z } from "zod";
 
 const createSchema = z
   .object({
     subject: z.string().min(3).max(120).optional(),
     description: z.string().min(10).max(8000).optional(),
-    type: z.enum(["GENERAL", "SERVER", "TEAM_APPLICATION"]),
+    type: z.enum(["GENERAL", "SERVER", "TEAM_APPLICATION", "DISCORD"]),
     discordName: z.string().max(64).optional(),
     applyRole: z.string().max(64).optional(),
     realName: z.string().max(80).optional(),
@@ -65,24 +71,12 @@ const createSchema = z
       const fields: [string, string | undefined, string][] = [
         ["aboutMe", data.aboutMe, "Erzähl mehr über dich (min. 30 Zeichen)"],
         ["whyRole", data.whyRole, "Warum willst du diese Rolle? (min. 30 Zeichen)"],
-        [
-          "whyBetter",
-          data.whyBetter,
-          "Warum bist du geeignet / besser als andere? (min. 30 Zeichen)",
-        ],
-        [
-          "contribution",
-          data.contribution,
-          "Was willst du verbessern oder wo helfen? (min. 30 Zeichen)",
-        ],
+        ["whyBetter", data.whyBetter, "Warum bist du geeignet? (min. 30 Zeichen)"],
+        ["contribution", data.contribution, "Was willst du beitragen? (min. 30 Zeichen)"],
       ];
       for (const [path, value, message] of fields) {
         if (!value?.trim() || value.trim().length < min) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message,
-            path: [path],
-          });
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message, path: [path] });
         }
       }
     } else {
@@ -127,7 +121,7 @@ function buildApplicationDescription(data: {
     "【 Warum ich geeignet bin 】",
     data.whyBetter.trim(),
     "",
-    "【 Was ich verbessern / woran ich helfen will 】",
+    "【 Was ich beitragen will 】",
     data.contribution.trim(),
   ].join("\n");
 }
@@ -138,21 +132,49 @@ export async function GET() {
     return NextResponse.json({ error: "Nicht eingeloggt" }, { status: 401 });
   }
 
+  const teamId = await resolveActiveTeamId(session.user.id);
+  if (!teamId) {
+    return NextResponse.json({ error: "Kein Team gewählt" }, { status: 400 });
+  }
+
+  const membership = await getMembership(session.user.id, teamId);
+  if (!membership) {
+    return NextResponse.json({ error: "Kein Zugriff auf dieses Team" }, { status: 403 });
+  }
+
+  const staff = isTeamStaff(membership.role);
+
+  // Team-Owner/Admin: alle Team-Tickets; Member: eigene + alle Team-Tickets (sichtbar im Team)
   const tickets = await prisma.supportTicket.findMany({
-    where: { userId: session.user.id },
+    where: { teamId },
     orderBy: { updatedAt: "desc" },
     include: {
+      user: { select: { id: true, name: true, email: true } },
       _count: { select: { messages: true } },
     },
   });
 
-  return NextResponse.json(tickets);
+  return NextResponse.json({
+    tickets,
+    teamId,
+    canManage: staff,
+  });
 }
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ error: "Nicht eingeloggt" }, { status: 401 });
+  }
+
+  const teamId = await resolveActiveTeamId(session.user.id);
+  if (!teamId) {
+    return NextResponse.json({ error: "Kein Team gewählt" }, { status: 400 });
+  }
+
+  const membership = await getMembership(session.user.id, teamId);
+  if (!membership) {
+    return NextResponse.json({ error: "Kein Zugriff auf dieses Team" }, { status: 403 });
   }
 
   try {
@@ -166,8 +188,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "User nicht gefunden" }, { status: 404 });
     }
 
+    const team = await prisma.team.findUnique({ where: { id: teamId } });
+
     const isApp = parsed.type === "TEAM_APPLICATION";
-    const discordName = isApp ? parsed.discordName!.trim() : null;
+    const discordName = isApp
+      ? parsed.discordName!.trim()
+      : parsed.discordName?.trim() || null;
     const applyRole = isApp ? parsed.applyRole!.trim() : null;
 
     let description: string;
@@ -195,6 +221,7 @@ export async function POST(req: Request) {
 
     const ticket = await prisma.supportTicket.create({
       data: {
+        teamId,
         userId: session.user.id,
         subject,
         description,
@@ -206,9 +233,9 @@ export async function POST(req: Request) {
 
     void sendSupportTicketWebhook({
       ticketId: ticket.id,
-      subject: ticket.subject,
+      subject: `[${team?.name || "Team"}] ${ticket.subject}`,
       description: ticket.description,
-      type: ticket.type as "GENERAL" | "SERVER" | "TEAM_APPLICATION",
+      type: ticket.type as any,
       userName: user.name || "—",
       userEmail: user.email,
       discordName: discordName || undefined,
@@ -218,9 +245,7 @@ export async function POST(req: Request) {
     return NextResponse.json(ticket);
   } catch (e: any) {
     if (e?.name === "ZodError") {
-      const msg =
-        e.errors?.[0]?.message ||
-        "Bitte alle Pflichtfelder korrekt ausfüllen";
+      const msg = e.errors?.[0]?.message || "Bitte alle Pflichtfelder korrekt ausfüllen";
       return NextResponse.json({ error: msg }, { status: 400 });
     }
     console.error(e);
