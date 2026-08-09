@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 type TeamRow = {
@@ -14,7 +13,6 @@ type TeamRow = {
 };
 
 export default function TeamsPage() {
-  const router = useRouter();
   const [teams, setTeams] = useState<TeamRow[]>([]);
   const [ownedCount, setOwnedCount] = useState(0);
   const [maxOwned, setMaxOwned] = useState(10);
@@ -45,8 +43,7 @@ export default function TeamsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ teamId }),
     });
-    router.push("/dashboard");
-    router.refresh();
+    window.location.assign("/dashboard");
   }
 
   async function create(e: React.FormEvent) {
@@ -62,14 +59,12 @@ export default function TeamsPage() {
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Fehler");
+        setCreating(false);
         return;
       }
-      setName("");
-      setShowCreate(false);
       await select(data.team.id);
     } catch {
       setError("Netzwerkfehler");
-    } finally {
       setCreating(false);
     }
   }

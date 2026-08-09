@@ -2,13 +2,11 @@
 
 import { signIn } from "next-auth/react";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 const LOGO = "https://cdn3.emoji.gg/emojis/40642-darkyellow.png";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -25,16 +23,15 @@ export default function LoginPage() {
       redirect: false,
     });
 
-    setLoading(false);
-
     if (res?.error) {
+      setLoading(false);
       setError("E-Mail oder Passwort falsch");
       return;
     }
 
-    // Layout leitet ohne Team nach /dashboard/onboarding
-    router.push("/dashboard");
-    router.refresh();
+    // Full reload – sonst bleibt /dashboard oft schwarz bis man manuell reloaded
+    // (Session + Server-Redirect nach /onboarding greifen so zuverlässig)
+    window.location.assign("/dashboard");
   }
 
   return (

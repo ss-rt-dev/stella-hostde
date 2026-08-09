@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 export default function OnboardingPage() {
-  const router = useRouter();
   const [mode, setMode] = useState<"choose" | "join" | "create">("choose");
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
@@ -17,8 +15,8 @@ export default function OnboardingPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ teamId }),
     });
-    router.replace("/dashboard");
-    router.refresh();
+    // Full reload damit Cookie + Layout sauber greifen
+    window.location.assign("/dashboard");
   }
 
   async function join(e: React.FormEvent) {
@@ -34,12 +32,12 @@ export default function OnboardingPage() {
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Fehler");
+        setLoading(false);
         return;
       }
       await selectTeam(data.team.id);
     } catch {
       setError("Netzwerkfehler");
-    } finally {
       setLoading(false);
     }
   }
@@ -57,12 +55,12 @@ export default function OnboardingPage() {
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Fehler");
+        setLoading(false);
         return;
       }
       await selectTeam(data.team.id);
     } catch {
       setError("Netzwerkfehler");
-    } finally {
       setLoading(false);
     }
   }
