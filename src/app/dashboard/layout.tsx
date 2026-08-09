@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { authOptions } from "@/lib/auth";
 import { DashboardNav } from "@/components/dashboard/Nav";
 import { PageTransition } from "@/components/dashboard/PageTransition";
+import { IpTracker } from "@/components/dashboard/IpTracker";
 import { getUserMemberships, resolveActiveTeamId } from "@/lib/teams";
 
 export const metadata: Metadata = {
@@ -35,7 +36,6 @@ export default async function DashboardLayout({
 
   const memberships = await getUserMemberships(session.user.id);
 
-  // Kein Team → Onboarding (Einladungscode oder Team erstellen)
   if (memberships.length === 0 && !isSetup) {
     redirect("/dashboard/onboarding");
   }
@@ -43,7 +43,6 @@ export default async function DashboardLayout({
   const activeTeamId =
     memberships.length > 0 ? await resolveActiveTeamId(session.user.id) : null;
 
-  // Teams vorhanden, aber keins aktiv → Auswahl
   if (memberships.length > 0 && !activeTeamId && !isSetup) {
     redirect("/dashboard/teams");
   }
@@ -52,9 +51,9 @@ export default async function DashboardLayout({
     ? memberships.find((m) => m.teamId === activeTeamId)
     : null;
 
-  // Setup-Seiten ohne volle Nav-Sidebar-Team-Kontext (immer Nav, aber ohne aktives Team)
   return (
     <div className="min-h-screen bg-[#0a0a0c] text-zinc-100">
+      <IpTracker />
       <DashboardNav
         user={session.user as any}
         activeTeam={

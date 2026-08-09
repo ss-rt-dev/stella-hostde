@@ -23,20 +23,58 @@ export async function logActivity(opts: {
 }
 
 export async function recordLogin(userId: string, ip?: string | null) {
+  const cleanIp =
+    ip && ip !== "unknown" ? ip.slice(0, 64) : null;
+
   try {
     await prisma.user.update({
       where: { id: userId },
-      data: { lastLoginAt: new Date() },
+      data: {
+        lastLoginAt: new Date(),
+        ...(cleanIp ? { lastLoginIp: cleanIp } : {}),
+      },
     });
   } catch (e) {
-    console.error("recordLogin lastLoginAt", e);
+    console.error("recordLogin", e);
   }
+
   await logActivity({
     userId,
     action: "login",
-    detail: "Anmeldung",
-    ip,
+    detail: cleanIp ? `Anmeldung von ${cleanIp}` : "Anmeldung",
+    ip: cleanIp,
   });
+}
+
+/** Nur IP aktualisieren (nach Login, wenn authorize keine Request-IP hatte) */
+export async function updateUserIp(userId: string, ip: string | null) {
+  const cleanIp =
+    ip && ip !== "unknown" ? ip.slice(0, 64) : null;
+  if (!cleanIp) return;
+
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { lastLoginIp: cleanIp },
+    });
+
+    // Letzten Login-Activity-Eintrag ohne IP nachziehen
+    const lastLogin = await prisma.activityLog.findFirst({
+      where: { userId, action: "login" },
+      orderBy: { createdAt: "desc" },
+    });
+    if (lastLogin && !lastLogin.ip) {
+      await prisma.activityLog.update({
+        where: { id: lastLogin.id },
+        data: {
+          ip: cleanIp,
+          detail: `Anmeldung von ${cleanIp}`,
+        },
+      });
+    }
+  } catch (e) {
+    console.error("updateUserIp", e);
+  }
 }
 
 export function actionLabel(action: string): string {

@@ -46,34 +46,41 @@ export async function GET() {
   });
 
   return NextResponse.json(
-    users.map((u) => ({
-      id: u.id,
-      email: u.email,
-      name: u.name,
-      role: u.role,
-      balance: Number(u.balance),
-      createdAt: u.createdAt,
-      lastLoginAt: u.lastLoginAt,
-      servers: u.servers,
-      teams: u.memberships.map((m) => ({
-        id: m.team.id,
-        name: m.team.name,
-        inviteCode: m.team.inviteCode,
-        role: m.role,
-        joinedAt: m.joinedAt,
-      })),
-      ownedTeamIds: u.ownedTeams.map((t) => t.id),
-      transactionCount: u._count.transactions,
-      activityCount: u._count.activities,
-      activities: u.activities.map((a) => ({
-        id: a.id,
-        action: a.action,
-        label: actionLabel(a.action),
-        detail: a.detail,
-        ip: a.ip,
-        createdAt: a.createdAt,
-      })),
-    }))
+    users.map((u) => {
+      // Fallback: letzte Activity mit IP, falls lastLoginIp noch leer
+      const lastIpFromActivity =
+        u.activities.find((a) => a.ip)?.ip ?? null;
+
+      return {
+        id: u.id,
+        email: u.email,
+        name: u.name,
+        role: u.role,
+        balance: Number(u.balance),
+        createdAt: u.createdAt,
+        lastLoginAt: u.lastLoginAt,
+        lastLoginIp: u.lastLoginIp || lastIpFromActivity,
+        servers: u.servers,
+        teams: u.memberships.map((m) => ({
+          id: m.team.id,
+          name: m.team.name,
+          inviteCode: m.team.inviteCode,
+          role: m.role,
+          joinedAt: m.joinedAt,
+        })),
+        ownedTeamIds: u.ownedTeams.map((t) => t.id),
+        transactionCount: u._count.transactions,
+        activityCount: u._count.activities,
+        activities: u.activities.map((a) => ({
+          id: a.id,
+          action: a.action,
+          label: actionLabel(a.action),
+          detail: a.detail,
+          ip: a.ip,
+          createdAt: a.createdAt,
+        })),
+      };
+    })
   );
 }
 

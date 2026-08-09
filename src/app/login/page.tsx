@@ -29,8 +29,13 @@ export default function LoginPage() {
       return;
     }
 
-    // Full reload – sonst bleibt /dashboard oft schwarz bis man manuell reloaded
-    // (Session + Server-Redirect nach /onboarding greifen so zuverlässig)
+    // Echte Client-IP serverseitig speichern (Vercel/CF-Header)
+    try {
+      await fetch("/api/session/track", { method: "POST" });
+    } catch {
+      /* ignore */
+    }
+
     window.location.assign("/dashboard");
   }
 
@@ -75,7 +80,9 @@ export default function LoginPage() {
 
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium uppercase tracking-wider text-zinc-500">E-Mail</label>
+              <label className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+                E-Mail
+              </label>
               <input
                 type="email"
                 required
@@ -86,7 +93,9 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium uppercase tracking-wider text-zinc-500">Passwort</label>
+              <label className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+                Passwort
+              </label>
               <input
                 type="password"
                 required

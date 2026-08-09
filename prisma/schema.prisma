@@ -16,6 +16,7 @@ model User {
   balance          Decimal            @default(0) @db.Decimal(12, 2)
   onboardingDone   Boolean            @default(false)
   lastLoginAt      DateTime?
+  lastLoginIp      String?
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
   servers          Server[]
@@ -232,16 +233,16 @@ enum TeamMemberRole {
 }
 
 model Team {
-  id            String             @id @default(cuid())
-  name          String
-  inviteCode    String             @unique
-  ownerId       String
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
-  owner         User               @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  members       TeamMember[]
-  todos         Todo[]
-  announcements TeamAnnouncement[]
+  id             String             @id @default(cuid())
+  name           String
+  inviteCode     String             @unique
+  ownerId        String
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  owner          User               @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members        TeamMember[]
+  todos          Todo[]
+  announcements  TeamAnnouncement[]
   supportTickets SupportTicket[]
 
   @@index([ownerId])
