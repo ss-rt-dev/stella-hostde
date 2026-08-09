@@ -28,6 +28,15 @@ export async function GET() {
         where: { status: { not: "DELETED" } },
         include: { package: true },
       },
+      memberships: {
+        include: {
+          team: { select: { id: true, name: true, inviteCode: true } },
+        },
+        orderBy: { joinedAt: "asc" },
+      },
+      ownedTeams: {
+        select: { id: true, name: true, inviteCode: true },
+      },
       activities: {
         orderBy: { createdAt: "desc" },
         take: 30,
@@ -46,6 +55,14 @@ export async function GET() {
       createdAt: u.createdAt,
       lastLoginAt: u.lastLoginAt,
       servers: u.servers,
+      teams: u.memberships.map((m) => ({
+        id: m.team.id,
+        name: m.team.name,
+        inviteCode: m.team.inviteCode,
+        role: m.role,
+        joinedAt: m.joinedAt,
+      })),
+      ownedTeamIds: u.ownedTeams.map((t) => t.id),
       transactionCount: u._count.transactions,
       activityCount: u._count.activities,
       activities: u.activities.map((a) => ({

@@ -128,13 +128,6 @@ export default async function AdminPage() {
           )}
         </section>
       </div>
-
-      <div className="grid gap-3 sm:grid-cols-4">
-        <Quick href="/admin/teams" title="Teams" desc="Alle Workspaces" />
-        <Quick href="/admin/users" title="Nutzer" desc="Accounts & Rollen" />
-        <Quick href="/admin/todos" title="Todos" desc="Aufgaben aller Teams" />
-        <Quick href="/admin/support" title="Support" desc="Tickets & Bewerbungen" />
-      </div>
     </div>
   );
 }
@@ -155,18 +148,6 @@ function Stat({
     >
       <p className="text-xs text-zinc-500">{label}</p>
       <p className="mt-1 text-2xl font-bold text-white">{value}</p>
-    </Link>
-  );
-}
-
-function Quick({ href, title, desc }: { href: string; title: string; desc: string }) {
-  return (
-    <Link
-      href={href}
-      className="rounded-2xl border border-white/10 bg-[#121214] p-4 transition hover:border-amber-500/30"
-    >
-      <p className="font-semibold text-white">{title}</p>
-      <p className="mt-0.5 text-xs text-zinc-500">{desc}</p>
     </Link>
   );
 }
