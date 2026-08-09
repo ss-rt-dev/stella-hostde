@@ -4,11 +4,11 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { DashboardNav } from "@/components/dashboard/Nav";
 import { PageTransition } from "@/components/dashboard/PageTransition";
-import { isStaffRole } from "@/lib/roles";
+import { isAdminRole } from "@/lib/roles";
 
 export const metadata: Metadata = {
-  title: "Stella Host Team",
-  description: "Stella Host Team-Dashboard",
+  title: "Stella Platform Admin",
+  description: "Stella – Plattform-Verwaltung",
   icons: {
     icon: [{ url: "/admin-icon", type: "image/png" }],
     shortcut: "/admin-icon",
@@ -25,11 +25,12 @@ export default async function AdminLayout({
   if (!session) redirect("/login");
 
   const role = (session.user as any).role as string;
-  if (!isStaffRole(role)) redirect("/dashboard");
+  // Nur Platform-Admins (justin@… hat role ADMIN via Seed)
+  if (!isAdminRole(role)) redirect("/dashboard");
 
   return (
     <div className="min-h-screen bg-[#0a0a0c] text-zinc-100">
-      <DashboardNav user={session.user as any} />
+      <DashboardNav user={session.user as any} platformAdmin />
       <main className="lg:pl-[240px]">
         <div className="mx-auto max-w-[1200px] px-4 py-5 pb-20 lg:px-6 lg:py-6 lg:pb-8">
           <PageTransition>{children}</PageTransition>

@@ -3,137 +3,170 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { isAdminRole } from "@/lib/roles";
 import { prisma } from "@/lib/db";
-import { formatCurrency } from "@/lib/utils";
 import Link from "next/link";
-import { MaintenanceToggle } from "@/components/admin/MaintenanceToggle";
 
 export default async function AdminPage() {
   const session = await getServerSession(authOptions);
-  const role = (session?.user as any)?.role;
+  if (!isAdminRole((session?.user as any)?.role)) redirect("/dashboard");
 
-  // Moderator / Supporter → Support (Overview bleibt für Admins unverändert)
-  if (!isAdminRole(role)) {
-    redirect("/admin/support");
-  }
-
-  const [userCount, packages, serverCount, running, transactions] =
-    await Promise.all([
-      prisma.user.count(),
-      prisma.package.findMany({ orderBy: { pricePerHour: "asc" } }),
-      prisma.server.count({ where: { status: { not: "DELETED" } } }),
-      prisma.server.count({ where: { status: "RUNNING" } }),
-      prisma.transaction.findMany({
-        orderBy: { createdAt: "desc" },
-        take: 10,
-        include: { user: true },
-      }),
-    ]);
+  const [
+    userCount,
+    teamCount,
+    memberCount,
+    openTodos,
+    openTickets,
+    recentTeams,
+    recentTodos,
+  ] = await Promise.all([
+    prisma.user.count(),
+    prisma.team.count(),
+    prisma.teamMember.count(),
+    prisma.todo.count({ where: { status: { not: "DONE" } } }),
+    prisma.supportTicket.count({ where: { status: "OPEN" } }),
+    prisma.team.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 8,
+      include: {
+        owner: { select: { email: true, name: true } },
+        _count: { select: { members: true, todos: true } },
+      },
+    }),
+    prisma.todo.findMany({
+      where: { status: { not: "DONE" } },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      include: {
+        team: { select: { name: true, id: true } },
+        assignee: { select: { name: true, email: true } },
+        createdBy: { select: { name: true, email: true } },
+      },
+    }),
+  ]);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-white sm:text-2xl">
-            Admin Overview
-          </h1>
-          <p className="text-sm text-zinc-500">Systemverwaltung</p>
-        </div>
-        <Link
-          href="/admin/users"
-          className="rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-4 py-2 text-sm font-semibold text-black shadow-lg shadow-amber-500/20"
-        >
-          Nutzer verwalten →
-        </Link>
+      <div>
+        <p className="text-xs font-medium uppercase tracking-wider text-amber-400/80">
+          Platform Admin
+        </p>
+        <h1 className="mt-1 text-2xl font-bold text-white">Übersicht</h1>
+        <p className="mt-1 text-sm text-zinc-500">
+          Alle Teams, Nutzer und Aufgaben – plattformweit, getrennt vom Workspace
+        </p>
       </div>
 
-      <MaintenanceToggle />
-
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Card title="Kunden" value={userCount} />
-        <Card title="Pakete" value={packages.length} />
-        <Card title="Online" value={running} />
-        <Card title="Server" value={serverCount} />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <Stat label="Nutzer" value={userCount} href="/admin/users" />
+        <Stat label="Teams" value={teamCount} href="/admin/teams" />
+        <Stat label="Mitgliedschaften" value={memberCount} href="/admin/teams" />
+        <Stat label="Offene Todos" value={openTodos} href="/admin/todos" />
+        <Stat label="Offene Tickets" value={openTickets} href="/admin/support" />
       </div>
 
-      <section className="rounded-2xl border border-white/10 bg-[#121214] overflow-hidden">
-        <div className="border-b border-white/5 px-5 py-4">
-          <h2 className="font-semibold text-white">Server-Pakete</h2>
-        </div>
-        {packages.length === 0 ? (
-          <p className="px-5 py-8 text-center text-sm text-zinc-500">
-            Keine Pakete – Seed ausführen
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="text-xs uppercase text-zinc-600">
-                <tr className="border-b border-white/5">
-                  <th className="px-5 py-3 font-medium">Name</th>
-                  <th className="px-3 py-3 font-medium">Specs</th>
-                  <th className="px-3 py-3 font-medium text-right">Preis/h</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {packages.map((p) => (
-                  <tr key={p.id}>
-                    <td className="px-5 py-3 font-medium text-zinc-200">
-                      {p.name}
-                    </td>
-                    <td className="px-3 py-3 text-zinc-500">
-                      {p.cpu} vCPU · {p.ramMb} MB · {p.diskGb} GB
-                    </td>
-                    <td className="px-3 py-3 text-right text-amber-400">
-                      {formatCurrency(Number(p.pricePerHour))}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="overflow-hidden rounded-2xl border border-white/10 bg-[#121214]">
+          <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
+            <h2 className="font-semibold text-white">Neueste Teams</h2>
+            <Link href="/admin/teams" className="text-sm text-amber-400 hover:underline">
+              Alle
+            </Link>
           </div>
-        )}
-      </section>
-
-      <section className="rounded-2xl border border-white/10 bg-[#121214] overflow-hidden">
-        <div className="border-b border-white/5 px-5 py-4">
-          <h2 className="font-semibold text-white">Letzte Transaktionen</h2>
-        </div>
-        <div className="divide-y divide-white/5">
-          {transactions.length === 0 ? (
-            <p className="px-5 py-8 text-center text-sm text-zinc-500">Keine</p>
+          {recentTeams.length === 0 ? (
+            <p className="px-5 py-10 text-center text-sm text-zinc-500">Noch keine Teams</p>
           ) : (
-            transactions.map((t) => (
-              <div
-                key={t.id}
-                className="flex items-center justify-between gap-3 px-5 py-3 text-sm"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-zinc-300">
-                    {t.description || t.type}
-                  </p>
-                  <p className="text-xs text-zinc-600">{t.user.email}</p>
-                </div>
-                <span
-                  className={
-                    Number(t.amount) >= 0 ? "text-amber-400" : "text-red-400"
-                  }
-                >
-                  {Number(t.amount) >= 0 ? "+" : ""}
-                  {formatCurrency(Number(t.amount))}
-                </span>
-              </div>
-            ))
+            <ul className="divide-y divide-white/5">
+              {recentTeams.map((t) => (
+                <li key={t.id}>
+                  <Link
+                    href={`/admin/teams/${t.id}`}
+                    className="flex items-center justify-between gap-3 px-5 py-3.5 transition hover:bg-white/[0.03]"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-zinc-200">{t.name}</p>
+                      <p className="text-xs text-zinc-500">
+                        Owner: {t.owner.name || t.owner.email} · Code {t.inviteCode}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-xs text-zinc-500">
+                      {t._count.members} Mitgl. · {t._count.todos} Todos
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
           )}
-        </div>
-      </section>
+        </section>
+
+        <section className="overflow-hidden rounded-2xl border border-white/10 bg-[#121214]">
+          <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
+            <h2 className="font-semibold text-white">Offene Todos (global)</h2>
+            <Link href="/admin/todos" className="text-sm text-amber-400 hover:underline">
+              Alle
+            </Link>
+          </div>
+          {recentTodos.length === 0 ? (
+            <p className="px-5 py-10 text-center text-sm text-zinc-500">Keine offenen Todos</p>
+          ) : (
+            <ul className="divide-y divide-white/5">
+              {recentTodos.map((t) => (
+                <li key={t.id} className="px-5 py-3.5">
+                  <p className="font-medium text-zinc-200">{t.title}</p>
+                  <p className="text-xs text-zinc-500">
+                    Team:{" "}
+                    <Link href={`/admin/teams/${t.team.id}`} className="text-amber-400 hover:underline">
+                      {t.team.name}
+                    </Link>
+                    {" · "}
+                    {t.scope} · {t.status}
+                    {t.assignee
+                      ? ` · → ${t.assignee.name || t.assignee.email}`
+                      : ""}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-4">
+        <Quick href="/admin/teams" title="Teams" desc="Alle Workspaces" />
+        <Quick href="/admin/users" title="Nutzer" desc="Accounts & Rollen" />
+        <Quick href="/admin/todos" title="Todos" desc="Aufgaben aller Teams" />
+        <Quick href="/admin/support" title="Support" desc="Tickets & Bewerbungen" />
+      </div>
     </div>
   );
 }
 
-function Card({ title, value }: { title: string; value: number }) {
+function Stat({
+  label,
+  value,
+  href,
+}: {
+  label: string;
+  value: number;
+  href: string;
+}) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#121214] p-4">
-      <p className="text-xs text-zinc-500">{title}</p>
+    <Link
+      href={href}
+      className="rounded-2xl border border-white/10 bg-[#121214] p-4 transition hover:border-amber-500/35"
+    >
+      <p className="text-xs text-zinc-500">{label}</p>
       <p className="mt-1 text-2xl font-bold text-white">{value}</p>
-    </div>
+    </Link>
+  );
+}
+
+function Quick({ href, title, desc }: { href: string; title: string; desc: string }) {
+  return (
+    <Link
+      href={href}
+      className="rounded-2xl border border-white/10 bg-[#121214] p-4 transition hover:border-amber-500/30"
+    >
+      <p className="font-semibold text-white">{title}</p>
+      <p className="mt-0.5 text-xs text-zinc-500">{desc}</p>
+    </Link>
   );
 }
