@@ -2,19 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { signIn } from "next-auth/react";
 import { ROLES, ROLE_LABELS, type AppRole, roleLabel, roleColor } from "@/lib/roles";
-
-interface Server {
-  id: string;
-  name: string;
-  status: string;
-  proxmoxVmid: number | null;
-  cpu?: number | null;
-  ramMb?: number | null;
-  diskGb?: number | null;
-  package: { id: string; name: string; pricePerHour: string };
-}
 
 interface Activity {
   id: string;
@@ -38,10 +26,8 @@ interface User {
   email: string;
   name: string | null;
   role: string;
-  balance: number;
   createdAt: string;
   lastLoginAt: string | null;
-  servers: Server[];
   teams?: UserTeam[];
   activities?: Activity[];
   activityCount?: number;
@@ -92,14 +78,12 @@ export default function AdminUsersPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [creditAmount, setCreditAmount] = useState("10");
   const [busy, setBusy] = useState(false);
 
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newRole, setNewRole] = useState<AppRole>("CUSTOMER");
-  const [newBalance, setNewBalance] = useState("0");
   const [showCreate, setShowCreate] = useState(false);
 
   async function load() {
@@ -146,7 +130,6 @@ export default function AdminUsersPage() {
         email: newEmail,
         password: newPassword,
         role: newRole,
-        balance: Number(newBalance) || 0,
       }),
     });
     const data = await res.json();
@@ -159,7 +142,6 @@ export default function AdminUsersPage() {
     setNewName("");
     setNewEmail("");
     setNewPassword("");
-    setNewBalance("0");
     setShowCreate(false);
     load();
   }
@@ -179,29 +161,6 @@ export default function AdminUsersPage() {
     setMsg("Nutzer gelöscht");
     setSelected(null);
     load();
-  }
-
-  async function loginAsUser() {
-    if (!selected) return;
-    if (!confirm(`Als ${selected.email} anmelden?`)) return;
-    setBusy(true);
-    setError("");
-    const res = await fetch("/api/admin/impersonate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: selected.id }),
-    });
-    const data = await res.json();
-    setBusy(false);
-    if (!res.ok) {
-      setError(data.error || "Fehler");
-      return;
-    }
-    await signIn("credentials", {
-      impersonateToken: data.token,
-      redirect: true,
-      callbackUrl: "/dashboard",
-    });
   }
 
   async function saveProfile() {
@@ -261,27 +220,6 @@ export default function AdminUsersPage() {
     load();
   }
 
-  async function addCredit(sign: 1 | -1) {
-    if (!selected) return;
-    const amount = sign * Math.abs(Number(creditAmount));
-    if (!amount) return;
-    setBusy(true);
-    setError("");
-    const res = await fetch(`/api/admin/users/${selected.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "credit", amount }),
-    });
-    const data = await res.json();
-    setBusy(false);
-    if (!res.ok) {
-      setError(data.error || "Fehler");
-      return;
-    }
-    setMsg(`Guthaben aktualisiert: ${data.balance} €`);
-    load();
-  }
-
   if (loading) {
     return <p className="text-zinc-500">Lade Nutzer…</p>;
   }
@@ -332,15 +270,6 @@ export default function AdminUsersPage() {
             onChange={(e) => setNewPassword(e.target.value)}
             className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-amber-500/50"
           />
-          <input
-            type="number"
-            step="0.01"
-            min={0}
-            placeholder="Start-Guthaben"
-            value={newBalance}
-            onChange={(e) => setNewBalance(e.target.value)}
-            className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-amber-500/50"
-          />
           <select
             value={newRole}
             onChange={(e) => setNewRole(e.target.value as AppRole)}
@@ -355,7 +284,7 @@ export default function AdminUsersPage() {
           <button
             type="submit"
             disabled={busy}
-            className="rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
+            className="rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-black disabled:opacity-50 sm:col-span-2"
           >
             Erstellen
           </button>
@@ -399,12 +328,17 @@ export default function AdminUsersPage() {
                         className="rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-400/90"
                       >
                         {t.name}
-                        <span className="text-zinc-500"> · {TEAM_ROLE_LABEL[t.role] || t.role}</span>
+                        <span className="text-zinc-500">
+                          {" "}
+                          · {TEAM_ROLE_LABEL[t.role] || t.role}
+                        </span>
                       </span>
                     ))
                   )}
                   {(u.teams || []).length > 3 && (
-                    <span className="text-[10px] text-zinc-500">+{(u.teams || []).length - 3}</span>
+                    <span className="text-[10px] text-zinc-500">
+                      +{(u.teams || []).length - 3}
+                    </span>
                   )}
                 </div>
                 <p className="mt-1 text-[11px] text-zinc-500" title={fmtDate(u.lastLoginAt)}>
@@ -440,9 +374,15 @@ export default function AdminUsersPage() {
                   <p className="mt-1 text-xs text-zinc-300">{fmtDate(selected.createdAt)}</p>
                 </div>
                 <div className="col-span-1 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 sm:col-span-2">
-                  <p className="text-[10px] uppercase tracking-wide text-amber-400/70">Letzter Login</p>
-                  <p className="mt-1 text-sm font-medium text-white">{fmtDate(selected.lastLoginAt)}</p>
-                  <p className="text-[11px] text-zinc-500">{relativeLogin(selected.lastLoginAt)}</p>
+                  <p className="text-[10px] uppercase tracking-wide text-amber-400/70">
+                    Letzter Login
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-white">
+                    {fmtDate(selected.lastLoginAt)}
+                  </p>
+                  <p className="text-[11px] text-zinc-500">
+                    {relativeLogin(selected.lastLoginAt)}
+                  </p>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-[#121214] p-3">
                   <p className="text-[10px] uppercase tracking-wide text-zinc-600">Teams</p>
@@ -488,14 +428,6 @@ export default function AdminUsersPage() {
                 <button
                   type="button"
                   disabled={busy}
-                  onClick={loginAsUser}
-                  className="rounded-xl bg-sky-500/20 px-4 py-2 text-sm font-medium text-sky-400 hover:bg-sky-500/30 disabled:opacity-50"
-                >
-                  Als Nutzer anmelden
-                </button>
-                <button
-                  type="button"
-                  disabled={busy}
                   onClick={deleteUser}
                   className="rounded-xl bg-red-500/20 px-4 py-2 text-sm font-medium text-red-400 hover:bg-red-500/30 disabled:opacity-50"
                 >
@@ -518,7 +450,9 @@ export default function AdminUsersPage() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="font-medium text-zinc-200">{a.label}</p>
-                          {a.detail && <p className="truncate text-xs text-zinc-500">{a.detail}</p>}
+                          {a.detail && (
+                            <p className="truncate text-xs text-zinc-500">{a.detail}</p>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -589,37 +523,6 @@ export default function AdminUsersPage() {
                 >
                   Passwort setzen
                 </button>
-              </section>
-
-              <section className="space-y-3 rounded-2xl border border-white/10 bg-[#121214] p-5">
-                <h2 className="font-semibold text-white">
-                  Guthaben <span className="text-amber-400">{selected.balance.toFixed(2)} €</span>
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={creditAmount}
-                    onChange={(e) => setCreditAmount(e.target.value)}
-                    className="w-28 rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-amber-500/50"
-                  />
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => addCredit(1)}
-                    className="rounded-xl bg-emerald-500/20 px-4 py-2 text-sm font-medium text-emerald-400 disabled:opacity-50"
-                  >
-                    + Gutschreiben
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => addCredit(-1)}
-                    className="rounded-xl bg-red-500/20 px-4 py-2 text-sm font-medium text-red-400 disabled:opacity-50"
-                  >
-                    − Abziehen
-                  </button>
-                </div>
               </section>
             </>
           )}
