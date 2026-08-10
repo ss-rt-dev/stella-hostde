@@ -1,6 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import {
+  Check,
+  CheckCircle2,
+  Circle,
+  GripVertical,
+  ListTodo,
+  Plus,
+  Trash2,
+  User,
+  Flag,
+  X,
+} from "lucide-react";
 
 type Person = { id: string; name: string | null; email: string };
 
@@ -33,8 +45,10 @@ export default function AufgabenPage() {
   const [canAssign, setCanAssign] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
-  const [scope, setScope] = useState("ALL");
   const [error, setError] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dropOver, setDropOver] = useState<"open" | "done" | null>(null);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -44,23 +58,11 @@ export default function AufgabenPage() {
   const [subtaskDrafts, setSubtaskDrafts] = useState<string[]>([""]);
   const [creating, setCreating] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [newSubTitle, setNewSubTitle] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    try {
-      const s = new URLSearchParams(window.location.search).get("scope");
-      if (s === "TEAM" || s === "PERSONAL" || s === "ALL") setScope(s);
-    } catch {
-      /* ignore */
-    }
-  }, []);
+  const [newSubTitle, setNewSubTitle] = useState("");
 
   const load = useCallback(async () => {
-    setLoading(true);
     try {
-      const q = scope !== "ALL" ? `?scope=${scope}` : "";
-      const res = await fetch(`/api/team/todos${q}`);
+      const res = await fetch("/api/team/todos");
       const data = await res.json();
       if (res.ok) {
         setTasks(data.todos || []);
@@ -71,7 +73,7 @@ export default function AufgabenPage() {
       setError("Laden fehlgeschlagen");
     }
     setLoading(false);
-  }, [scope]);
+  }, []);
 
   useEffect(() => {
     load();
@@ -120,7 +122,7 @@ export default function AufgabenPage() {
       setSelectedIds([]);
       setSubtaskDrafts([""]);
       setShowForm(false);
-      load();
+      await load();
     } catch {
       setError("Netzwerkfehler");
     } finally {
@@ -129,90 +131,108 @@ export default function AufgabenPage() {
   }
 
   async function setStatus(id: string, status: Task["status"]) {
-    await fetch(`/api/team/todos/${id}`, {
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
+    void fetch(`/api/team/todos/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
+    }).then((res) => {
+      if (!res.ok) load();
     });
-    load();
   }
 
   async function removeTask(id: string) {
     if (!confirm("Aufgabe löschen?")) return;
-    await fetch(`/api/team/todos/${id}`, { method: "DELETE" });
-    load();
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+    if (selectedId === id) setSelectedId(null);
+    void fetch(`/api/team/todos/${id}`, { method: "DELETE" });
   }
 
   async function toggleSub(todoId: string, sub: Subtask) {
-    await fetch(`/api/team/todos/${todoId}/subtasks/${sub.id}`, {
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id !== todoId
+          ? t
+          : {
+              ...t,
+              subtasks: t.subtasks.map((s) =>
+                s.id === sub.id ? { ...s, done: !s.done } : s
+              ),
+            }
+      )
+    );
+    void fetch(`/api/team/todos/${todoId}/subtasks/${sub.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ done: !sub.done }),
     });
-    load();
   }
 
   async function addSub(todoId: string) {
-    const t = (newSubTitle[todoId] || "").trim();
+    const t = newSubTitle.trim();
     if (!t) return;
-    await fetch(`/api/team/todos/${todoId}/subtasks`, {
+    setNewSubTitle("");
+    const res = await fetch(`/api/team/todos/${todoId}/subtasks`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title: t }),
     });
-    setNewSubTitle((m) => ({ ...m, [todoId]: "" }));
-    load();
+    if (res.ok) load();
   }
 
   async function deleteSub(todoId: string, subId: string) {
-    await fetch(`/api/team/todos/${todoId}/subtasks/${subId}`, {
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id !== todoId
+          ? t
+          : { ...t, subtasks: t.subtasks.filter((s) => s.id !== subId) }
+      )
+    );
+    void fetch(`/api/team/todos/${todoId}/subtasks/${subId}`, {
       method: "DELETE",
     });
-    load();
   }
 
-  const open = tasks.filter((t) => t.status !== "DONE");
-  const done = tasks.filter((t) => t.status === "DONE");
+  function onDragStart(id: string) {
+    setDragId(id);
+  }
+
+  function onDragEnd() {
+    setDragId(null);
+    setDropOver(null);
+  }
+
+  function onDropColumn(col: "open" | "done") {
+    if (!dragId) return;
+    void setStatus(dragId, col === "done" ? "DONE" : "OPEN");
+    setDragId(null);
+    setDropOver(null);
+  }
+
+  const openTasks = tasks.filter((t) => t.status !== "DONE");
+  const doneTasks = tasks.filter((t) => t.status === "DONE");
+  const selected = tasks.find((t) => t.id === selectedId) || null;
 
   return (
-    <div className="space-y-6">
+    <div className="flex min-h-[calc(100vh-7rem)] flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-white sm:text-2xl">Aufgaben</h1>
-          <p className="text-sm text-zinc-500">
-            Nur zugewiesene Mitglieder sehen die Aufgabe · Unteraufgaben möglich
-          </p>
+        <div className="flex items-center gap-2">
+          <ListTodo className="h-5 w-5 text-amber-400" />
+          <div>
+            <h1 className="text-xl font-bold text-white">Aufgaben</h1>
+            <p className="text-xs text-zinc-500">
+              Links alle Aufgaben · per Drag & Drop in die Spalten
+            </p>
+          </div>
         </div>
         <button
           type="button"
           onClick={() => setShowForm((v) => !v)}
-          className="rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-4 py-2 text-sm font-semibold text-black"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-black"
         >
-          {showForm ? "Abbrechen" : "+ Aufgabe"}
+          {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+          {showForm ? "Schließen" : "Aufgabe"}
         </button>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {(
-          [
-            ["ALL", "Alle"],
-            ["TEAM", "Team"],
-            ["PERSONAL", "Persönlich"],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setScope(id)}
-            className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-              scope === id
-                ? "bg-amber-400 text-black"
-                : "border border-white/10 text-zinc-400 hover:bg-white/5"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
       </div>
 
       {error && (
@@ -224,25 +244,23 @@ export default function AufgabenPage() {
       {showForm && (
         <form
           onSubmit={createTask}
-          className="space-y-4 rounded-2xl border border-amber-500/25 bg-[#121214] p-5"
+          className="space-y-3 rounded-2xl border border-amber-500/25 bg-[#121214] p-4"
         >
-          <h2 className="font-semibold text-white">Neue Aufgabe</h2>
           <input
             required
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Titel"
+            placeholder="Titel der Aufgabe"
             className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/50"
           />
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Beschreibung (optional)"
-            rows={3}
+            rows={2}
             className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/50"
           />
-
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2">
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value as any)}
@@ -263,318 +281,429 @@ export default function AufgabenPage() {
               </select>
             )}
           </div>
-
-          {canAssign && (
-            <div>
-              <p className="mb-2 text-xs font-medium text-zinc-500">
-                Zugewiesen an (nur diese sehen die Aufgabe)
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {members.map((m) => {
-                  const on = selectedIds.includes(m.id);
-                  return (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => toggleMember(m.id)}
-                      className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                        on
-                          ? "bg-amber-400 text-black"
-                          : "border border-white/10 text-zinc-400 hover:bg-white/5"
-                      }`}
-                    >
-                      {m.name || m.email}
-                    </button>
-                  );
-                })}
-                {members.length === 0 && (
-                  <p className="text-xs text-zinc-600">Keine Mitglieder geladen</p>
-                )}
-              </div>
+          {canAssign && members.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {members.map((m) => {
+                const on = selectedIds.includes(m.id);
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => toggleMember(m.id)}
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs ${
+                      on
+                        ? "bg-amber-400 text-black"
+                        : "border border-white/10 text-zinc-400"
+                    }`}
+                  >
+                    <User className="h-3 w-3" />
+                    {m.name || m.email}
+                  </button>
+                );
+              })}
             </div>
           )}
-
-          <div>
-            <p className="mb-2 text-xs font-medium text-zinc-500">Unteraufgaben (optional)</p>
-            <div className="space-y-2">
-              {subtaskDrafts.map((s, i) => (
-                <div key={i} className="flex gap-2">
-                  <input
-                    value={s}
-                    onChange={(e) => {
-                      const next = [...subtaskDrafts];
-                      next[i] = e.target.value;
-                      setSubtaskDrafts(next);
-                    }}
-                    placeholder={`Unteraufgabe ${i + 1}`}
-                    className="flex-1 rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-amber-500/50"
-                  />
-                  {subtaskDrafts.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setSubtaskDrafts(subtaskDrafts.filter((_, j) => j !== i))
-                      }
-                      className="rounded-xl px-2 text-xs text-red-400"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => setSubtaskDrafts([...subtaskDrafts, ""])}
-                className="text-xs text-amber-400 hover:underline"
-              >
-                + Unteraufgabe
-              </button>
-            </div>
+          <div className="space-y-1.5">
+            {subtaskDrafts.map((s, i) => (
+              <input
+                key={i}
+                value={s}
+                onChange={(e) => {
+                  const next = [...subtaskDrafts];
+                  next[i] = e.target.value;
+                  setSubtaskDrafts(next);
+                }}
+                placeholder={`Unteraufgabe ${i + 1}`}
+                className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-1.5 text-xs text-white outline-none"
+              />
+            ))}
+            <button
+              type="button"
+              onClick={() => setSubtaskDrafts([...subtaskDrafts, ""])}
+              className="text-xs text-amber-400"
+            >
+              + Unteraufgabe
+            </button>
           </div>
-
           <button
             type="submit"
             disabled={creating}
-            className="rounded-xl bg-amber-400 px-5 py-2 text-sm font-semibold text-black disabled:opacity-50"
+            className="rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
           >
-            {creating ? "…" : "Anlegen"}
+            Anlegen
           </button>
         </form>
       )}
 
       {loading ? (
-        <p className="text-zinc-500">Laden…</p>
+        <p className="text-sm text-zinc-500">Laden…</p>
       ) : (
-        <div className="space-y-4">
-          <TaskList
-            title="Offen"
-            items={open}
-            expanded={expanded}
-            setExpanded={setExpanded}
-            onStatus={setStatus}
-            onDelete={removeTask}
-            onToggleSub={toggleSub}
-            onAddSub={addSub}
-            onDeleteSub={deleteSub}
-            newSubTitle={newSubTitle}
-            setNewSubTitle={setNewSubTitle}
-          />
-          {done.length > 0 && (
-            <TaskList
-              title="Erledigt"
-              items={done}
-              expanded={expanded}
-              setExpanded={setExpanded}
-              onStatus={setStatus}
-              onDelete={removeTask}
-              onToggleSub={toggleSub}
-              onAddSub={addSub}
-              onDeleteSub={deleteSub}
-              newSubTitle={newSubTitle}
-              setNewSubTitle={setNewSubTitle}
+        <div className="grid flex-1 gap-3 lg:grid-cols-[240px_1fr_1fr]">
+          <aside className="flex max-h-[70vh] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#121214]">
+            <div className="flex items-center gap-2 border-b border-white/5 px-3 py-2.5">
+              <ListTodo className="h-4 w-4 text-zinc-400" />
+              <span className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                Alle ({tasks.length})
+              </span>
+            </div>
+            <ul className="flex-1 overflow-y-auto">
+              {tasks.length === 0 && (
+                <li className="px-3 py-8 text-center text-xs text-zinc-600">
+                  Noch keine Aufgaben
+                </li>
+              )}
+              {tasks.map((t) => {
+                const done = t.status === "DONE";
+                const active = selectedId === t.id;
+                return (
+                  <li key={t.id}>
+                    <button
+                      type="button"
+                      draggable
+                      onDragStart={() => onDragStart(t.id)}
+                      onDragEnd={onDragEnd}
+                      onClick={() => setSelectedId(t.id)}
+                      className={`flex w-full items-start gap-2 border-b border-white/5 px-3 py-2.5 text-left transition ${
+                        active ? "bg-amber-500/10" : "hover:bg-white/[0.03]"
+                      } ${dragId === t.id ? "opacity-50" : ""}`}
+                    >
+                      <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-zinc-600" />
+                      {done ? (
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                      ) : (
+                        <Circle className="mt-0.5 h-4 w-4 shrink-0 text-zinc-500" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p
+                          className={`truncate text-sm ${
+                            done ? "text-zinc-500 line-through" : "text-zinc-200"
+                          }`}
+                        >
+                          {t.title}
+                        </p>
+                        {t.subtasks.length > 0 && (
+                          <p className="text-[10px] text-zinc-600">
+                            {t.subtasks.filter((s) => s.done).length}/
+                            {t.subtasks.length}
+                          </p>
+                        )}
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </aside>
+
+          <DropColumn
+            title="Nicht erledigt"
+            count={openTasks.length}
+            variant="open"
+            active={dropOver === "open"}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDropOver("open");
+            }}
+            onDragLeave={() => setDropOver(null)}
+            onDrop={() => onDropColumn("open")}
+          >
+            {openTasks.map((t) => (
+              <TaskCard
+                key={t.id}
+                task={t}
+                selected={selectedId === t.id}
+                dragging={dragId === t.id}
+                onSelect={() => setSelectedId(t.id)}
+                onDragStart={() => onDragStart(t.id)}
+                onDragEnd={onDragEnd}
+                onToggleDone={() => setStatus(t.id, "DONE")}
+                onDelete={() => removeTask(t.id)}
+              />
+            ))}
+            {openTasks.length === 0 && (
+              <p className="px-2 py-10 text-center text-xs text-zinc-600">
+                Aufgabe hierher ziehen
+              </p>
+            )}
+          </DropColumn>
+
+          <DropColumn
+            title="Erledigt"
+            count={doneTasks.length}
+            variant="done"
+            active={dropOver === "done"}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDropOver("done");
+            }}
+            onDragLeave={() => setDropOver(null)}
+            onDrop={() => onDropColumn("done")}
+          >
+            {doneTasks.map((t) => (
+              <TaskCard
+                key={t.id}
+                task={t}
+                selected={selectedId === t.id}
+                dragging={dragId === t.id}
+                onSelect={() => setSelectedId(t.id)}
+                onDragStart={() => onDragStart(t.id)}
+                onDragEnd={onDragEnd}
+                onToggleDone={() => setStatus(t.id, "OPEN")}
+                onDelete={() => removeTask(t.id)}
+              />
+            ))}
+            {doneTasks.length === 0 && (
+              <p className="px-2 py-10 text-center text-xs text-zinc-600">
+                Hierher ziehen zum Abhaken
+              </p>
+            )}
+          </DropColumn>
+        </div>
+      )}
+
+      {selected && (
+        <div className="rounded-2xl border border-white/10 bg-[#121214] p-4">
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h2 className="font-semibold text-white">{selected.title}</h2>
+              {selected.description && (
+                <p className="mt-1 text-sm text-zinc-500">{selected.description}</p>
+              )}
+              <p className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-zinc-600">
+                <Flag className="h-3 w-3" />
+                {selected.priority}
+                {(selected.assignees?.length
+                  ? selected.assignees
+                  : selected.assignee
+                    ? [selected.assignee]
+                    : []
+                ).map((p) => (
+                  <span key={p.id} className="inline-flex items-center gap-0.5">
+                    <User className="h-3 w-3" />
+                    {p.name || p.email}
+                  </span>
+                ))}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelectedId(null)}
+              className="rounded-lg p-1 text-zinc-500 hover:bg-white/5"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <p className="mb-2 text-xs font-medium text-zinc-400">Unteraufgaben</p>
+          <div className="space-y-1.5">
+            {selected.subtasks.map((s) => (
+              <div key={s.id} className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => toggleSub(selected.id, s)}
+                  className={`flex h-5 w-5 items-center justify-center rounded-md border ${
+                    s.done
+                      ? "border-emerald-500/50 bg-emerald-500/20 text-emerald-400"
+                      : "border-white/20 text-transparent hover:border-amber-500/40"
+                  }`}
+                >
+                  <Check className="h-3 w-3" strokeWidth={3} />
+                </button>
+                <span
+                  className={`flex-1 text-sm ${
+                    s.done ? "text-zinc-500 line-through" : "text-zinc-200"
+                  }`}
+                >
+                  {s.title}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => deleteSub(selected.id, s.id)}
+                  className="text-zinc-600 hover:text-red-400"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+            {selected.subtasks.length === 0 && (
+              <p className="text-xs text-zinc-600">Keine Unteraufgaben</p>
+            )}
+          </div>
+          <div className="mt-3 flex gap-2">
+            <input
+              value={newSubTitle}
+              onChange={(e) => setNewSubTitle(e.target.value)}
+              placeholder="Neue Unteraufgabe"
+              className="flex-1 rounded-lg border border-white/10 bg-black/40 px-3 py-1.5 text-xs text-white outline-none"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addSub(selected.id);
+                }
+              }}
             />
-          )}
+            <button
+              type="button"
+              onClick={() => addSub(selected.id)}
+              className="rounded-lg bg-amber-400 px-3 py-1.5 text-xs font-semibold text-black"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-function TaskList({
+function DropColumn({
   title,
-  items,
-  expanded,
-  setExpanded,
-  onStatus,
-  onDelete,
-  onToggleSub,
-  onAddSub,
-  onDeleteSub,
-  newSubTitle,
-  setNewSubTitle,
+  count,
+  variant,
+  active,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  children,
 }: {
   title: string;
-  items: Task[];
-  expanded: string | null;
-  setExpanded: (id: string | null) => void;
-  onStatus: (id: string, s: Task["status"]) => void;
-  onDelete: (id: string) => void;
-  onToggleSub: (todoId: string, sub: Subtask) => void;
-  onAddSub: (todoId: string) => void;
-  onDeleteSub: (todoId: string, subId: string) => void;
-  newSubTitle: Record<string, string>;
-  setNewSubTitle: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  count: number;
+  variant: "open" | "done";
+  active: boolean;
+  onDragOver: (e: React.DragEvent) => void;
+  onDragLeave: () => void;
+  onDrop: () => void;
+  children: React.ReactNode;
 }) {
-  if (items.length === 0) {
-    return (
-      <div className="rounded-2xl border border-white/10 bg-[#121214] px-5 py-10 text-center text-sm text-zinc-500">
-        Keine Einträge unter „{title}“
+  return (
+    <section
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={(e) => {
+        e.preventDefault();
+        onDrop();
+      }}
+      className={`flex max-h-[70vh] flex-col overflow-hidden rounded-2xl border transition ${
+        active
+          ? variant === "done"
+            ? "border-emerald-500/50 bg-emerald-500/5"
+            : "border-amber-500/50 bg-amber-500/5"
+          : "border-white/10 bg-[#121214]"
+      }`}
+    >
+      <div className="flex items-center gap-2 border-b border-white/5 px-3 py-2.5">
+        {variant === "done" ? (
+          <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+        ) : (
+          <Circle className="h-4 w-4 text-amber-400" />
+        )}
+        <span className="text-xs font-semibold text-zinc-300">{title}</span>
+        <span className="rounded-full bg-white/5 px-1.5 text-[10px] text-zinc-500">
+          {count}
+        </span>
       </div>
-    );
-  }
+      <div className="flex-1 space-y-2 overflow-y-auto p-2">{children}</div>
+    </section>
+  );
+}
+
+function TaskCard({
+  task,
+  selected,
+  dragging,
+  onSelect,
+  onDragStart,
+  onDragEnd,
+  onToggleDone,
+  onDelete,
+}: {
+  task: Task;
+  selected: boolean;
+  dragging: boolean;
+  onSelect: () => void;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  onToggleDone: () => void;
+  onDelete: () => void;
+}) {
+  const done = task.status === "DONE";
+  const people =
+    task.assignees?.length > 0
+      ? task.assignees
+      : task.assignee
+        ? [task.assignee]
+        : [];
+  const subDone = task.subtasks.filter((s) => s.done).length;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#121214]">
-      <div className="border-b border-white/5 px-5 py-3">
-        <h2 className="text-sm font-semibold text-white">
-          {title} <span className="text-zinc-500">({items.length})</span>
-        </h2>
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onClick={onSelect}
+      className={`cursor-grab rounded-xl border bg-[#0c0c0e] p-3 active:cursor-grabbing ${
+        selected
+          ? "border-amber-500/40 ring-1 ring-amber-500/20"
+          : "border-white/10 hover:border-white/20"
+      } ${dragging ? "opacity-40" : ""}`}
+    >
+      <div className="flex items-start gap-2">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleDone();
+          }}
+          className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
+            done
+              ? "border-emerald-500/50 bg-emerald-500/25 text-emerald-400"
+              : "border-white/25 hover:border-amber-400/50"
+          }`}
+          title={done ? "Wieder öffnen" : "Als erledigt markieren"}
+        >
+          {done && <Check className="h-3 w-3" strokeWidth={3} />}
+        </button>
+        <div className="min-w-0 flex-1">
+          <p
+            className={`text-sm font-medium ${
+              done ? "text-zinc-500 line-through" : "text-zinc-100"
+            }`}
+          >
+            {task.title}
+          </p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            {task.priority === "HIGH" && (
+              <span className="inline-flex items-center gap-0.5 rounded bg-red-500/15 px-1.5 py-0.5 text-[10px] text-red-400">
+                <Flag className="h-2.5 w-2.5" /> Hoch
+              </span>
+            )}
+            {task.subtasks.length > 0 && (
+              <span className="text-[10px] text-zinc-500">
+                {subDone}/{task.subtasks.length}
+              </span>
+            )}
+            {people.slice(0, 2).map((p) => (
+              <span
+                key={p.id}
+                className="inline-flex items-center gap-0.5 text-[10px] text-zinc-500"
+              >
+                <User className="h-2.5 w-2.5" />
+                {(p.name || p.email).split("@")[0]}
+              </span>
+            ))}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="shrink-0 text-zinc-600 hover:text-red-400"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
       </div>
-      <ul className="divide-y divide-white/5">
-        {items.map((t) => {
-          const open = expanded === t.id;
-          const doneCount = t.subtasks.filter((s) => s.done).length;
-          const people =
-            t.assignees?.length > 0
-              ? t.assignees
-              : t.assignee
-                ? [t.assignee]
-                : [];
-
-          return (
-            <li key={t.id} className="px-5 py-4">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0 flex-1">
-                  <button
-                    type="button"
-                    onClick={() => setExpanded(open ? null : t.id)}
-                    className="text-left"
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-medium text-zinc-200">{t.title}</p>
-                      <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] text-zinc-400">
-                        {t.scope === "TEAM" ? "Team" : "Persönlich"}
-                      </span>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                          t.priority === "HIGH"
-                            ? "bg-red-500/15 text-red-400"
-                            : t.priority === "LOW"
-                              ? "bg-zinc-500/15 text-zinc-400"
-                              : "bg-amber-500/15 text-amber-400"
-                        }`}
-                      >
-                        {t.priority}
-                      </span>
-                      {t.subtasks.length > 0 && (
-                        <span className="text-[10px] text-zinc-500">
-                          {doneCount}/{t.subtasks.length} Unteraufgaben
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                  {t.description && (
-                    <p className="mt-1 text-xs text-zinc-500 line-clamp-2">{t.description}</p>
-                  )}
-                  <p className="mt-1 text-[11px] text-zinc-600">
-                    {people.length
-                      ? `→ ${people.map((p) => p.name || p.email).join(", ")}`
-                      : "niemand zugewiesen (nur Owner/Admin)"}{" "}
-                    · von {t.createdBy.name || t.createdBy.email}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {t.status !== "OPEN" && (
-                    <button
-                      type="button"
-                      onClick={() => onStatus(t.id, "OPEN")}
-                      className="rounded-lg bg-white/5 px-2.5 py-1 text-[11px] text-zinc-400"
-                    >
-                      Offen
-                    </button>
-                  )}
-                  {t.status !== "IN_PROGRESS" && (
-                    <button
-                      type="button"
-                      onClick={() => onStatus(t.id, "IN_PROGRESS")}
-                      className="rounded-lg bg-sky-500/15 px-2.5 py-1 text-[11px] text-sky-400"
-                    >
-                      Läuft
-                    </button>
-                  )}
-                  {t.status !== "DONE" && (
-                    <button
-                      type="button"
-                      onClick={() => onStatus(t.id, "DONE")}
-                      className="rounded-lg bg-emerald-500/15 px-2.5 py-1 text-[11px] text-emerald-400"
-                    >
-                      Fertig
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => onDelete(t.id)}
-                    className="rounded-lg bg-red-500/10 px-2.5 py-1 text-[11px] text-red-400"
-                  >
-                    Löschen
-                  </button>
-                </div>
-              </div>
-
-              {open && (
-                <div className="mt-3 space-y-2 rounded-xl border border-white/5 bg-black/30 p-3">
-                  <p className="text-xs font-medium text-zinc-400">Unteraufgaben</p>
-                  {t.subtasks.length === 0 && (
-                    <p className="text-xs text-zinc-600">Noch keine</p>
-                  )}
-                  {t.subtasks.map((s) => (
-                    <div key={s.id} className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => onToggleSub(t.id, s)}
-                        className={`flex h-5 w-5 items-center justify-center rounded border text-[10px] ${
-                          s.done
-                            ? "border-emerald-500/50 bg-emerald-500/20 text-emerald-400"
-                            : "border-white/20 text-transparent"
-                        }`}
-                      >
-                        ✓
-                      </button>
-                      <span
-                        className={`flex-1 text-sm ${
-                          s.done ? "text-zinc-500 line-through" : "text-zinc-200"
-                        }`}
-                      >
-                        {s.title}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => onDeleteSub(t.id, s.id)}
-                        className="text-[10px] text-red-400/80"
-                      >
-                        Löschen
-                      </button>
-                    </div>
-                  ))}
-                  <div className="flex gap-2 pt-1">
-                    <input
-                      value={newSubTitle[t.id] || ""}
-                      onChange={(e) =>
-                        setNewSubTitle((m) => ({ ...m, [t.id]: e.target.value }))
-                      }
-                      placeholder="Neue Unteraufgabe"
-                      className="flex-1 rounded-lg border border-white/10 bg-black/40 px-3 py-1.5 text-xs text-white outline-none"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          onAddSub(t.id);
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => onAddSub(t.id)}
-                      className="rounded-lg bg-amber-400/90 px-3 py-1.5 text-xs font-semibold text-black"
-                    >
-                      + 
-                    </button>
-                  </div>
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
     </div>
   );
 }
