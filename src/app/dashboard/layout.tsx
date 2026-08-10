@@ -10,7 +10,7 @@ import { getUserMemberships, resolveActiveTeamId } from "@/lib/teams";
 
 export const metadata: Metadata = {
   title: "Stella Team Dashboard",
-  description: "Stella – Teams, Todos, Mitglieder und Board",
+  description: "Stella – Teams, Aufgaben, Mitglieder und Board",
   icons: {
     icon: [{ url: "/dashboard-icon", type: "image/png" }],
     shortcut: "/dashboard-icon",
@@ -74,7 +74,7 @@ export default async function DashboardLayout({
         setupMode={isSetup || memberships.length === 0}
       />
       <main className="lg:pl-[240px]">
-        <div className="mx-auto max-w-[1100px] px-4 py-5 pb-20 lg:px-6 lg:py-6 lg:pb-8">
+        <div className="mx-auto max-w-[1400px] px-3 py-4 pb-20 sm:px-4 lg:px-6 lg:py-5 lg:pb-8">
           <PageTransition>{children}</PageTransition>
         </div>
       </main>

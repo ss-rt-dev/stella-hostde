@@ -10,6 +10,9 @@ function getSecret() {
   return process.env.NEXTAUTH_SECRET || "dev-secret";
 }
 
+/** Rolle max. alle 5 Min. aus DB – spart DB-Hits bei jedem Request */
+const ROLE_REFRESH_MS = 5 * 60 * 1000;
+
 export function createImpersonateToken(adminId: string, userId: string) {
   const exp = Date.now() + 60_000;
   const payload = `${adminId}.${userId}.${exp}`;
@@ -42,6 +45,7 @@ export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60,
   },
   pages: {
     signIn: "/login",
@@ -73,7 +77,7 @@ export const authOptions: NextAuthOptions = {
             target.id === data.adminId ? undefined : data.adminId;
 
           if (impersonatedBy) {
-            await logActivity({
+            void logActivity({
               userId: target.id,
               action: "admin_impersonate",
               detail: `Admin-Login als Nutzer (${admin.email})`,
@@ -107,7 +111,8 @@ export const authOptions: NextAuthOptions = {
 
         if (!valid) return null;
 
-        await recordLogin(user.id);
+        // Login-Log nicht blockierend
+        void recordLogin(user.id);
 
         return {
           id: user.id,
@@ -125,16 +130,22 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.name = user.name;
         token.email = user.email;
+        (token as any).roleRefreshedAt = Date.now();
         if ((user as any).impersonatedBy) {
           token.impersonatedBy = (user as any).impersonatedBy;
         } else {
           delete token.impersonatedBy;
         }
+        return token;
       }
 
-      // Rolle immer aus der DB nachladen (Admin ändert Rolle → ohne Re-Login sichtbar)
-      // Bei Impersonation: Rolle des Ziel-Users behalten, nicht überschreiben mit Admin
-      if (token.id && !(token as any).impersonatedBy) {
+      // Nur alle 5 Min. Rolle aus DB – verhindert langsames Dashboard
+      const last = Number((token as any).roleRefreshedAt || 0);
+      if (
+        token.id &&
+        !(token as any).impersonatedBy &&
+        Date.now() - last > ROLE_REFRESH_MS
+      ) {
         try {
           const dbUser = await prisma.user.findUnique({
             where: { id: String(token.id) },
@@ -145,6 +156,7 @@ export const authOptions: NextAuthOptions = {
             if (dbUser.name != null) token.name = dbUser.name;
             if (dbUser.email) token.email = dbUser.email;
           }
+          (token as any).roleRefreshedAt = Date.now();
         } catch (e) {
           console.error("jwt role refresh", e);
         }

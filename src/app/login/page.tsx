@@ -29,48 +29,41 @@ export default function LoginPage() {
       return;
     }
 
-    // Echte Client-IP serverseitig speichern (Vercel/CF-Header)
-    try {
-      await fetch("/api/session/track", { method: "POST" });
-    } catch {
-      /* ignore */
-    }
-
+    // IP tracken nicht abwarten – schneller Redirect
+    void fetch("/api/session/track", { method: "POST" });
     window.location.assign("/dashboard");
   }
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden p-4">
-      <div className="pointer-events-none absolute inset-0 bg-[#0a0a0c]" />
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0a0a0c] p-4">
       <div
-        className="pointer-events-none absolute -left-32 top-1/4 h-[420px] w-[420px] rounded-full opacity-40 blur-[120px]"
-        style={{
-          background: "radial-gradient(circle, rgba(251,191,36,0.28), transparent 70%)",
-        }}
+        className="pointer-events-none absolute -left-24 top-1/4 h-72 w-72 rounded-full opacity-30 blur-3xl"
+        style={{ background: "rgba(251,191,36,0.35)" }}
       />
 
-      <div className="relative w-full max-w-[420px]">
-        <div className="mb-8 flex flex-col items-center">
+      <div className="relative w-full max-w-[400px]">
+        <div className="mb-6 flex flex-col items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={LOGO}
-            alt="Stella Dashboard"
-            width={56}
-            height={56}
-            className="mb-3 h-14 w-14 object-contain drop-shadow-[0_0_20px_rgba(251,191,36,0.4)]"
+            alt=""
+            width={48}
+            height={48}
+            className="mb-2 h-12 w-12 object-contain"
             decoding="async"
+            fetchPriority="high"
           />
-          <h1 className="text-xl font-semibold tracking-tight text-white">
+          <h1 className="text-xl font-semibold text-white">
             Stella<span className="text-amber-400">Dashboard</span>
           </h1>
-          <p className="mt-1 text-sm text-zinc-500">Willkommen zurück</p>
+          <p className="mt-0.5 text-sm text-zinc-500">Willkommen zurück</p>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="rounded-3xl border border-white/10 bg-white/[0.04] p-8 shadow-2xl backdrop-blur-2xl"
+          className="rounded-2xl border border-white/10 bg-[#121214] p-6 sm:p-8"
         >
-          <h2 className="mb-6 text-lg font-semibold text-white">Anmelden</h2>
+          <h2 className="mb-5 text-lg font-semibold text-white">Anmelden</h2>
 
           {error && (
             <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">
@@ -78,31 +71,29 @@ export default function LoginPage() {
             </div>
           )}
 
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-                E-Mail
-              </label>
+          <div className="space-y-3">
+            <div>
+              <label className="mb-1 block text-xs text-zinc-500">E-Mail</label>
               <input
                 type="email"
                 required
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
-                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20"
+                className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-amber-500/50"
               />
             </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-                Passwort
-              </label>
+            <div>
+              <label className="mb-1 block text-xs text-zinc-500">Passwort</label>
               <input
                 type="password"
                 required
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20"
+                className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-amber-500/50"
               />
             </div>
           </div>
@@ -110,20 +101,18 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-6 w-full rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 py-3 text-sm font-semibold text-black shadow-lg shadow-amber-500/25 disabled:opacity-50"
+            className="mt-5 w-full rounded-xl bg-amber-400 py-2.5 text-sm font-semibold text-black disabled:opacity-50"
           >
             {loading ? "Wird angemeldet…" : "Anmelden"}
           </button>
 
-          <p className="mt-6 text-center text-sm text-zinc-500">
+          <p className="mt-5 text-center text-sm text-zinc-500">
             Noch kein Konto?{" "}
             <Link href="/register" className="font-medium text-amber-400 hover:text-amber-300">
               Registrieren
             </Link>
           </p>
         </form>
-
-        <p className="mt-6 text-center text-xs text-zinc-600">© 2026 Stella Dashboard</p>
       </div>
     </main>
   );
