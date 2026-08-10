@@ -12,6 +12,7 @@ import {
   User,
   Flag,
   X,
+  Users,
 } from "lucide-react";
 
 type Person = { id: string; name: string | null; email: string };
@@ -53,7 +54,7 @@ export default function AufgabenPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<"LOW" | "MEDIUM" | "HIGH">("MEDIUM");
-  const [newScope, setNewScope] = useState<"PERSONAL" | "TEAM">("PERSONAL");
+  const [newScope, setNewScope] = useState<"PERSONAL" | "TEAM">("TEAM");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [subtaskDrafts, setSubtaskDrafts] = useState<string[]>([""]);
   const [creating, setCreating] = useState(false);
@@ -62,12 +63,21 @@ export default function AufgabenPage() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/team/todos");
-      const data = await res.json();
-      if (res.ok) {
-        setTasks(data.todos || []);
-        setCanAssign(Boolean(data.canAssign));
-        if (data.canAssign) setNewScope("TEAM");
+      const [todosRes, membersRes] = await Promise.all([
+        fetch("/api/team/todos"),
+        fetch("/api/team/members"),
+      ]);
+      const todosData = await todosRes.json();
+      const membersData = await membersRes.json();
+
+      if (todosRes.ok) {
+        setTasks(todosData.todos || []);
+        setCanAssign(Boolean(todosData.canAssign));
+        if (todosData.canAssign) setNewScope("TEAM");
+      }
+      if (membersRes.ok) {
+        setMembers(membersData.members || []);
+        if (membersData.canManage) setCanAssign(true);
       }
     } catch {
       setError("Laden fehlgeschlagen");
@@ -78,14 +88,6 @@ export default function AufgabenPage() {
   useEffect(() => {
     load();
   }, [load]);
-
-  useEffect(() => {
-    if (!canAssign) return;
-    fetch("/api/team/members")
-      .then((r) => r.json())
-      .then((d) => setMembers(d.members || []))
-      .catch(() => {});
-  }, [canAssign]);
 
   function toggleMember(id: string) {
     setSelectedIds((prev) =>
@@ -108,7 +110,7 @@ export default function AufgabenPage() {
           description: description.trim() || undefined,
           priority,
           scope: canAssign ? newScope : "PERSONAL",
-          assigneeIds: canAssign ? selectedIds : undefined,
+          assigneeIds: selectedIds.length ? selectedIds : undefined,
           subtasks: subs.length ? subs : undefined,
         }),
       });
@@ -193,8 +195,10 @@ export default function AufgabenPage() {
     });
   }
 
-  function onDragStart(id: string) {
+  function onDragStart(e: React.DragEvent, id: string) {
     setDragId(id);
+    e.dataTransfer.setData("text/plain", id);
+    e.dataTransfer.effectAllowed = "move";
   }
 
   function onDragEnd() {
@@ -203,8 +207,9 @@ export default function AufgabenPage() {
   }
 
   function onDropColumn(col: "open" | "done") {
-    if (!dragId) return;
-    void setStatus(dragId, col === "done" ? "DONE" : "OPEN");
+    const id = dragId;
+    if (!id) return;
+    void setStatus(id, col === "done" ? "DONE" : "OPEN");
     setDragId(null);
     setDropOver(null);
   }
@@ -221,7 +226,7 @@ export default function AufgabenPage() {
           <div>
             <h1 className="text-xl font-bold text-white">Aufgaben</h1>
             <p className="text-xs text-zinc-500">
-              Links alle Aufgaben · per Drag & Drop in die Spalten
+              Links Aufgaben wählen · in „Nicht erledigt“ / „Erledigt“ ziehen
             </p>
           </div>
         </div>
@@ -244,8 +249,9 @@ export default function AufgabenPage() {
       {showForm && (
         <form
           onSubmit={createTask}
-          className="space-y-3 rounded-2xl border border-amber-500/25 bg-[#121214] p-4"
+          className="space-y-4 rounded-2xl border border-amber-500/25 bg-[#121214] p-4 sm:p-5"
         >
+          <h2 className="text-sm font-semibold text-white">Neue Aufgabe</h2>
           <input
             required
             value={title}
@@ -260,6 +266,7 @@ export default function AufgabenPage() {
             rows={2}
             className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/50"
           />
+
           <div className="flex flex-wrap gap-2">
             <select
               value={priority}
@@ -276,34 +283,84 @@ export default function AufgabenPage() {
                 onChange={(e) => setNewScope(e.target.value as any)}
                 className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
               >
-                <option value="TEAM">Team</option>
+                <option value="TEAM">Team-Aufgabe</option>
                 <option value="PERSONAL">Persönlich</option>
               </select>
             )}
           </div>
-          {canAssign && members.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {members.map((m) => {
-                const on = selectedIds.includes(m.id);
-                return (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => toggleMember(m.id)}
-                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs ${
-                      on
-                        ? "bg-amber-400 text-black"
-                        : "border border-white/10 text-zinc-400"
-                    }`}
-                  >
-                    <User className="h-3 w-3" />
-                    {m.name || m.email}
-                  </button>
-                );
-              })}
+
+          {/* Mitglieder auswählen – wie Team-Karten */}
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <Users className="h-4 w-4 text-amber-400" />
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                Für wen? (anklicken zum Auswählen)
+              </p>
             </div>
-          )}
+            {members.length === 0 ? (
+              <p className="text-xs text-zinc-600">Keine Mitglieder im Team</p>
+            ) : (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {members.map((m) => {
+                  const on = selectedIds.includes(m.id);
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => toggleMember(m.id)}
+                      className={`rounded-2xl border p-3 text-left transition ${
+                        on
+                          ? "border-amber-500/50 bg-amber-500/10 ring-1 ring-amber-500/30"
+                          : "border-white/10 bg-black/30 hover:border-amber-500/30"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <div
+                            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                              on
+                                ? "bg-amber-400 text-black"
+                                : "bg-white/10 text-zinc-300"
+                            }`}
+                          >
+                            {(m.name || m.email || "?")[0].toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-white">
+                              {m.name || m.email}
+                            </p>
+                            <p className="truncate text-[11px] text-zinc-500">
+                              {m.role || "MEMBER"}
+                              {m.name ? ` · ${m.email}` : ""}
+                            </p>
+                          </div>
+                        </div>
+                        <span
+                          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                            on
+                              ? "bg-amber-400 text-black"
+                              : "bg-white/5 text-zinc-500"
+                          }`}
+                        >
+                          {on ? "Ausgewählt" : "Wählen"}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {selectedIds.length > 0 && (
+              <p className="mt-2 text-xs text-amber-400/90">
+                {selectedIds.length} Mitglied
+                {selectedIds.length === 1 ? "" : "er"} ausgewählt – nur diese
+                sehen die Aufgabe
+              </p>
+            )}
+          </div>
+
           <div className="space-y-1.5">
+            <p className="text-xs font-medium text-zinc-500">Unteraufgaben (optional)</p>
             {subtaskDrafts.map((s, i) => (
               <input
                 key={i}
@@ -325,12 +382,13 @@ export default function AufgabenPage() {
               + Unteraufgabe
             </button>
           </div>
+
           <button
             type="submit"
             disabled={creating}
-            className="rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
+            className="rounded-xl bg-amber-400 px-4 py-2.5 text-sm font-semibold text-black disabled:opacity-50"
           >
-            Anlegen
+            {creating ? "…" : "Aufgabe anlegen"}
           </button>
         </form>
       )}
@@ -338,34 +396,45 @@ export default function AufgabenPage() {
       {loading ? (
         <p className="text-sm text-zinc-500">Laden…</p>
       ) : (
-        <div className="grid flex-1 gap-3 lg:grid-cols-[240px_1fr_1fr]">
+        <div className="grid flex-1 gap-3 lg:grid-cols-[260px_1fr_1fr]">
+          {/* LINKS: alle Aufgaben – von hier ziehen */}
           <aside className="flex max-h-[70vh] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#121214]">
-            <div className="flex items-center gap-2 border-b border-white/5 px-3 py-2.5">
-              <ListTodo className="h-4 w-4 text-zinc-400" />
-              <span className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                Alle ({tasks.length})
-              </span>
+            <div className="border-b border-white/5 px-3 py-2.5">
+              <div className="flex items-center gap-2">
+                <ListTodo className="h-4 w-4 text-amber-400" />
+                <span className="text-xs font-semibold text-zinc-300">
+                  Aufgaben ({tasks.length})
+                </span>
+              </div>
+              <p className="mt-0.5 text-[10px] text-zinc-600">
+                Ziehen → in die rechte Spalte legen
+              </p>
             </div>
             <ul className="flex-1 overflow-y-auto">
               {tasks.length === 0 && (
-                <li className="px-3 py-8 text-center text-xs text-zinc-600">
-                  Noch keine Aufgaben
+                <li className="px-3 py-10 text-center text-xs text-zinc-600">
+                  Noch keine Aufgaben – oben „Aufgabe“ klicken
                 </li>
               )}
               {tasks.map((t) => {
                 const done = t.status === "DONE";
                 const active = selectedId === t.id;
+                const people =
+                  t.assignees?.length > 0
+                    ? t.assignees
+                    : t.assignee
+                      ? [t.assignee]
+                      : [];
                 return (
                   <li key={t.id}>
-                    <button
-                      type="button"
+                    <div
                       draggable
-                      onDragStart={() => onDragStart(t.id)}
+                      onDragStart={(e) => onDragStart(e, t.id)}
                       onDragEnd={onDragEnd}
                       onClick={() => setSelectedId(t.id)}
-                      className={`flex w-full items-start gap-2 border-b border-white/5 px-3 py-2.5 text-left transition ${
+                      className={`flex cursor-grab items-start gap-2 border-b border-white/5 px-3 py-2.5 transition active:cursor-grabbing ${
                         active ? "bg-amber-500/10" : "hover:bg-white/[0.03]"
-                      } ${dragId === t.id ? "opacity-50" : ""}`}
+                      } ${dragId === t.id ? "opacity-40" : ""}`}
                     >
                       <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-zinc-600" />
                       {done ? (
@@ -376,19 +445,20 @@ export default function AufgabenPage() {
                       <div className="min-w-0 flex-1">
                         <p
                           className={`truncate text-sm ${
-                            done ? "text-zinc-500 line-through" : "text-zinc-200"
+                            done
+                              ? "text-zinc-500 line-through"
+                              : "text-zinc-200"
                           }`}
                         >
                           {t.title}
                         </p>
-                        {t.subtasks.length > 0 && (
-                          <p className="text-[10px] text-zinc-600">
-                            {t.subtasks.filter((s) => s.done).length}/
-                            {t.subtasks.length}
+                        {people.length > 0 && (
+                          <p className="truncate text-[10px] text-zinc-600">
+                            {people.map((p) => p.name || p.email).join(", ")}
                           </p>
                         )}
                       </div>
-                    </button>
+                    </div>
                   </li>
                 );
               })}
@@ -402,6 +472,7 @@ export default function AufgabenPage() {
             active={dropOver === "open"}
             onDragOver={(e) => {
               e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
               setDropOver("open");
             }}
             onDragLeave={() => setDropOver(null)}
@@ -414,15 +485,15 @@ export default function AufgabenPage() {
                 selected={selectedId === t.id}
                 dragging={dragId === t.id}
                 onSelect={() => setSelectedId(t.id)}
-                onDragStart={() => onDragStart(t.id)}
+                onDragStart={(e) => onDragStart(e, t.id)}
                 onDragEnd={onDragEnd}
                 onToggleDone={() => setStatus(t.id, "DONE")}
                 onDelete={() => removeTask(t.id)}
               />
             ))}
             {openTasks.length === 0 && (
-              <p className="px-2 py-10 text-center text-xs text-zinc-600">
-                Aufgabe hierher ziehen
+              <p className="px-2 py-12 text-center text-xs text-zinc-600">
+                Aufgabe von links hierher ziehen
               </p>
             )}
           </DropColumn>
@@ -434,6 +505,7 @@ export default function AufgabenPage() {
             active={dropOver === "done"}
             onDragOver={(e) => {
               e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
               setDropOver("done");
             }}
             onDragLeave={() => setDropOver(null)}
@@ -446,15 +518,15 @@ export default function AufgabenPage() {
                 selected={selectedId === t.id}
                 dragging={dragId === t.id}
                 onSelect={() => setSelectedId(t.id)}
-                onDragStart={() => onDragStart(t.id)}
+                onDragStart={(e) => onDragStart(e, t.id)}
                 onDragEnd={onDragEnd}
                 onToggleDone={() => setStatus(t.id, "OPEN")}
                 onDelete={() => removeTask(t.id)}
               />
             ))}
             {doneTasks.length === 0 && (
-              <p className="px-2 py-10 text-center text-xs text-zinc-600">
-                Hierher ziehen zum Abhaken
+              <p className="px-2 py-12 text-center text-xs text-zinc-600">
+                Hierher ziehen = erledigt
               </p>
             )}
           </DropColumn>
@@ -621,7 +693,7 @@ function TaskCard({
   selected: boolean;
   dragging: boolean;
   onSelect: () => void;
-  onDragStart: () => void;
+  onDragStart: (e: React.DragEvent) => void;
   onDragEnd: () => void;
   onToggleDone: () => void;
   onDelete: () => void;
@@ -659,7 +731,6 @@ function TaskCard({
               ? "border-emerald-500/50 bg-emerald-500/25 text-emerald-400"
               : "border-white/25 hover:border-amber-400/50"
           }`}
-          title={done ? "Wieder öffnen" : "Als erledigt markieren"}
         >
           {done && <Check className="h-3 w-3" strokeWidth={3} />}
         </button>
