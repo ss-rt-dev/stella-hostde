@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { MessageEmbed } from "@/components/support/MessageEmbed";
 
 interface Message {
   id: string;
@@ -18,13 +19,23 @@ interface Ticket {
   description: string;
   type: string;
   status: string;
+  audience?: string;
   discordName?: string | null;
   applyRole?: string | null;
   createdAt: string;
   messages: Message[];
 }
 
-function typeMeta(type: string) {
+function typeMeta(type: string, audience?: string) {
+  if (audience === "PLATFORM") {
+    return {
+      label: "Admin-Ticket",
+      border: "border-red-500/25",
+      bg: "from-red-500/15",
+      accent: "text-red-300",
+      pill: "bg-red-500/15 text-red-300",
+    };
+  }
   if (type === "TEAM_APPLICATION") {
     return {
       label: "Team-Bewerbung",
@@ -34,21 +45,12 @@ function typeMeta(type: string) {
       pill: "bg-purple-500/15 text-purple-300",
     };
   }
-  if (type === "SERVER") {
-    return {
-      label: "Server Support",
-      border: "border-amber-500/25",
-      bg: "from-amber-500/10",
-      accent: "text-amber-300",
-      pill: "bg-amber-500/15 text-amber-400",
-    };
-  }
   return {
-    label: "Support",
-    border: "border-sky-500/25",
-    bg: "from-sky-500/10",
-    accent: "text-sky-300",
-    pill: "bg-sky-500/15 text-sky-300",
+    label: "Team-Support",
+    border: "border-amber-500/25",
+    bg: "from-amber-500/10",
+    accent: "text-amber-300",
+    pill: "bg-amber-500/15 text-amber-400",
   };
 }
 
@@ -69,7 +71,6 @@ export default function TicketChatPage() {
         setError(data.error || "Fehler");
         return;
       }
-      // messages immer Array
       setTicket({
         ...data,
         messages: Array.isArray(data.messages) ? data.messages : [],
@@ -132,23 +133,18 @@ export default function TicketChatPage() {
     );
   }
 
-  if (!ticket) {
-    return <p className="text-zinc-500">Lade…</p>;
-  }
+  if (!ticket) return <p className="text-zinc-500">Lade…</p>;
 
   const open = ticket.status === "OPEN";
   const isApp = ticket.type === "TEAM_APPLICATION";
-  const meta = typeMeta(ticket.type);
+  const meta = typeMeta(ticket.type, ticket.audience);
   const messages = ticket.messages || [];
 
   return (
     <div className="flex flex-col gap-4 pb-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Link
-            href="/dashboard/support"
-            className="text-sm text-zinc-500 hover:text-amber-400"
-          >
+          <Link href="/dashboard/support" className="text-sm text-zinc-500 hover:text-amber-400">
             ← Zurück
           </Link>
           <h1 className="mt-1 text-lg font-bold text-white">{ticket.subject}</h1>
@@ -162,106 +158,54 @@ export default function TicketChatPage() {
             onClick={closeTicket}
             className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-zinc-400 hover:text-white"
           >
-            {isApp ? "Bewerbung schließen" : "Ticket schließen"}
+            Schließen
           </button>
         )}
       </div>
 
-      <div
-        className={`rounded-2xl border bg-gradient-to-br to-transparent p-4 ${meta.border} ${meta.bg}`}
-      >
+      <div className={`rounded-2xl border bg-gradient-to-br to-transparent p-4 ${meta.border} ${meta.bg}`}>
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${meta.pill}`}>
             {meta.label}
           </span>
-          <span
-            className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-              open
-                ? "bg-emerald-500/15 text-emerald-400"
-                : "bg-zinc-500/15 text-zinc-400"
-            }`}
-          >
-            {open ? "Offen" : "Geschlossen"}
-          </span>
-          <span className="text-xs text-zinc-600">
-            {new Date(ticket.createdAt).toLocaleString("de-DE")}
-          </span>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-xl bg-black/30 px-3 py-2 sm:col-span-2">
-            <p className="text-[10px] uppercase text-zinc-500">Betreff</p>
-            <p className="font-medium text-white">{ticket.subject}</p>
-          </div>
-
-          {isApp && (
-            <>
-              <div className="rounded-xl bg-black/30 px-3 py-2">
-                <p className="text-[10px] uppercase text-zinc-500">Discord</p>
-                <p className="font-medium text-white">{ticket.discordName || "—"}</p>
-              </div>
-              <div className="rounded-xl bg-black/30 px-3 py-2">
-                <p className="text-[10px] uppercase text-zinc-500">Bewerbung als</p>
-                <p className={`font-medium ${meta.accent}`}>{ticket.applyRole || "—"}</p>
-              </div>
-            </>
+          {isApp && ticket.applyRole && (
+            <span className="text-xs text-zinc-400">als {ticket.applyRole}</span>
+          )}
+          {isApp && ticket.discordName && (
+            <span className="text-xs text-zinc-500">· {ticket.discordName}</span>
           )}
         </div>
       </div>
 
-      {/* Nachrichten – feste Mindesthöhe, immer sichtbar */}
       <div className="flex min-h-[420px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#121214]">
-        <div className="flex items-center justify-between border-b border-white/5 px-4 py-2.5">
-          <p className="text-xs font-medium text-zinc-400">
-            Nachrichten ({messages.length})
-          </p>
+        <div className="border-b border-white/5 px-4 py-2.5">
+          <p className="text-xs font-medium text-zinc-400">Nachrichten ({messages.length})</p>
         </div>
 
         <div className="max-h-[55vh] min-h-[280px] flex-1 space-y-3 overflow-y-auto p-4">
           {messages.length === 0 ? (
-            <p className="py-10 text-center text-sm text-zinc-600">
-              Noch keine Nachrichten.
-            </p>
+            <p className="py-10 text-center text-sm text-zinc-600">Noch keine Nachrichten.</p>
           ) : (
             messages.map((m) => (
-              <div
+              <MessageEmbed
                 key={m.id}
-                className={`max-w-[90%] rounded-xl px-3 py-2.5 text-sm ${
-                  m.isStaff
-                    ? "ml-auto bg-amber-500/15 text-amber-100"
-                    : "bg-white/5 text-zinc-200"
-                }`}
-              >
-                <p className="mb-1 text-[10px] font-medium text-zinc-500">
-                  {m.isStaff
-                    ? `Team · ${m.user?.name || "Admin"}`
-                    : m.user?.name || m.user?.email || "Nutzer"}{" "}
-                  ·{" "}
-                  {new Date(m.createdAt).toLocaleString("de-DE", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </p>
-                <p className="whitespace-pre-wrap leading-relaxed">{m.body}</p>
-              </div>
+                body={m.body}
+                userName={m.user?.name}
+                userEmail={m.user?.email}
+                isStaff={m.isStaff}
+                createdAt={m.createdAt}
+              />
             ))
           )}
           <div ref={bottomRef} />
         </div>
 
         {open ? (
-          <form
-            onSubmit={send}
-            className="flex gap-2 border-t border-white/10 p-3"
-          >
+          <form onSubmit={send} className="flex gap-2 border-t border-white/10 p-3">
             <input
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder={
-                isApp ? "Nachfrage an das Team…" : "Nachricht schreiben…"
-              }
+              placeholder="Nachricht schreiben…"
               className="flex-1 rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/50"
             />
             <button
@@ -274,7 +218,7 @@ export default function TicketChatPage() {
           </form>
         ) : (
           <p className="border-t border-white/10 px-4 py-3 text-center text-xs text-zinc-500">
-            Geschlossen – keine neuen Nachrichten
+            Geschlossen
           </p>
         )}
       </div>

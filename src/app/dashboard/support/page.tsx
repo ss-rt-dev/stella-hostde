@@ -8,6 +8,7 @@ interface Ticket {
   subject: string;
   type: string;
   status: string;
+  audience?: string;
   discordName?: string | null;
   applyRole?: string | null;
   createdAt: string;
@@ -16,6 +17,7 @@ interface Ticket {
 }
 
 type TicketType = "GENERAL" | "DISCORD" | "TEAM_APPLICATION";
+type Audience = "TEAM" | "PLATFORM";
 
 const APPLY_ROLES = [
   "Supporter",
@@ -32,6 +34,7 @@ const fieldCls =
 export default function SupportPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
+  const [audience, setAudience] = useState<Audience>("TEAM");
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
   const [type, setType] = useState<TicketType>("GENERAL");
@@ -135,6 +138,7 @@ export default function SupportPage() {
           type === "TEAM_APPLICATION"
             ? {
                 type,
+                audience: "TEAM",
                 realName: realName.trim(),
                 age: parseInt(age.trim(), 10),
                 discordName: discordName.trim(),
@@ -147,6 +151,7 @@ export default function SupportPage() {
               }
             : {
                 type,
+                audience,
                 subject,
                 description,
                 discordName:
@@ -163,7 +168,11 @@ export default function SupportPage() {
       setDescription("");
       resetAppFields();
       setOk(
-        type === "TEAM_APPLICATION" ? "Bewerbung eingereicht." : "Ticket erstellt."
+        type === "TEAM_APPLICATION"
+          ? "Bewerbung eingereicht."
+          : audience === "PLATFORM"
+            ? "Ticket an die Admins gesendet."
+            : "Team-Ticket erstellt."
       );
       load();
     } catch {
@@ -184,13 +193,14 @@ export default function SupportPage() {
   }
 
   const isApp = type === "TEAM_APPLICATION";
+  const effectiveAudience = isApp ? "TEAM" : audience;
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-bold text-white sm:text-2xl">Support</h1>
         <p className="text-sm text-zinc-500">
-          Nur für dein aktuelles Team · Tickets sind team-intern
+          Team-Tickets oder direkt an die Platform-Admins
         </p>
       </div>
 
@@ -199,11 +209,17 @@ export default function SupportPage() {
         className={`space-y-4 rounded-2xl border p-5 ${
           isApp
             ? "border-purple-500/25 bg-gradient-to-b from-purple-500/10 to-[#121214]"
-            : "border-white/10 bg-[#121214]"
+            : effectiveAudience === "PLATFORM"
+              ? "border-red-500/25 bg-gradient-to-b from-red-500/10 to-[#121214]"
+              : "border-white/10 bg-[#121214]"
         }`}
       >
         <h2 className="font-semibold text-white">
-          {isApp ? "Team-Bewerbung" : "Neues Ticket"}
+          {isApp
+            ? "Team-Bewerbung"
+            : effectiveAudience === "PLATFORM"
+              ? "Ticket an Admins"
+              : "Neues Team-Ticket"}
         </h2>
 
         {error && (
@@ -211,6 +227,44 @@ export default function SupportPage() {
         )}
         {ok && (
           <p className="rounded-xl bg-emerald-500/10 px-4 py-2 text-sm text-emerald-400">{ok}</p>
+        )}
+
+        {/* Ziel: Team vs Admins */}
+        {!isApp && (
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-zinc-500">
+              Ticket an
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setAudience("TEAM")}
+                className={`rounded-xl py-2.5 text-sm font-medium transition ${
+                  audience === "TEAM"
+                    ? "bg-amber-400 text-black"
+                    : "border border-white/10 text-zinc-300 hover:bg-white/5"
+                }`}
+              >
+                Team
+              </button>
+              <button
+                type="button"
+                onClick={() => setAudience("PLATFORM")}
+                className={`rounded-xl py-2.5 text-sm font-medium transition ${
+                  audience === "PLATFORM"
+                    ? "bg-red-500 text-white"
+                    : "border border-white/10 text-zinc-300 hover:bg-white/5"
+                }`}
+              >
+                Platform Admins
+              </button>
+            </div>
+            <p className="mt-1.5 text-[11px] text-zinc-600">
+              {audience === "PLATFORM"
+                ? "Nur Platform-Admins sehen dieses Ticket (Discord-Ping)."
+                : "Nur Mitglieder deines aktuellen Teams sehen dieses Ticket."}
+            </p>
+          </div>
         )}
 
         <div>
@@ -226,7 +280,10 @@ export default function SupportPage() {
               <button
                 key={id}
                 type="button"
-                onClick={() => setType(id)}
+                onClick={() => {
+                  setType(id);
+                  if (id === "TEAM_APPLICATION") setAudience("TEAM");
+                }}
                 className={`rounded-xl py-2.5 text-sm font-medium transition ${
                   type === id
                     ? id === "TEAM_APPLICATION"
@@ -246,12 +303,7 @@ export default function SupportPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1.5 block text-xs text-zinc-500">Name *</label>
-                <input
-                  required
-                  value={realName}
-                  onChange={(e) => setRealName(e.target.value)}
-                  className={fieldCls}
-                />
+                <input required value={realName} onChange={(e) => setRealName(e.target.value)} className={fieldCls} />
               </div>
               <div>
                 <label className="mb-1.5 block text-xs text-zinc-500">Alter *</label>
@@ -268,13 +320,7 @@ export default function SupportPage() {
             </div>
             <div>
               <label className="mb-1.5 block text-xs text-zinc-500">Discord-Name *</label>
-              <input
-                required
-                value={discordName}
-                onChange={(e) => setDiscordName(e.target.value)}
-                placeholder="username"
-                className={fieldCls}
-              />
+              <input required value={discordName} onChange={(e) => setDiscordName(e.target.value)} placeholder="username" className={fieldCls} />
             </div>
             <div>
               <label className="mb-1.5 block text-xs text-zinc-500">Bewerbung als *</label>
@@ -285,9 +331,7 @@ export default function SupportPage() {
                     type="button"
                     onClick={() => setApplyRole(role)}
                     className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-                      applyRole === role
-                        ? "bg-purple-500 text-white"
-                        : "bg-white/5 text-zinc-400"
+                      applyRole === role ? "bg-purple-500 text-white" : "bg-white/5 text-zinc-400"
                     }`}
                   >
                     {role}
@@ -297,12 +341,7 @@ export default function SupportPage() {
             </div>
             <div>
               <label className="mb-1.5 block text-xs text-zinc-500">Verfügbarkeit *</label>
-              <input
-                required
-                value={availability}
-                onChange={(e) => setAvailability(e.target.value)}
-                className={fieldCls}
-              />
+              <input required value={availability} onChange={(e) => setAvailability(e.target.value)} className={fieldCls} />
             </div>
             {(
               [
@@ -314,14 +353,7 @@ export default function SupportPage() {
             ).map(([label, val, set]) => (
               <div key={label}>
                 <label className="mb-1.5 block text-xs text-zinc-500">{label} *</label>
-                <textarea
-                  required
-                  rows={3}
-                  minLength={30}
-                  value={val}
-                  onChange={(e) => set(e.target.value)}
-                  className={`${fieldCls} resize-y`}
-                />
+                <textarea required rows={3} minLength={30} value={val} onChange={(e) => set(e.target.value)} className={`${fieldCls} resize-y`} />
               </div>
             ))}
           </div>
@@ -331,9 +363,7 @@ export default function SupportPage() {
           <>
             {type === "DISCORD" && (
               <div>
-                <label className="mb-1.5 block text-xs text-zinc-500">
-                  Discord-Name (optional)
-                </label>
+                <label className="mb-1.5 block text-xs text-zinc-500">Discord-Name (optional)</label>
                 <input
                   value={discordName}
                   onChange={(e) => setDiscordName(e.target.value)}
@@ -368,17 +398,27 @@ export default function SupportPage() {
           type="submit"
           disabled={creating}
           className={`rounded-xl px-5 py-2.5 text-sm font-semibold disabled:opacity-50 ${
-            isApp ? "bg-purple-500 text-white" : "bg-amber-400 text-black"
+            isApp
+              ? "bg-purple-500 text-white"
+              : effectiveAudience === "PLATFORM"
+                ? "bg-red-500 text-white"
+                : "bg-amber-400 text-black"
           }`}
         >
-          {creating ? "…" : isApp ? "Bewerbung absenden" : "Ticket absenden"}
+          {creating
+            ? "…"
+            : isApp
+              ? "Bewerbung absenden"
+              : effectiveAudience === "PLATFORM"
+                ? "An Admins senden"
+                : "Ticket absenden"}
         </button>
       </form>
 
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#121214]">
         <div className="border-b border-white/5 px-5 py-4">
-          <h2 className="font-semibold text-white">Team-Tickets</h2>
-          <p className="text-xs text-zinc-500">Nur sichtbar in diesem Team</p>
+          <h2 className="font-semibold text-white">Deine Tickets</h2>
+          <p className="text-xs text-zinc-500">Team-Tickets + deine Admin-Tickets</p>
         </div>
         {loading ? (
           <p className="px-5 py-8 text-sm text-zinc-500">Lade…</p>
@@ -404,17 +444,28 @@ export default function SupportPage() {
                     >
                       {t.status === "OPEN" ? "Offen" : "Geschlossen"}
                     </span>
-                    <span className="rounded-full bg-white/5 px-2 py-0.5 text-xs text-zinc-400">
-                      {t.type === "TEAM_APPLICATION"
-                        ? "Bewerbung"
-                        : t.type === "DISCORD"
-                          ? "Discord"
-                          : "Support"}
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs ${
+                        t.audience === "PLATFORM"
+                          ? "bg-red-500/15 text-red-300"
+                          : t.type === "TEAM_APPLICATION"
+                            ? "bg-purple-500/15 text-purple-300"
+                            : "bg-white/5 text-zinc-400"
+                      }`}
+                    >
+                      {t.audience === "PLATFORM"
+                        ? "Admins"
+                        : t.type === "TEAM_APPLICATION"
+                          ? "Bewerbung"
+                          : t.type === "DISCORD"
+                            ? "Discord"
+                            : "Team"}
                     </span>
                   </div>
                   <p className="mt-0.5 text-xs text-zinc-500">
                     {fmt(t.createdAt)}
                     {t.user ? ` · ${t.user.name || t.user.email}` : ""}
+                    {t._count?.messages != null ? ` · ${t._count.messages} Nachrichten` : ""}
                   </p>
                 </div>
                 <span className="text-xs text-amber-400">Öffnen →</span>

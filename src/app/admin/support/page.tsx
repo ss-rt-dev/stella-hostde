@@ -8,18 +8,11 @@ interface Ticket {
   subject: string;
   type: string;
   status: string;
-  discordName?: string | null;
-  applyRole?: string | null;
+  audience?: string;
   createdAt: string;
   updatedAt: string;
   user: { name: string | null; email: string };
   _count?: { messages: number };
-}
-
-function typeLabel(type: string) {
-  if (type === "SERVER") return "Server";
-  if (type === "TEAM_APPLICATION") return "Team Bewerbung";
-  return "Allgemein";
 }
 
 export default function AdminSupportPage() {
@@ -58,9 +51,9 @@ export default function AdminSupportPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-white sm:text-2xl">Support</h1>
+        <h1 className="text-xl font-bold text-white sm:text-2xl">Admin-Tickets</h1>
         <p className="text-sm text-zinc-500">
-          Alle Tickets – offen und geschlossen
+          Nur Tickets an Platform-Admins · antworten, nicht neu erstellen
         </p>
       </div>
 
@@ -71,9 +64,7 @@ export default function AdminSupportPage() {
             type="button"
             onClick={() => setFilter(f)}
             className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-              filter === f
-                ? "bg-amber-400 text-black"
-                : "bg-white/5 text-zinc-400"
+              filter === f ? "bg-amber-400 text-black" : "bg-white/5 text-zinc-400"
             }`}
           >
             {f === "OPEN" ? "Offen" : f === "CLOSED" ? "Geschlossen" : "Alle"}
@@ -85,9 +76,7 @@ export default function AdminSupportPage() {
         {loading && tickets.length === 0 ? (
           <p className="px-5 py-8 text-sm text-zinc-500">Lade…</p>
         ) : tickets.length === 0 ? (
-          <p className="px-5 py-12 text-center text-sm text-zinc-500">
-            Keine Tickets
-          </p>
+          <p className="px-5 py-12 text-center text-sm text-zinc-500">Keine Admin-Tickets</p>
         ) : (
           <div className="divide-y divide-white/5">
             {tickets.map((t) => (
@@ -108,29 +97,16 @@ export default function AdminSupportPage() {
                     >
                       {t.status === "OPEN" ? "Offen" : "Geschlossen"}
                     </span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs ${
-                        t.type === "TEAM_APPLICATION"
-                          ? "bg-purple-500/15 text-purple-300"
-                          : "bg-white/5 text-zinc-400"
-                      }`}
-                    >
-                      {typeLabel(t.type)}
+                    <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-xs text-red-300">
+                      Admin
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-zinc-500">
                     {t.user.name || "—"} · {t.user.email}
-                    {t.type === "TEAM_APPLICATION" && t.discordName && (
-                      <> · Discord: {t.discordName}</>
-                    )}
-                    {t.type === "TEAM_APPLICATION" && t.applyRole && (
-                      <> · als {t.applyRole}</>
-                    )}
                   </p>
                   <p className="text-xs text-zinc-600">
-                    Erstellt {fmt(t.createdAt)}
-                    {t._count?.messages != null &&
-                      ` · ${t._count.messages} Nachrichten`}
+                    {fmt(t.createdAt)}
+                    {t._count?.messages != null && ` · ${t._count.messages} Nachrichten`}
                   </p>
                 </div>
                 <span className="shrink-0 text-xs text-amber-400">Antworten →</span>
