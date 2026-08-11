@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useI18n } from "@/components/i18n/LanguageProvider";
 import Link from "next/link";
 
 type Member = {
@@ -21,6 +22,7 @@ const ROLE_COLOR: Record<string, string> = {
 };
 
 export default function TeamMembersPage() {
+  const { t: tr } = useI18n();
   const [members, setMembers] = useState<Member[]>([]);
   const [canManage, setCanManage] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
@@ -35,7 +37,7 @@ export default function TeamMembersPage() {
     const r = await fetch("/api/team/members");
     const d = await r.json();
     if (!r.ok) {
-      setError(d.error || "Fehler");
+      setError(d.error || tr("error"));
       setLoading(false);
       return;
     }
@@ -49,178 +51,135 @@ export default function TeamMembersPage() {
     load();
   }, []);
 
-  function startEdit(m: Member) {
-    if (m.role === "OWNER") return;
-    setEditId(m.id);
-    setEditTitle(m.title || "");
-    setEditRole(m.role === "ADMIN" ? "ADMIN" : "MEMBER");
-  }
-
-  async function saveEdit() {
-    if (!editId) return;
+  async function save(memberId: string) {
     setSaving(true);
+    setError("");
     try {
-      const res = await fetch(`/api/team/members/${editId}`, {
+      const r = await fetch(`/api/team/members/${memberId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          role: editRole,
           title: editTitle.trim() || null,
+          role: isOwner ? editRole : undefined,
         }),
       });
-      if (res.ok) {
-        setEditId(null);
-        await load();
-      } else {
-        const d = await res.json();
-        setError(d.error || "Speichern fehlgeschlagen");
+      const d = await r.json();
+      if (!r.ok) {
+        setError(d.error || tr("save_failed"));
+        setSaving(false);
+        return;
       }
-    } finally {
+      setEditId(null);
+      setSaving(false);
+      load();
+    } catch {
+      setError(tr("network_error"));
       setSaving(false);
     }
   }
 
-  if (loading) return <p className="text-zinc-500">Laden…</p>;
-
-  if (error && members.length === 0) {
-    return (
-      <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-8 text-center">
-        <p className="text-sm text-red-400">{error}</p>
-        <Link href="/dashboard/teams" className="mt-3 inline-block text-sm text-amber-400">
-          Team wählen
-        </Link>
-      </div>
-    );
-  }
+  if (loading) return <p className="text-zinc-500">{tr("loading_ellipsis")}</p>;
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-white sm:text-2xl">Mitglieder</h1>
-          <p className="text-sm text-zinc-500">
-            Team-Rollen nur hier sichtbar · Dashboard zeigt immer „Mitglied“
-          </p>
-        </div>
-        {isOwner && (
-          <p className="text-xs text-amber-400/80">
-            Als Owner kannst du Titel & Rechte setzen
-          </p>
-        )}
+      <div>
+        <h1 className="text-xl font-bold text-white sm:text-2xl">{tr("team_members")}</h1>
+        <p className="text-sm text-zinc-500">{tr("team_members_sub")}</p>
       </div>
 
       {error && (
-        <p className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm text-red-400">
-          {error}
-        </p>
+        <p className="rounded-xl bg-red-500/10 px-4 py-2 text-sm text-red-400">{error}</p>
       )}
 
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#121214]">
-        <div className="divide-y divide-white/5">
-          {members.map((m) => (
-            <div
-              key={m.id}
-              className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold"
-                  style={{
-                    backgroundColor: `${ROLE_COLOR[m.role] || "#71717a"}33`,
-                    color: ROLE_COLOR[m.role] || "#a1a1aa",
-                  }}
-                >
-                  {(m.name || m.email)[0].toUpperCase()}
-                </div>
-                <div>
-                  <p className="font-medium text-zinc-200">
-                    {m.name || "Ohne Name"}
-                    <span
-                      className="ml-2 text-[11px] font-semibold"
-                      style={{ color: ROLE_COLOR[m.role] }}
-                    >
-                      {m.role}
-                    </span>
-                    {m.title && (
-                      <span className="ml-2 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-400">
-                        {m.title}
+        <ul className="divide-y divide-white/5">
+          {members.map((m) => {
+            const editing = editId === m.id;
+            return (
+              <li key={m.id} className="px-4 py-4 sm:px-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-medium text-zinc-100">{m.name || tr("no_name")}</p>
+                      <span
+                        className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                        style={{
+                          backgroundColor: `${ROLE_COLOR[m.role] || "#71717a"}22`,
+                          color: ROLE_COLOR[m.role] || "#a1a1aa",
+                        }}
+                      >
+                        {m.role}
                       </span>
-                    )}
-                  </p>
-                  <p className="text-xs text-zinc-500">{m.email}</p>
+                      {m.title && (
+                        <span className="text-xs text-zinc-500">{m.title}</span>
+                      )}
+                    </div>
+                    <p className="mt-0.5 truncate text-xs text-zinc-500">{m.email}</p>
+                    <p className="mt-1 text-[11px] text-zinc-600">
+                      {tr("open_tasks")}: {m.openTasks} · {tr("last_login")}:{" "}
+                      {m.lastLoginAt
+                        ? new Date(m.lastLoginAt).toLocaleString()
+                        : tr("never")}
+                    </p>
+                  </div>
+                  {canManage && m.role !== "OWNER" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditId(editing ? null : m.id);
+                        setEditTitle(m.title || "");
+                        setEditRole(m.role === "ADMIN" ? "ADMIN" : "MEMBER");
+                      }}
+                      className="rounded-xl border border-white/10 px-3 py-1.5 text-xs text-zinc-300 hover:bg-white/5"
+                    >
+                      {editing ? tr("close") : tr("save")}
+                    </button>
+                  )}
                 </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-500">
-                <span>
-                  {m.openTasks} offene Aufgabe{m.openTasks === 1 ? "" : "n"}
-                </span>
-                {isOwner && m.role !== "OWNER" && (
-                  <button
-                    type="button"
-                    onClick={() => startEdit(m)}
-                    className="rounded-lg bg-amber-500/15 px-2.5 py-1 text-[11px] font-medium text-amber-400"
-                  >
-                    Rolle bearbeiten
-                  </button>
+                {editing && (
+                  <div className="mt-3 flex flex-wrap items-end gap-2 rounded-xl border border-white/10 bg-black/30 p-3">
+                    <div className="min-w-[140px] flex-1">
+                      <label className="mb-1 block text-[11px] text-zinc-500">
+                        {tr("team_title")}
+                      </label>
+                      <input
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-amber-500/40"
+                      />
+                    </div>
+                    {isOwner && (
+                      <div>
+                        <label className="mb-1 block text-[11px] text-zinc-500">
+                          {tr("role")}
+                        </label>
+                        <select
+                          value={editRole}
+                          onChange={(e) =>
+                            setEditRole(e.target.value as "ADMIN" | "MEMBER")
+                          }
+                          className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none"
+                        >
+                          <option value="MEMBER">MEMBER</option>
+                          <option value="ADMIN">ADMIN</option>
+                        </select>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => save(m.id)}
+                      className="rounded-lg bg-amber-400 px-4 py-2 text-xs font-semibold text-black disabled:opacity-50"
+                    >
+                      {saving ? "…" : tr("save")}
+                    </button>
+                  </div>
                 )}
-              </div>
-            </div>
-          ))}
-        </div>
+              </li>
+            );
+          })}
+        </ul>
       </div>
-
-      {editId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md space-y-4 rounded-2xl border border-white/10 bg-[#121214] p-5">
-            <h2 className="font-semibold text-white">Team-Rolle setzen</h2>
-            <p className="text-xs text-zinc-500">
-              Der Anzeige-Titel gilt nur in diesem Team. Die globale Dashboard-Rolle
-              bleibt „Mitglied“.
-            </p>
-            <div>
-              <label className="mb-1 block text-xs text-zinc-500">
-                Anzeige-Titel (z.B. Moderator, Designer)
-              </label>
-              <input
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                placeholder="Optional"
-                maxLength={40}
-                className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs text-zinc-500">Rechte</label>
-              <select
-                value={editRole}
-                onChange={(e) => setEditRole(e.target.value as any)}
-                className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
-              >
-                <option value="MEMBER">MEMBER</option>
-                <option value="ADMIN">ADMIN</option>
-              </select>
-            </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                disabled={saving}
-                onClick={saveEdit}
-                className="rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
-              >
-                Speichern
-              </button>
-              <button
-                type="button"
-                onClick={() => setEditId(null)}
-                className="rounded-xl px-4 py-2 text-sm text-zinc-400"
-              >
-                Abbrechen
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
