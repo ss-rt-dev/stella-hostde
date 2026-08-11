@@ -1,492 +1,387 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useI18n } from "@/components/i18n/LanguageProvider";
 import Link from "next/link";
-
-interface Ticket {
-  id: string;
-  subject: string;
-  type: string;
-  status: string;
-  audience?: string;
-  discordName?: string | null;
-  applyRole?: string | null;
-  createdAt: string;
-  user?: { name: string | null; email: string };
-  _count?: { messages: number };
-}
 
 type TicketType = "GENERAL" | "DISCORD" | "TEAM_APPLICATION";
 type Audience = "TEAM" | "PLATFORM";
 
-const APPLY_ROLES = [
-  "Supporter",
-  "Moderator",
-  "Entwickler",
-  "Designer",
-  "Community Manager",
-  "Sonstiges",
-] as const;
-
-const fieldCls =
-  "w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-purple-500/50";
+type Ticket = {
+  id: string;
+  subject: string;
+  status: string;
+  type: string;
+  audience?: string;
+  createdAt: string;
+  messageCount?: number;
+};
 
 export default function SupportPage() {
+  const { t: tr } = useI18n();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [audience, setAudience] = useState<Audience>("TEAM");
+  const [type, setType] = useState<TicketType>("GENERAL");
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
-  const [type, setType] = useState<TicketType>("GENERAL");
   const [discordName, setDiscordName] = useState("");
-  const [applyRole, setApplyRole] = useState("");
-  const [realName, setRealName] = useState("");
   const [age, setAge] = useState("");
+  const [applyAs, setApplyAs] = useState("");
   const [availability, setAvailability] = useState("");
   const [aboutMe, setAboutMe] = useState("");
   const [whyRole, setWhyRole] = useState("");
-  const [whyBetter, setWhyBetter] = useState("");
+  const [whyYou, setWhyYou] = useState("");
   const [contribution, setContribution] = useState("");
-  const [creating, setCreating] = useState(false);
-  const [error, setError] = useState("");
-  const [ok, setOk] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [okMsg, setOkMsg] = useState("");
 
-  async function load() {
-    try {
-      const res = await fetch("/api/support/tickets");
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Tickets konnten nicht geladen werden");
-        setTickets([]);
-      } else if (Array.isArray(data)) {
-        setTickets(data);
-      } else {
-        setTickets(data.tickets || []);
-      }
-    } catch {
-      setError("Tickets konnten nicht geladen werden");
+  const load = useCallback(async () => {
+    const res = await fetch("/api/support/tickets");
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error || tr("tickets_load_error"));
+      setLoading(false);
+      return;
     }
+    setTickets(data.tickets || []);
     setLoading(false);
-  }
+  }, [tr]);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
-  function resetAppFields() {
-    setDiscordName("");
-    setApplyRole("");
-    setRealName("");
-    setAge("");
-    setAvailability("");
-    setAboutMe("");
-    setWhyRole("");
-    setWhyBetter("");
-    setContribution("");
-  }
-
-  async function createTicket(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setCreating(true);
     setError("");
-    setOk("");
+    setOkMsg("");
+    setSubmitting(true);
+
+    const effectiveAudience: Audience =
+      type === "TEAM_APPLICATION" ? "PLATFORM" : audience;
+
+    let body: Record<string, unknown> = {
+      subject: subject.trim(),
+      description: description.trim(),
+      type,
+      audience: effectiveAudience,
+    };
+
+    if (type === "DISCORD") {
+      body.discordName = discordName.trim() || undefined;
+    }
 
     if (type === "TEAM_APPLICATION") {
-      if (!realName.trim() || realName.trim().length < 2) {
-        setError("Bitte deinen Namen angeben");
-        setCreating(false);
-        return;
-      }
-      const ageNum = parseInt(age.trim(), 10);
-      if (!Number.isFinite(ageNum) || ageNum < 13 || ageNum > 99) {
-        setError("Bitte ein gültiges Alter angeben (13–99)");
-        setCreating(false);
-        return;
-      }
-      if (!discordName.trim()) {
-        setError("Discord-Name ist Pflicht");
-        setCreating(false);
-        return;
-      }
-      if (!applyRole.trim()) {
-        setError("Bitte wähle, als was du dich bewirbst");
-        setCreating(false);
-        return;
-      }
-      if (availability.trim().length < 5) {
-        setError("Bitte deine Verfügbarkeit angeben");
-        setCreating(false);
-        return;
-      }
-      if (
-        aboutMe.trim().length < 30 ||
-        whyRole.trim().length < 30 ||
-        whyBetter.trim().length < 30 ||
-        contribution.trim().length < 30
-      ) {
-        setError("Bitte alle Bewerbungstexte ausführlich ausfüllen (min. 30 Zeichen)");
-        setCreating(false);
-        return;
-      }
+      body = {
+        ...body,
+        subject: subject.trim() || tr("team_application"),
+        description: [
+          `${tr("age")}: ${age}`,
+          `${tr("apply_as")}: ${applyAs}`,
+          `${tr("availability")}: ${availability}`,
+          `${tr("about_you")}: ${aboutMe}`,
+          `${tr("why_role")}: ${whyRole}`,
+          `${tr("why_you")}: ${whyYou}`,
+          `${tr("contribution")}: ${contribution}`,
+          discordName ? `Discord: ${discordName}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n\n"),
+        discordName: discordName.trim() || undefined,
+        application: {
+          age,
+          applyAs,
+          availability,
+          aboutMe,
+          whyRole,
+          whyYou,
+          contribution,
+        },
+      };
     }
 
     try {
       const res = await fetch("/api/support/tickets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          type === "TEAM_APPLICATION"
-            ? {
-                type,
-                audience: "PLATFORM",
-                realName: realName.trim(),
-                age: parseInt(age.trim(), 10),
-                discordName: discordName.trim(),
-                applyRole: applyRole.trim(),
-                availability: availability.trim(),
-                aboutMe: aboutMe.trim(),
-                whyRole: whyRole.trim(),
-                whyBetter: whyBetter.trim(),
-                contribution: contribution.trim(),
-              }
-            : {
-                type,
-                audience,
-                subject,
-                description,
-                discordName:
-                  type === "DISCORD" ? discordName.trim() || undefined : undefined,
-              }
-        ),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "Fehler");
+        setError(data.error || tr("error"));
+        setSubmitting(false);
         return;
       }
+      setOkMsg(
+        type === "TEAM_APPLICATION"
+          ? tr("application_sent")
+          : effectiveAudience === "PLATFORM"
+            ? tr("ticket_sent_admins")
+            : tr("team_ticket_created")
+      );
       setSubject("");
       setDescription("");
-      resetAppFields();
-      setOk(
-        type === "TEAM_APPLICATION"
-          ? "Bewerbung an die Platform Admins gesendet."
-          : audience === "PLATFORM"
-            ? "Ticket an die Admins gesendet."
-            : "Team-Ticket erstellt."
-      );
+      setDiscordName("");
+      setAge("");
+      setApplyAs("");
+      setAvailability("");
+      setAboutMe("");
+      setWhyRole("");
+      setWhyYou("");
+      setContribution("");
+      setSubmitting(false);
       load();
     } catch {
-      setError("Netzwerkfehler");
-    } finally {
-      setCreating(false);
+      setError(tr("network_error"));
+      setSubmitting(false);
     }
   }
 
-  function fmt(d: string) {
-    return new Date(d).toLocaleString("de-DE", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
-
   const isApp = type === "TEAM_APPLICATION";
-  const effectiveAudience = isApp ? "PLATFORM" : audience;
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-white sm:text-2xl">Support</h1>
-        <p className="text-sm text-zinc-500">
-          Team-Tickets oder direkt an die Platform-Admins
-        </p>
+        <h1 className="text-xl font-bold text-white sm:text-2xl">{tr("support_title")}</h1>
+        <p className="text-sm text-zinc-500">{tr("support_sub")}</p>
       </div>
 
+      {error && (
+        <p className="rounded-xl bg-red-500/10 px-4 py-2 text-sm text-red-400">{error}</p>
+      )}
+      {okMsg && (
+        <p className="rounded-xl bg-emerald-500/10 px-4 py-2 text-sm text-emerald-400">{okMsg}</p>
+      )}
+
       <form
-        onSubmit={createTicket}
-        className={`space-y-4 rounded-2xl border p-5 ${
-          isApp
-            ? "border-purple-500/25 bg-gradient-to-b from-purple-500/10 to-[#121214]"
-            : effectiveAudience === "PLATFORM"
-              ? "border-red-500/25 bg-gradient-to-b from-red-500/10 to-[#121214]"
-              : "border-white/10 bg-[#121214]"
-        }`}
+        onSubmit={submit}
+        className="space-y-4 rounded-2xl border border-white/10 bg-[#121214] p-5"
       >
-        <h2 className="font-semibold text-white">
-          {isApp
-            ? "Team-Bewerbung (Platform Admins)"
-            : effectiveAudience === "PLATFORM"
-              ? "Ticket an Admins"
-              : "Neues Team-Ticket"}
-        </h2>
-
-        {error && (
-          <p className="rounded-xl bg-red-500/10 px-4 py-2 text-sm text-red-400">{error}</p>
-        )}
-        {ok && (
-          <p className="rounded-xl bg-emerald-500/10 px-4 py-2 text-sm text-emerald-400">{ok}</p>
-        )}
-
-        <div>
-          <label className="mb-1.5 block text-xs font-medium text-zinc-500">Ticket an</label>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setAudience("TEAM");
-                if (type === "TEAM_APPLICATION") setType("GENERAL");
-              }}
-              className={`rounded-xl py-2.5 text-sm font-medium transition ${
-                effectiveAudience === "TEAM"
-                  ? "bg-amber-400 text-black"
-                  : "border border-white/10 text-zinc-300 hover:bg-white/5"
-              }`}
-            >
-              Team
-            </button>
-            <button
-              type="button"
-              onClick={() => setAudience("PLATFORM")}
-              className={`rounded-xl py-2.5 text-sm font-medium transition ${
-                effectiveAudience === "PLATFORM"
-                  ? "bg-red-500 text-white"
-                  : "border border-white/10 text-zinc-300 hover:bg-white/5"
-              }`}
-            >
-              Platform Admins
-            </button>
-          </div>
-          <p className="mt-1.5 text-[11px] text-zinc-600">
-            {effectiveAudience === "PLATFORM"
-              ? "Nur Platform-Admins · Staff wird auf Discord gepingt."
-              : "Nur dein aktuelles Team · kein Discord-Ping."}
-          </p>
-        </div>
-
-        <div>
-          <label className="mb-1.5 block text-xs font-medium text-zinc-500">Art</label>
-          <div
-            className={`grid grid-cols-1 gap-2 ${
-              effectiveAudience === "PLATFORM" ? "sm:grid-cols-3" : "sm:grid-cols-2"
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setAudience("TEAM");
+              if (type === "TEAM_APPLICATION") setType("GENERAL");
+            }}
+            className={`rounded-xl px-3 py-1.5 text-xs font-medium ${
+              audience === "TEAM" && !isApp
+                ? "bg-amber-400 text-black"
+                : "border border-white/10 text-zinc-400"
             }`}
           >
+            {tr("new_team_ticket")}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setAudience("PLATFORM");
+              if (type === "TEAM_APPLICATION") setType("GENERAL");
+            }}
+            className={`rounded-xl px-3 py-1.5 text-xs font-medium ${
+              audience === "PLATFORM" && !isApp
+                ? "bg-amber-400 text-black"
+                : "border border-white/10 text-zinc-400"
+            }`}
+          >
+            {tr("ticket_to_admins")}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setType("TEAM_APPLICATION");
+              setAudience("PLATFORM");
+            }}
+            className={`rounded-xl px-3 py-1.5 text-xs font-medium ${
+              isApp ? "bg-amber-400 text-black" : "border border-white/10 text-zinc-400"
+            }`}
+          >
+            {tr("team_application_admins")}
+          </button>
+        </div>
+
+        <p className="text-[11px] text-zinc-500">
+          {isApp || audience === "PLATFORM"
+            ? tr("platform_ping_hint")
+            : tr("team_no_ping_hint")}
+        </p>
+
+        {!isApp && (
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => setType("GENERAL")}
-              className={`rounded-xl py-2.5 text-sm font-medium transition ${
-                type === "GENERAL"
-                  ? "bg-amber-400 text-black"
-                  : "border border-white/10 text-zinc-300 hover:bg-white/5"
+              className={`rounded-lg px-3 py-1 text-xs ${
+                type === "GENERAL" ? "bg-white/10 text-white" : "text-zinc-500"
               }`}
             >
-              Allgemein
+              {tr("general")}
             </button>
             <button
               type="button"
               onClick={() => setType("DISCORD")}
-              className={`rounded-xl py-2.5 text-sm font-medium transition ${
-                type === "DISCORD"
-                  ? "bg-amber-400 text-black"
-                  : "border border-white/10 text-zinc-300 hover:bg-white/5"
+              className={`rounded-lg px-3 py-1 text-xs ${
+                type === "DISCORD" ? "bg-white/10 text-white" : "text-zinc-500"
               }`}
             >
-              Discord
+              {tr("discord")}
             </button>
-            {effectiveAudience === "PLATFORM" && (
-              <button
-                type="button"
-                onClick={() => setType("TEAM_APPLICATION")}
-                className={`rounded-xl py-2.5 text-sm font-medium transition ${
-                  type === "TEAM_APPLICATION"
-                    ? "bg-purple-500 text-white"
-                    : "border border-white/10 text-zinc-300 hover:bg-white/5"
-                }`}
-              >
-                Team-Bewerbung
-              </button>
-            )}
-          </div>
-        </div>
-
-        {isApp && (
-          <div className="space-y-4 rounded-xl border border-purple-500/20 bg-black/30 p-4">
-            <p className="text-xs text-purple-300/80">
-              Bewerbung geht an die Platform Admins – das Staff-Team wird auf Discord benachrichtigt.
-            </p>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-1.5 block text-xs text-zinc-500">Name *</label>
-                <input required value={realName} onChange={(e) => setRealName(e.target.value)} className={fieldCls} />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs text-zinc-500">Alter *</label>
-                <input
-                  required
-                  type="number"
-                  min={13}
-                  max={99}
-                  value={age}
-                  onChange={(e) => setAge(e.target.value)}
-                  className={fieldCls}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs text-zinc-500">Discord-Name *</label>
-              <input required value={discordName} onChange={(e) => setDiscordName(e.target.value)} placeholder="username" className={fieldCls} />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs text-zinc-500">Bewerbung als *</label>
-              <div className="flex flex-wrap gap-2">
-                {APPLY_ROLES.map((role) => (
-                  <button
-                    key={role}
-                    type="button"
-                    onClick={() => setApplyRole(role)}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-                      applyRole === role ? "bg-purple-500 text-white" : "bg-white/5 text-zinc-400"
-                    }`}
-                  >
-                    {role}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs text-zinc-500">Verfügbarkeit *</label>
-              <input required value={availability} onChange={(e) => setAvailability(e.target.value)} className={fieldCls} />
-            </div>
-            {(
-              [
-                ["Über dich", aboutMe, setAboutMe],
-                ["Warum diese Rolle?", whyRole, setWhyRole],
-                ["Warum du?", whyBetter, setWhyBetter],
-                ["Was willst du beitragen?", contribution, setContribution],
-              ] as const
-            ).map(([label, val, set]) => (
-              <div key={label}>
-                <label className="mb-1.5 block text-xs text-zinc-500">{label} *</label>
-                <textarea required rows={3} minLength={30} value={val} onChange={(e) => set(e.target.value)} className={`${fieldCls} resize-y`} />
-              </div>
-            ))}
           </div>
         )}
 
         {!isApp && (
           <>
+            <input
+              required
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder={tr("subject")}
+              className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/40"
+            />
+            <textarea
+              required
+              rows={4}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={tr("description")}
+              className="w-full resize-y rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/40"
+            />
             {type === "DISCORD" && (
-              <div>
-                <label className="mb-1.5 block text-xs text-zinc-500">Discord-Name (optional)</label>
-                <input
-                  value={discordName}
-                  onChange={(e) => setDiscordName(e.target.value)}
-                  placeholder="username"
-                  className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/50"
-                />
-              </div>
-            )}
-            <div>
-              <label className="mb-1.5 block text-xs text-zinc-500">Betreff</label>
               <input
-                required
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/50"
+                value={discordName}
+                onChange={(e) => setDiscordName(e.target.value)}
+                placeholder={tr("discord_name_optional")}
+                className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/40"
               />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs text-zinc-500">Beschreibung</label>
-              <textarea
-                required
-                rows={4}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full resize-y rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/50"
-              />
-            </div>
+            )}
           </>
+        )}
+
+        {isApp && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <input
+              required
+              value={discordName}
+              onChange={(e) => setDiscordName(e.target.value)}
+              placeholder={tr("discord_name")}
+              className="rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none sm:col-span-2"
+            />
+            <input
+              required
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
+              placeholder={tr("age")}
+              className="rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none"
+            />
+            <input
+              required
+              value={applyAs}
+              onChange={(e) => setApplyAs(e.target.value)}
+              placeholder={tr("apply_as")}
+              className="rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none"
+            />
+            <input
+              required
+              value={availability}
+              onChange={(e) => setAvailability(e.target.value)}
+              placeholder={tr("availability")}
+              className="rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none sm:col-span-2"
+            />
+            <textarea
+              required
+              rows={2}
+              value={aboutMe}
+              onChange={(e) => setAboutMe(e.target.value)}
+              placeholder={tr("about_you")}
+              className="rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none sm:col-span-2"
+            />
+            <textarea
+              required
+              rows={2}
+              value={whyRole}
+              onChange={(e) => setWhyRole(e.target.value)}
+              placeholder={tr("why_role")}
+              className="rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none sm:col-span-2"
+            />
+            <textarea
+              required
+              rows={2}
+              value={whyYou}
+              onChange={(e) => setWhyYou(e.target.value)}
+              placeholder={tr("why_you")}
+              className="rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none sm:col-span-2"
+            />
+            <textarea
+              required
+              rows={2}
+              value={contribution}
+              onChange={(e) => setContribution(e.target.value)}
+              placeholder={tr("contribution")}
+              className="rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none sm:col-span-2"
+            />
+          </div>
         )}
 
         <button
           type="submit"
-          disabled={creating}
-          className={`rounded-xl px-5 py-2.5 text-sm font-semibold disabled:opacity-50 ${
-            isApp
-              ? "bg-purple-500 text-white"
-              : effectiveAudience === "PLATFORM"
-                ? "bg-red-500 text-white"
-                : "bg-amber-400 text-black"
-          }`}
+          disabled={submitting}
+          className="rounded-xl bg-amber-400 px-5 py-2.5 text-sm font-semibold text-black disabled:opacity-50"
         >
-          {creating
+          {submitting
             ? "…"
             : isApp
-              ? "Bewerbung an Admins senden"
-              : effectiveAudience === "PLATFORM"
-                ? "An Admins senden"
-                : "Ticket absenden"}
+              ? tr("send_application")
+              : audience === "PLATFORM"
+                ? tr("send_to_admins")
+                : tr("submit_ticket")}
         </button>
       </form>
 
-      <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#121214]">
-        <div className="border-b border-white/5 px-5 py-4">
-          <h2 className="font-semibold text-white">Deine Tickets</h2>
-          <p className="text-xs text-zinc-500">Team-Tickets + deine Admin-Tickets</p>
-        </div>
+      <div>
+        <h2 className="mb-1 text-lg font-semibold text-white">{tr("your_tickets")}</h2>
+        <p className="mb-3 text-xs text-zinc-500">{tr("your_tickets_sub")}</p>
         {loading ? (
-          <p className="px-5 py-8 text-sm text-zinc-500">Lade…</p>
+          <p className="text-zinc-500">{tr("loading_ellipsis")}</p>
         ) : tickets.length === 0 ? (
-          <p className="px-5 py-12 text-center text-sm text-zinc-500">Noch keine Tickets</p>
+          <p className="py-8 text-center text-sm text-zinc-500">{tr("no_tickets")}</p>
         ) : (
-          <div className="divide-y divide-white/5">
-            {tickets.map((t) => (
-              <Link
-                key={t.id}
-                href={`/dashboard/support/${t.id}`}
-                className="flex flex-col gap-1 px-5 py-4 hover:bg-white/[0.03] sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium text-zinc-200">{t.subject}</span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs ${
-                        t.status === "OPEN"
-                          ? "bg-emerald-500/15 text-emerald-400"
-                          : "bg-zinc-500/15 text-zinc-400"
-                      }`}
-                    >
-                      {t.status === "OPEN" ? "Offen" : "Geschlossen"}
-                    </span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs ${
-                        t.type === "TEAM_APPLICATION"
-                          ? "bg-purple-500/15 text-purple-300"
-                          : t.audience === "PLATFORM"
-                            ? "bg-red-500/15 text-red-300"
-                            : "bg-white/5 text-zinc-400"
-                      }`}
-                    >
-                      {t.type === "TEAM_APPLICATION"
-                        ? "Bewerbung"
-                        : t.audience === "PLATFORM"
-                          ? "Admins"
-                          : t.type === "DISCORD"
-                            ? "Discord"
-                            : "Team"}
-                    </span>
+          <ul className="divide-y divide-white/5 overflow-hidden rounded-2xl border border-white/10 bg-[#121214]">
+            {tickets.map((ticket) => (
+              <li key={ticket.id}>
+                <Link
+                  href={`/dashboard/support/${ticket.id}`}
+                  className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 hover:bg-white/[0.03]"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-zinc-100">{ticket.subject}</p>
+                    <p className="text-[11px] text-zinc-500">
+                      {ticket.type === "TEAM_APPLICATION"
+                        ? tr("team_application")
+                        : ticket.type === "DISCORD"
+                          ? tr("discord")
+                          : tr("general")}
+                      {ticket.audience === "PLATFORM" ? ` · ${tr("admin_ticket")}` : ""}
+                      {" · "}
+                      {new Date(ticket.createdAt).toLocaleString()}
+                    </p>
                   </div>
-                  <p className="mt-0.5 text-xs text-zinc-500">
-                    {fmt(t.createdAt)}
-                    {t.user ? ` · ${t.user.name || t.user.email}` : ""}
-                    {t._count?.messages != null ? ` · ${t._count.messages} Nachrichten` : ""}
-                  </p>
-                </div>
-                <span className="text-xs text-amber-400">Öffnen →</span>
-              </Link>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                      ticket.status === "CLOSED"
+                        ? "bg-zinc-500/20 text-zinc-400"
+                        : "bg-emerald-500/15 text-emerald-400"
+                    }`}
+                  >
+                    {ticket.status === "CLOSED"
+                      ? tr("ticket_closed")
+                      : tr("ticket_open")}
+                  </span>
+                </Link>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </div>
     </div>
