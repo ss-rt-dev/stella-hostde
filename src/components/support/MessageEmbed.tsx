@@ -48,7 +48,7 @@ export function MessageEmbed({
       ? roleHex
       : hashColor(email || displayName);
   const label = isJustin
-    ? "Owner · #1"
+    ? "Owner"
     : role === "OWNER"
       ? "Owner"
       : ROLE_LABELS[role] || (isStaff ? "Staff" : null);
