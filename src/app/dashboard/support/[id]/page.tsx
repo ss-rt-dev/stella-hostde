@@ -192,6 +192,7 @@ export default function TicketChatPage() {
                 body={m.body}
                 userName={m.user?.name}
                 userEmail={m.user?.email}
+                userRole={m.user?.role}
                 isStaff={m.isStaff}
                 createdAt={m.createdAt}
               />

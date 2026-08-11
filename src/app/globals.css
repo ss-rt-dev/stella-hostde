@@ -252,10 +252,7 @@ html {
   animation: page-slide-back 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/*
- * Justin Owner – nur linker Streifen + Badge
- * Nahtlos: Gradient 2x gestapelt, translateY(-50%) → kein Stopp/Reset
- */
+/* Justin Owner – Regenbogen nahtlos */
 @keyframes rainbow-bar-seamless {
   from {
     transform: translateY(0);
@@ -285,7 +282,6 @@ html {
   left: 0;
   top: 0;
   width: 5px;
-  /* doppelt so hoch → bei -50% nahtloser Loop */
   height: 200%;
   z-index: 2;
   border-radius: 4px 0 0 4px;
@@ -300,7 +296,6 @@ html {
     #a855f7,
     #ec4899,
     #ff0000,
-    /* 2. Durchlauf identisch */
     #ff7a00,
     #ffd500,
     #22c55e,
@@ -340,6 +335,68 @@ html {
   will-change: background-position;
 }
 
+/* Staff-Rollen: Rollenfarbe ↔ Weiß, nahtlos fließend */
+@keyframes role-bar-seamless {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-50%);
+  }
+}
+
+@keyframes role-badge-seamless {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: -200% 50%;
+  }
+}
+
+.msg-embed-role {
+  position: relative;
+  overflow: hidden;
+}
+
+.msg-embed-role::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 5px;
+  height: 200%;
+  z-index: 2;
+  border-radius: 4px 0 0 4px;
+  /* Rollenfarbe – Weiß – Rollenfarbe (2x für nahtlosen Loop) */
+  background: linear-gradient(
+    180deg,
+    var(--role-color, #fbbf24),
+    #ffffff,
+    var(--role-color, #fbbf24),
+    #ffffff,
+    var(--role-color, #fbbf24)
+  );
+  animation: role-bar-seamless 1.8s linear infinite;
+  will-change: transform;
+}
+
+.role-badge {
+  background-image: linear-gradient(
+    90deg,
+    var(--role-color, #fbbf24),
+    #ffffff,
+    var(--role-color, #fbbf24),
+    #ffffff,
+    var(--role-color, #fbbf24)
+  );
+  background-size: 200% 100%;
+  animation: role-badge-seamless 1.8s linear infinite;
+  will-change: background-position;
+  /* Text lesbar auf hellen Stellen */
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.65);
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -353,14 +410,23 @@ html {
   .gold-shimmer,
   .section-flash,
   .msg-embed-rainbow::before,
-  .rainbow-badge {
+  .rainbow-badge,
+  .msg-embed-role::before,
+  .role-badge {
     animation: none;
   }
   .msg-embed-rainbow::before {
     height: 100%;
     background: linear-gradient(180deg, #ef4444, #a855f7, #3b82f6);
   }
+  .msg-embed-role::before {
+    height: 100%;
+    background: var(--role-color, #fbbf24);
+  }
   .rainbow-badge {
     background: #a855f7;
+  }
+  .role-badge {
+    background: var(--role-color, #fbbf24);
   }
 }
