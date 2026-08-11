@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useI18n } from "@/components/i18n/LanguageProvider";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useI18n } from "@/components/i18n/LanguageProvider";
 
 type Msg = {
   id: string;
@@ -27,7 +27,7 @@ type Ticket = {
 };
 
 export default function SupportTicketPage() {
-  const { t: tr } = useI18n();
+  const { t: tr, locale } = useI18n();
   const params = useParams();
   const id = params.id as string;
   const [ticket, setTicket] = useState<Ticket | null>(null);
@@ -87,7 +87,7 @@ export default function SupportTicketPage() {
     if (res.ok) load();
   }
 
-  if (loading) return <p className="text-zinc-500">{tr("loading_ellipsis")}</p>;
+  if (loading) return <p className="text-zinc-500">{tr("loading")}</p>;
   if (!ticket) return <p className="text-red-400">{error || tr("error")}</p>;
 
   const closed = ticket.status === "CLOSED";
@@ -160,11 +160,9 @@ export default function SupportTicketPage() {
                 <span className="font-medium text-zinc-200">
                   {m.user.name || m.user.email}
                 </span>
-                {m.user.role && (
-                  <span className="text-zinc-500">{m.user.role}</span>
-                )}
+                {m.user.role && <span className="text-zinc-500">{m.user.role}</span>}
                 <span className="text-zinc-600">
-                  {new Date(m.createdAt).toLocaleString()}
+                  {new Date(m.createdAt).toLocaleString(locale)}
                 </span>
               </div>
               <p className="whitespace-pre-wrap text-sm text-zinc-300">{m.body}</p>
