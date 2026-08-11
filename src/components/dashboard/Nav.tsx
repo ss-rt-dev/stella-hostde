@@ -9,6 +9,7 @@ import { isAdminRole } from "@/lib/roles";
 const workspaceLinks = [
   { href: "/dashboard", label: "Übersicht", icon: "home" },
   { href: "/dashboard/todos", label: "Aufgaben", icon: "check" },
+  { href: "/dashboard/chat", label: "Chat", icon: "chat" },
   { href: "/dashboard/team", label: "Mitglieder", icon: "users" },
   { href: "/dashboard/board", label: "Board", icon: "board" },
 ];
@@ -21,6 +22,7 @@ const accountLinks = [
 
 const platformLinks = [
   { href: "/admin", label: "Overview", icon: "admin", exact: true },
+  { href: "/admin/announcements", label: "Ankündigungen", icon: "board" },
   { href: "/admin/teams", label: "Teams", icon: "switch" },
   { href: "/admin/users", label: "Nutzer", icon: "users" },
   { href: "/admin/todos", label: "Aufgaben", icon: "check" },
@@ -40,6 +42,12 @@ function Icon({ type }: { type: string }) {
     return (
       <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+      </svg>
+    );
+  if (type === "chat")
+    return (
+      <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
       </svg>
     );
   if (type === "board")
@@ -165,7 +173,7 @@ export function DashboardNav({
         {onAdmin ? (
           <div className="border-b border-white/10 px-4 py-3">
             <p className="text-sm font-medium text-white">Platform Admin</p>
-            <p className="text-[11px] text-zinc-500">Alle Teams · Nutzer · Aufgaben</p>
+            <p className="text-[11px] text-zinc-500">Teams · Nutzer · Ankündigungen</p>
             <Link href="/dashboard" className="mt-1.5 inline-block text-[11px] text-amber-400 hover:underline">
               ← Zum Workspace
             </Link>
@@ -243,7 +251,9 @@ export function DashboardNav({
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-zinc-200">{user.name || "Mitglied"}</p>
+              <p className="truncate text-sm font-medium text-zinc-200">
+                {user.name || "Mitglied"}
+              </p>
               <p className="truncate text-[11px] text-zinc-500">{user.email}</p>
             </div>
           </div>
@@ -257,7 +267,10 @@ export function DashboardNav({
       </aside>
 
       <header className="glass-strong sticky top-0 z-40 flex items-center justify-between px-4 py-3 lg:hidden">
-        <Link href={onAdmin ? "/admin" : setupMode ? "/dashboard/teams" : "/dashboard"} className="flex items-center gap-2">
+        <Link
+          href={onAdmin ? "/admin" : setupMode ? "/dashboard/teams" : "/dashboard"}
+          className="flex items-center gap-2"
+        >
           <Image src={logo} alt="Stella" width={28} height={28} className="h-7 w-7 object-contain" unoptimized />
           <span className="font-semibold text-white">
             {onAdmin ? (
@@ -282,8 +295,8 @@ export function DashboardNav({
         <nav className="glass-strong fixed inset-x-0 bottom-0 z-40 flex lg:hidden">
           {[
             { href: "/admin", label: "Home", icon: "admin" },
+            { href: "/admin/announcements", label: "News", icon: "board" },
             { href: "/admin/teams", label: "Teams", icon: "switch" },
-            { href: "/admin/todos", label: "Aufgaben", icon: "check" },
             { href: "/admin/support", label: "Support", icon: "support" },
           ].map((l) => {
             const active = isActive(l.href, l.href === "/admin");
@@ -307,8 +320,8 @@ export function DashboardNav({
             {[
               { href: "/dashboard", label: "Home", icon: "home" },
               { href: "/dashboard/todos", label: "Aufgaben", icon: "check" },
+              { href: "/dashboard/chat", label: "Chat", icon: "chat" },
               { href: "/dashboard/team", label: "Team", icon: "users" },
-              { href: "/dashboard/support", label: "Support", icon: "support" },
             ].map((l) => {
               const active = isActive(l.href);
               return (
