@@ -8,30 +8,34 @@ datasource db {
 }
 
 model User {
-  id               String             @id @default(cuid())
-  email            String             @unique
-  name             String?
-  passwordHash     String
-  role             Role               @default(CUSTOMER)
-  balance          Decimal            @default(0) @db.Decimal(12, 2)
-  onboardingDone   Boolean            @default(false)
-  lastLoginAt      DateTime?
-  lastLoginIp      String?
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  servers          Server[]
-  transactions     Transaction[]
-  accounts         Account[]
-  sessions         Session[]
-  activities       ActivityLog[]
-  supportTickets   SupportTicket[]
-  supportMessages  SupportMessage[]
-  todosCreated     Todo[]             @relation("TodoCreator")
-  todosAssigned    Todo[]             @relation("TodoAssignee")
-  todoAssignments  TodoAssignee[]
-  announcements    TeamAnnouncement[]
-  ownedTeams       Team[]             @relation("TeamOwner")
-  memberships      TeamMember[]
+  id                   String                @id @default(cuid())
+  email                String                @unique
+  name                 String?
+  passwordHash         String
+  role                 Role                  @default(CUSTOMER)
+  balance              Decimal               @default(0) @db.Decimal(12, 2)
+  onboardingDone       Boolean               @default(false)
+  lastLoginAt          DateTime?
+  lastLoginIp          String?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  servers              Server[]
+  transactions         Transaction[]
+  accounts             Account[]
+  sessions             Session[]
+  activities           ActivityLog[]
+  supportTickets       SupportTicket[]
+  supportMessages      SupportMessage[]
+  todosCreated         Todo[]                @relation("TodoCreator")
+  todosAssigned        Todo[]                @relation("TodoAssignee")
+  todoAssignments      TodoAssignee[]
+  announcements        TeamAnnouncement[]
+  ownedTeams           Team[]                @relation("TeamOwner")
+  memberships          TeamMember[]
+  channelMemberships   TeamChannelMember[]
+  channelMessages      TeamChannelMessage[]
+  channelsCreated      TeamChannel[]         @relation("ChannelCreator")
+  platformAnnouncements PlatformAnnouncement[]
 }
 
 model Account {
@@ -245,6 +249,7 @@ model Team {
   todos          Todo[]
   announcements  TeamAnnouncement[]
   supportTickets SupportTicket[]
+  channels       TeamChannel[]
 
   @@index([ownerId])
 }
@@ -254,12 +259,68 @@ model TeamMember {
   teamId   String
   userId   String
   role     TeamMemberRole @default(MEMBER)
+  /** Anzeige-Rolle nur im Team (z.B. Moderator) – nicht die globale User-Rolle */
+  title    String?
   joinedAt DateTime       @default(now())
   team     Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
   user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([teamId, userId])
   @@index([userId])
+}
+
+model TeamChannel {
+  id          String               @id @default(cuid())
+  teamId      String
+  name        String
+  description String?
+  createdById String
+  isDefault   Boolean              @default(false)
+  createdAt   DateTime             @default(now())
+  team        Team                 @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy   User                 @relation("ChannelCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  members     TeamChannelMember[]
+  messages    TeamChannelMessage[]
+
+  @@index([teamId, createdAt])
+}
+
+model TeamChannelMember {
+  id        String      @id @default(cuid())
+  channelId String
+  userId    String
+  joinedAt  DateTime    @default(now())
+  channel   TeamChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, userId])
+  @@index([userId])
+}
+
+model TeamChannelMessage {
+  id        String      @id @default(cuid())
+  channelId String
+  userId    String
+  body      String      @db.Text
+  createdAt DateTime    @default(now())
+  channel   TeamChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, createdAt])
+}
+
+/** Plattform-weite Ankündigungen (Admin) – oben im User-Dashboard */
+model PlatformAnnouncement {
+  id        String   @id @default(cuid())
+  title     String
+  body      String   @db.Text
+  active    Boolean  @default(true)
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([active, createdAt])
 }
 
 enum TodoStatus {
@@ -303,7 +364,6 @@ model Todo {
   @@index([createdById, scope])
 }
 
-/** Mehrere zugewiesene Nutzer – nur diese (plus Ersteller/Owner/Admin) sehen die Aufgabe */
 model TodoAssignee {
   id     String @id @default(cuid())
   todoId String

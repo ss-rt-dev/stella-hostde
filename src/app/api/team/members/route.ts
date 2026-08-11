@@ -48,14 +48,17 @@ export async function GET() {
   return NextResponse.json({
     members: members.map((m) => ({
       id: m.user.id,
+      membershipId: m.id,
       name: m.user.name,
       email: m.user.email,
       role: m.role,
+      title: m.title,
       lastLoginAt: m.user.lastLoginAt,
       createdAt: m.user.createdAt,
       openTasks: openMap[m.user.id] || 0,
     })),
     canManage: isTeamStaff(membership.role),
+    isOwner: membership.role === "OWNER",
     teamId,
   });
 }
