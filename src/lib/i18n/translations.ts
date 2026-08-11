@@ -1,4 +1,5 @@
 import type { LocaleCode } from "./locales";
+import fr from "./dicts/fr";
 
 const de = {
   language: "Sprache",
@@ -297,8 +298,6 @@ const en: Dict = {
   err_availability: "Please enter your availability",
   err_app_texts: "Please fill all application texts thoroughly (min. 30 characters)",
 };
-
-import fr from "./dicts/fr";
 
 const es: Dict = { ...en, language: "Idioma", chooseLanguage: "Elegir idioma", close: "Cerrar", save: "Guardar", cancel: "Cancelar", loading: "Cargando…", error: "Error", back: "Atrás", delete: "Eliminar", send: "Enviar", nav_overview: "Resumen", nav_tasks: "Tareas", nav_members: "Miembros", nav_chat: "Chat", nav_support: "Soporte", nav_account: "Cuenta", nav_teams: "Mis equipos", nav_board: "Tablero", dashboard: "Panel", team: "Equipo", teams: "Equipos", tasks: "Tareas", members: "Miembros", support: "Soporte", logout: "Cerrar sesión", login: "Iniciar sesión", welcome: "Bienvenido", hello: "Hola", support_title: "Soporte", tasks_title: "Tareas", chat_title: "Chat", ticket_open: "Abierto", ticket_closed: "Cerrado", submit_ticket: "Enviar ticket", your_tickets: "Tus tickets", no_tickets: "Aún no hay tickets", general: "General", subject: "Asunto", description: "Descripción", network_error: "Error de red", load_failed: "Error al cargar" };
 const it: Dict = { ...en, language: "Lingua", chooseLanguage: "Scegli la lingua", close: "Chiudi", save: "Salva", cancel: "Annulla", loading: "Caricamento…", error: "Errore", back: "Indietro", delete: "Elimina", send: "Invia", nav_overview: "Panoramica", nav_tasks: "Attività", nav_members: "Membri", nav_chat: "Chat", nav_support: "Supporto", nav_account: "Account", nav_teams: "I miei team", nav_board: "Bacheca", dashboard: "Dashboard", support: "Supporto", logout: "Esci", welcome: "Benvenuto", hello: "Ciao", support_title: "Supporto", tasks_title: "Attività", chat_title: "Chat", ticket_open: "Aperto", ticket_closed: "Chiuso", submit_ticket: "Invia ticket", your_tickets: "I tuoi ticket", no_tickets: "Nessun ticket", general: "Generale", subject: "Oggetto", description: "Descrizione" };
