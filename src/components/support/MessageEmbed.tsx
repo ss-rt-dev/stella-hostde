@@ -22,7 +22,7 @@ export function MessageEmbed({
   isStaff?: boolean;
   createdAt: string;
 }) {
-  const email = (userEmail || "").toLowerCase();
+  const email = (userEmail || "").toLowerCase().trim();
   const isJustin = email === JUSTIN_EMAIL;
   const displayName = userName || userEmail || "Nutzer";
   const accent = isStaff ? "#fbbf24" : hashColor(email || displayName);
@@ -37,32 +37,29 @@ export function MessageEmbed({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-lg bg-[#1e1f22] shadow-sm ${
-        isJustin ? "msg-embed-rainbow" : ""
-      }`}
-      style={
+      className={
         isJustin
-          ? undefined
-          : {
-              borderLeft: `4px solid ${accent}`,
-            }
+          ? "msg-embed-rainbow relative overflow-hidden rounded-lg bg-[#1e1f22] shadow-sm"
+          : "relative overflow-hidden rounded-lg bg-[#1e1f22] shadow-sm"
       }
+      style={isJustin ? undefined : { borderLeft: `4px solid ${accent}` }}
     >
-      <div className="px-3.5 py-2.5">
+      <div className="px-3.5 py-2.5 pl-4">
         <div className="mb-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-          <span
-            className={`text-sm font-semibold ${isJustin ? "text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-yellow-300 to-purple-400" : ""}`}
-            style={isJustin ? undefined : { color: accent }}
-          >
-            {displayName}
-          </span>
-          {isStaff && (
+          {isJustin ? (
+            <span className="rainbow-text text-sm font-semibold">{displayName}</span>
+          ) : (
+            <span className="text-sm font-semibold" style={{ color: accent }}>
+              {displayName}
+            </span>
+          )}
+          {isStaff && !isJustin && (
             <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-medium text-amber-300">
               Staff
             </span>
           )}
           {isJustin && (
-            <span className="rounded bg-gradient-to-r from-pink-500/30 to-violet-500/30 px-1.5 py-0.5 text-[10px] font-medium text-pink-200">
+            <span className="rainbow-badge rounded px-1.5 py-0.5 text-[10px] font-semibold text-white">
               Owner
             </span>
           )}

@@ -252,46 +252,137 @@ html {
   animation: page-slide-back 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Discord-ähnliche Embed-Nachricht – animierter Regenbogen-Rand (justin@) */
-@keyframes rainbow-border {
+/* ─── Justin Rainbow (Owner) ─── */
+@keyframes rainbow-shift {
   0% {
     background-position: 0% 50%;
   }
-  50% {
-    background-position: 100% 50%;
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+@keyframes rainbow-bar-flow {
+  0% {
+    background-position: 0% 0%;
   }
   100% {
-    background-position: 0% 50%;
+    background-position: 0% 100%;
+  }
+}
+
+@keyframes rainbow-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.25), 0 0 4px rgba(168, 85, 247, 0.2);
+  }
+  33% {
+    box-shadow: 0 0 14px rgba(34, 197, 94, 0.3), 0 0 4px rgba(59, 130, 246, 0.25);
+  }
+  66% {
+    box-shadow: 0 0 14px rgba(168, 85, 247, 0.3), 0 0 4px rgba(236, 72, 153, 0.25);
   }
 }
 
 .msg-embed-rainbow {
   position: relative;
-  border-left: 4px solid transparent;
-  background-clip: padding-box;
+  isolation: isolate;
+  animation: rainbow-glow 4s ease-in-out infinite;
 }
 
+/* dicker animierter Regenbogen-Streifen links */
 .msg-embed-rainbow::before {
   content: "";
   position: absolute;
   left: 0;
   top: 0;
   bottom: 0;
-  width: 4px;
+  width: 5px;
+  z-index: 2;
   border-radius: 4px 0 0 4px;
   background: linear-gradient(
     180deg,
+    #ff0000,
+    #ff7a00,
+    #ffd500,
+    #22c55e,
+    #00c2ff,
+    #3b82f6,
+    #a855f7,
+    #ec4899,
+    #ff0000
+  );
+  background-size: 100% 400%;
+  animation: rainbow-bar-flow 2.5s linear infinite;
+}
+
+/* leichter Regenbogen-Schimmer über dem Embed */
+.msg-embed-rainbow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0.12;
+  background: linear-gradient(
+    110deg,
+    #ff0000,
+    #ff7a00,
+    #ffd500,
+    #22c55e,
+    #00c2ff,
+    #3b82f6,
+    #a855f7,
+    #ec4899,
+    #ff0000
+  );
+  background-size: 300% 100%;
+  animation: rainbow-shift 5s linear infinite;
+}
+
+.msg-embed-rainbow > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Name: fließender Regenbogen-Text */
+.rainbow-text {
+  background: linear-gradient(
+    90deg,
+    #ff0000,
+    #ff7a00,
+    #ffd500,
+    #22c55e,
+    #00c2ff,
+    #3b82f6,
+    #a855f7,
+    #ec4899,
+    #ff0000
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: rainbow-shift 3s linear infinite;
+  font-weight: 600;
+}
+
+/* Owner-Badge */
+.rainbow-badge {
+  background: linear-gradient(
+    90deg,
     #ef4444,
     #f59e0b,
-    #eab308,
     #22c55e,
     #3b82f6,
     #a855f7,
     #ec4899,
     #ef4444
   );
-  background-size: 100% 300%;
-  animation: rainbow-border 3s linear infinite;
+  background-size: 200% auto;
+  animation: rainbow-shift 2.5s linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -306,10 +397,19 @@ html {
   .orb-float-delayed,
   .gold-shimmer,
   .section-flash,
-  .msg-embed-rainbow::before {
+  .msg-embed-rainbow,
+  .msg-embed-rainbow::before,
+  .msg-embed-rainbow::after,
+  .rainbow-text,
+  .rainbow-badge {
     animation: none;
   }
   .msg-embed-rainbow::before {
-    background: linear-gradient(180deg, #ef4444, #a855f7);
+    background: linear-gradient(180deg, #ef4444, #a855f7, #3b82f6);
+  }
+  .rainbow-text {
+    color: #a855f7;
+    -webkit-text-fill-color: #a855f7;
+    background: none;
   }
 }
