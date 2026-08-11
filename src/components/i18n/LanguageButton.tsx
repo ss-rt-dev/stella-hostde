@@ -43,7 +43,6 @@ export function LanguageButton() {
 
   return (
     <>
-      {/* Floating Button – immer sichtbar im Dashboard */}
       <button
         type="button"
         onClick={() => setOpen(true)}
@@ -61,7 +60,6 @@ export function LanguageButton() {
           aria-modal="true"
           aria-labelledby="lang-picker-title"
         >
-          {/* Backdrop */}
           <button
             type="button"
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -69,7 +67,6 @@ export function LanguageButton() {
             onClick={() => setOpen(false)}
           />
 
-          {/* Custom Panel – kein Browser-Select */}
           <div
             ref={panelRef}
             className="relative z-[1] flex max-h-[min(85vh,560px)] w-full max-w-md flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#121214] shadow-2xl shadow-black/50"
@@ -155,7 +152,7 @@ export function LanguageButton() {
             </div>
 
             <div className="border-t border-white/5 px-5 py-3 text-center text-[11px] text-zinc-600">
-              20 {t("language")}s · Stella Dashboard
+              {locales.length} · Stella Dashboard
             </div>
           </div>
         </div>
