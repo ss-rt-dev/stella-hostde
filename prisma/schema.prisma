@@ -80,6 +80,7 @@ enum Role {
   SUPPORTER
   MODERATOR
   ADMIN
+  OWNER
 }
 
 model Package {
@@ -196,7 +197,6 @@ enum SupportStatus {
   CLOSED
 }
 
-/** TEAM = nur im Team sichtbar; PLATFORM = an Platform-Admins */
 enum SupportAudience {
   TEAM
   PLATFORM
