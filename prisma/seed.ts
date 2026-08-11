@@ -64,16 +64,16 @@ async function main() {
   const hash = await bcrypt.hash("Jopo23%?06", 12);
   await prisma.user.upsert({
     where: { email: "justin@stella-host.de" },
-    update: { passwordHash: hash, role: "ADMIN" },
+    update: { passwordHash: hash, role: "OWNER", name: "Justin | Owner" },
     create: {
       email: "justin@stella-host.de",
       name: "Justin | Owner",
       passwordHash: hash,
-      role: "ADMIN",
+      role: "OWNER",
       balance: 100000,
     },
   });
-  console.log("  ✓ Admin-User justin@stella-host.de");
+  console.log("  ✓ Owner-User justin@stella-host.de (Platz 1)");
 }
 
 main()

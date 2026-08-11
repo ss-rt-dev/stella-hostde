@@ -5,11 +5,11 @@ import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { logActivity } from "@/lib/activity";
-import { ROLES } from "@/lib/roles";
+import { ROLES, isAdminRole, isSuperOwner } from "@/lib/roles";
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
-  if (!session?.user || (session.user as any).role !== "ADMIN") {
+  if (!session?.user || !isAdminRole((session.user as any).role)) {
     return null;
   }
   if ((session.user as any).impersonatedBy) return null;
@@ -44,8 +44,19 @@ export async function PATCH(
     return NextResponse.json({ error: "User nicht gefunden" }, { status: 404 });
   }
 
+  const actorRole = (session.user as any).role as string;
+  const actorEmail = session.user.email || "";
+  const actorIsOwner = actorRole === "OWNER" || isSuperOwner(actorEmail);
+
   try {
     if (data.action === "update") {
+      // Super-Owner E-Mail darf nicht geändert werden
+      if (isSuperOwner(user.email) && data.email && data.email.toLowerCase() !== user.email.toLowerCase()) {
+        return NextResponse.json(
+          { error: "Die E-Mail des Super-Owners kann nicht geändert werden" },
+          { status: 400 }
+        );
+      }
       const update: { name?: string; email?: string } = {};
       if (data.name !== undefined) update.name = data.name;
       if (data.email !== undefined) {
@@ -96,12 +107,37 @@ export async function PATCH(
       if (!data.role) {
         return NextResponse.json({ error: "Rolle fehlt" }, { status: 400 });
       }
-      if (id === session.user.id && data.role !== "ADMIN") {
+
+      // Super-Owner (justin) behält immer OWNER – Platz 1
+      if (isSuperOwner(user.email) && data.role !== "OWNER") {
         return NextResponse.json(
-          { error: "Du kannst dir selbst nicht die Admin-Rolle entziehen" },
+          { error: "justin@stella-host.de bleibt immer Owner (Platz 1)" },
           { status: 400 }
         );
       }
+
+      // OWNER-Rolle nur von Ownern vergeben/entfernen
+      if (data.role === "OWNER" && !actorIsOwner) {
+        return NextResponse.json(
+          { error: "Nur Owner können die Owner-Rolle vergeben" },
+          { status: 403 }
+        );
+      }
+      if (user.role === "OWNER" && data.role !== "OWNER" && !actorIsOwner) {
+        return NextResponse.json(
+          { error: "Nur Owner können die Owner-Rolle entziehen" },
+          { status: 403 }
+        );
+      }
+
+      // Sich selbst nicht herabstufen, wenn man Super-Owner ist
+      if (id === session.user.id && isSuperOwner(actorEmail) && data.role !== "OWNER") {
+        return NextResponse.json(
+          { error: "Du kannst dir die Owner-Rolle nicht entziehen" },
+          { status: 400 }
+        );
+      }
+
       const updated = await prisma.user.update({
         where: { id },
         data: { role: data.role },
@@ -179,6 +215,13 @@ export async function DELETE(
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) {
     return NextResponse.json({ error: "User nicht gefunden" }, { status: 404 });
+  }
+
+  if (isSuperOwner(user.email)) {
+    return NextResponse.json(
+      { error: "Super-Owner (justin@) kann nicht gelöscht werden" },
+      { status: 400 }
+    );
   }
 
   await prisma.server.updateMany({

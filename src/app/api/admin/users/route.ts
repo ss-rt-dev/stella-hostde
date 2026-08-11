@@ -5,11 +5,11 @@ import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { actionLabel } from "@/lib/activity";
-import { ROLES } from "@/lib/roles";
+import { ROLES, isAdminRole, isSuperOwner, sortByRank } from "@/lib/roles";
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
-  if (!session?.user || (session.user as any).role !== "ADMIN") {
+  if (!session?.user || !isAdminRole((session.user as any).role)) {
     return null;
   }
   if ((session.user as any).impersonatedBy) return null;
@@ -45,43 +45,43 @@ export async function GET() {
     },
   });
 
-  return NextResponse.json(
-    users.map((u) => {
-      // Fallback: letzte Activity mit IP, falls lastLoginIp noch leer
-      const lastIpFromActivity =
-        u.activities.find((a) => a.ip)?.ip ?? null;
+  const mapped = users.map((u) => {
+    const lastIpFromActivity = u.activities.find((a) => a.ip)?.ip ?? null;
 
-      return {
-        id: u.id,
-        email: u.email,
-        name: u.name,
-        role: u.role,
-        balance: Number(u.balance),
-        createdAt: u.createdAt,
-        lastLoginAt: u.lastLoginAt,
-        lastLoginIp: u.lastLoginIp || lastIpFromActivity,
-        servers: u.servers,
-        teams: u.memberships.map((m) => ({
-          id: m.team.id,
-          name: m.team.name,
-          inviteCode: m.team.inviteCode,
-          role: m.role,
-          joinedAt: m.joinedAt,
-        })),
-        ownedTeamIds: u.ownedTeams.map((t) => t.id),
-        transactionCount: u._count.transactions,
-        activityCount: u._count.activities,
-        activities: u.activities.map((a) => ({
-          id: a.id,
-          action: a.action,
-          label: actionLabel(a.action),
-          detail: a.detail,
-          ip: a.ip,
-          createdAt: a.createdAt,
-        })),
-      };
-    })
-  );
+    return {
+      id: u.id,
+      email: u.email,
+      name: u.name,
+      role: u.role,
+      balance: Number(u.balance),
+      createdAt: u.createdAt,
+      lastLoginAt: u.lastLoginAt,
+      lastLoginIp: u.lastLoginIp || lastIpFromActivity,
+      isSuperOwner: isSuperOwner(u.email),
+      servers: u.servers,
+      teams: u.memberships.map((m) => ({
+        id: m.team.id,
+        name: m.team.name,
+        inviteCode: m.team.inviteCode,
+        role: m.role,
+        joinedAt: m.joinedAt,
+      })),
+      ownedTeamIds: u.ownedTeams.map((t) => t.id),
+      transactionCount: u._count.transactions,
+      activityCount: u._count.activities,
+      activities: u.activities.map((a) => ({
+        id: a.id,
+        action: a.action,
+        label: actionLabel(a.action),
+        detail: a.detail,
+        ip: a.ip,
+        createdAt: a.createdAt,
+      })),
+    };
+  });
+
+  // Justin immer Platz 1, dann Owner, Admin, …
+  return NextResponse.json(sortByRank(mapped));
 }
 
 const createSchema = z.object({
@@ -93,12 +93,27 @@ const createSchema = z.object({
 });
 
 export async function POST(req: Request) {
-  if (!(await requireAdmin())) {
+  const session = await requireAdmin();
+  if (!session) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {
     const body = createSchema.parse(await req.json());
+    const actorRole = (session.user as any).role as string;
+    const actorEmail = session.user.email || "";
+
+    // OWNER nur von Owner / Super-Owner vergeben
+    if (body.role === "OWNER" && !isAdminRole(actorRole)) {
+      return NextResponse.json({ error: "Keine Berechtigung für Owner" }, { status: 403 });
+    }
+    if (body.role === "OWNER" && actorRole !== "OWNER" && !isSuperOwner(actorEmail)) {
+      return NextResponse.json(
+        { error: "Nur Owner können die Owner-Rolle vergeben" },
+        { status: 403 }
+      );
+    }
+
     const exists = await prisma.user.findUnique({ where: { email: body.email } });
     if (exists) {
       return NextResponse.json({ error: "E-Mail bereits vergeben" }, { status: 400 });
