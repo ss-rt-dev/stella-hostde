@@ -18,7 +18,8 @@ export type LocaleCode =
   | "fi"
   | "no"
   | "el"
-  | "ja";
+  | "ja"
+  | "lb";
 
 export interface LocaleInfo {
   code: LocaleCode;
@@ -27,7 +28,7 @@ export interface LocaleInfo {
   flag: string;
 }
 
-/** 20 Sprachen – Anzeige mit Flagge + Eigenname */
+/** Sprachen – Anzeige mit Flagge + Eigenname */
 export const LOCALES: LocaleInfo[] = [
   { code: "de", name: "German", native: "Deutsch", flag: "🇩🇪" },
   { code: "en", name: "English", native: "English", flag: "🇬🇧" },
@@ -36,6 +37,7 @@ export const LOCALES: LocaleInfo[] = [
   { code: "it", name: "Italian", native: "Italiano", flag: "🇮🇹" },
   { code: "pt", name: "Portuguese", native: "Português", flag: "🇵🇹" },
   { code: "nl", name: "Dutch", native: "Nederlands", flag: "🇳🇱" },
+  { code: "lb", name: "Luxembourgish", native: "Lëtzebuergesch", flag: "🇱🇺" },
   { code: "pl", name: "Polish", native: "Polski", flag: "🇵🇱" },
   { code: "ru", name: "Russian", native: "Русский", flag: "🇷🇺" },
   { code: "tr", name: "Turkish", native: "Türkçe", flag: "🇹🇷" },
