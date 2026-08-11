@@ -6,19 +6,19 @@ import { SiteFooter } from "@/components/SiteFooter";
 const FEATURES = [
   {
     title: "Mehrere Teams",
-    text: "Bis zu 10 eigene Teams als Owner. Jedes Team ist komplett getrennt – Todos, Board, Mitglieder.",
+    text: "Bis zu 10 eigene Teams als Owner. Jedes Team ist komplett getrennt – Aufgaben, Board, Mitglieder und Chat.",
   },
   {
     title: "Einladungscode",
     text: "Code aus Buchstaben + 3 Zahlen. Nach der Registrierung wirst du gefragt, ob du einen Code hast.",
   },
   {
-    title: "Todos & Board",
-    text: "Team-Aufgaben und persönliche Listen. Owner/Admins weisen zu – Mitglieder haken ab.",
+    title: "Aufgaben & Board",
+    text: "Team-Aufgaben und persönliche Listen. Owner/Admins weisen zu – Mitglieder erledigen und tracken Fortschritt.",
   },
   {
     title: "Support",
-    text: "Hilfe und Team-Bewerbungen (z.B. Discord) – unabhängig vom Team-Workspace.",
+    text: "Team-Tickets und Bewerbungen an die Platform-Admins – klar getrennt, damit nichts durcheinandergeht.",
   },
 ] as const;
 
@@ -30,7 +30,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-[#0a0a0c] text-zinc-100">
       <div className="border-b border-white/5 bg-[#111113]">
         <div className="mx-auto max-w-6xl px-4 py-2 text-center text-xs text-zinc-400 sm:px-6">
-          Stella Dashboard · Multi-Team · Todos · Support
+          Stella Dashboard · Multi-Team · Aufgaben · Support
         </div>
       </div>
 
@@ -64,7 +64,7 @@ export default function LandingPage() {
           </h1>
           <p className="mt-5 max-w-lg text-[15px] leading-relaxed text-zinc-400">
             Owner legen Teams an, laden Mitglieder per Code ein und verteilen Aufgaben.
-            Jedes Team hat eigene Todos, Mitglieder und Board – nichts vermischt sich.
+            Jedes Team hat eigene Aufgaben, Mitglieder und Board – nichts vermischt sich.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <a

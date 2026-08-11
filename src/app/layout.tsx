@@ -3,16 +3,15 @@ import "./globals.css";
 import { Providers } from "@/components/Providers";
 
 export const metadata: Metadata = {
-  title: "Stella Host — Hosting, das trägt",
+  title: "Stella Dashboard — Teams, Aufgaben & Support",
   description:
-    "LXC-Hosting für Minecraft, Bots & Server. Schnell, zuverlässig, mit Dashboard.",
-  // Kein globales icons – DynamicFavicon setzt je Route
+    "Multi-Team Workspace: Mitglieder verwalten, Aufgaben verteilen, Team-Chats und Support – alles getrennt pro Team.",
   openGraph: {
-    title: "Stella Host — Hosting, das trägt",
+    title: "Stella Dashboard — Teams, Aufgaben & Support",
     description:
-      "LXC-Hosting für Minecraft, Bots & Server. Schnell, zuverlässig, mit Dashboard.",
+      "Multi-Team Workspace: Mitglieder verwalten, Aufgaben verteilen, Team-Chats und Support – alles getrennt pro Team.",
     url: "https://stella-host.de",
-    siteName: "Stella Host",
+    siteName: "Stella Dashboard",
     type: "website",
   },
 };
