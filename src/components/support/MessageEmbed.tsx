@@ -44,15 +44,14 @@ export function MessageEmbed({
       }
       style={isJustin ? undefined : { borderLeft: `4px solid ${accent}` }}
     >
-      <div className="px-3.5 py-2.5 pl-4">
+      <div className="relative z-[1] px-3.5 py-2.5 pl-4">
         <div className="mb-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-          {isJustin ? (
-            <span className="rainbow-text text-sm font-semibold">{displayName}</span>
-          ) : (
-            <span className="text-sm font-semibold" style={{ color: accent }}>
-              {displayName}
-            </span>
-          )}
+          <span
+            className="text-sm font-semibold"
+            style={{ color: isJustin ? "#e4e4e7" : accent }}
+          >
+            {displayName}
+          </span>
           {isStaff && !isJustin && (
             <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-medium text-amber-300">
               Staff
