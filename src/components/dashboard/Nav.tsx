@@ -26,7 +26,7 @@ const platformLinks = [
   { href: "/admin/teams", label: "Teams", icon: "switch" },
   { href: "/admin/users", label: "Nutzer", icon: "users" },
   { href: "/admin/todos", label: "Aufgaben", icon: "check" },
-  { href: "/admin/support", label: "Support", icon: "support" },
+  { href: "/admin/support", label: "Admin-Tickets", icon: "support" },
   { href: "/admin/activity", label: "Aktivitäten", icon: "activity" },
 ];
 
@@ -147,6 +147,7 @@ export function DashboardNav({
     return (
       <Link
         href={href}
+        prefetch
         className={`nav-link group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition ${
           active
             ? "active bg-amber-500/15 font-medium text-amber-400 ring-1 ring-amber-500/25"
@@ -173,9 +174,12 @@ export function DashboardNav({
         {onAdmin ? (
           <div className="border-b border-white/10 px-4 py-3">
             <p className="text-sm font-medium text-white">Platform Admin</p>
-            <p className="text-[11px] text-zinc-500">Teams · Nutzer · Ankündigungen</p>
-            <Link href="/dashboard" className="mt-1.5 inline-block text-[11px] text-amber-400 hover:underline">
-              ← Zum Workspace
+            <p className="text-[11px] text-zinc-500">Teams · Nutzer · Tickets</p>
+            <Link
+              href="/dashboard"
+              className="mt-2 flex w-full items-center justify-center rounded-xl bg-amber-400 px-3 py-2 text-xs font-semibold text-black transition hover:bg-amber-300"
+            >
+              Zum Workspace
             </Link>
           </div>
         ) : (
@@ -191,7 +195,7 @@ export function DashboardNav({
               )}
               <Link
                 href="/dashboard/teams"
-                className="mt-1.5 inline-block text-[11px] text-amber-400 hover:underline"
+                className="mt-2 flex w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-medium text-amber-400 transition hover:bg-white/[0.08]"
               >
                 Teams wechseln ({teamCount})
               </Link>
@@ -286,7 +290,10 @@ export function DashboardNav({
             )}
           </span>
         </Link>
-        <Link href={onAdmin ? "/dashboard" : "/dashboard/teams"} className="text-xs text-amber-400">
+        <Link
+          href={onAdmin ? "/dashboard" : "/dashboard/teams"}
+          className="rounded-lg bg-amber-400 px-2.5 py-1 text-xs font-semibold text-black"
+        >
           {onAdmin ? "Workspace" : "Teams"}
         </Link>
       </header>
@@ -297,13 +304,14 @@ export function DashboardNav({
             { href: "/admin", label: "Home", icon: "admin" },
             { href: "/admin/announcements", label: "News", icon: "board" },
             { href: "/admin/teams", label: "Teams", icon: "switch" },
-            { href: "/admin/support", label: "Support", icon: "support" },
+            { href: "/admin/support", label: "Tickets", icon: "support" },
           ].map((l) => {
             const active = isActive(l.href, l.href === "/admin");
             return (
               <Link
                 key={l.href}
                 href={l.href}
+                prefetch
                 className={`nav-link flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-[10px] ${
                   active ? "active text-amber-400" : "text-zinc-500"
                 }`}
@@ -328,6 +336,7 @@ export function DashboardNav({
                 <Link
                   key={l.href}
                   href={l.href}
+                  prefetch
                   className={`nav-link flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-[10px] ${
                     active ? "active text-amber-400" : "text-zinc-500"
                   }`}
