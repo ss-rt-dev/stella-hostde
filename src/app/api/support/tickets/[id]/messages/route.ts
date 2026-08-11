@@ -31,7 +31,13 @@ export async function POST(
     }
 
     let staff = isAdminRole(role);
-    if (ticket.teamId) {
+
+    if (ticket.audience === "PLATFORM") {
+      // Platform: Ersteller oder Platform-Admin
+      if (ticket.userId !== session.user.id && !staff) {
+        return NextResponse.json({ error: "Kein Zugriff" }, { status: 403 });
+      }
+    } else if (ticket.teamId) {
       const m = await getMembership(session.user.id, ticket.teamId);
       if (!m) {
         return NextResponse.json({ error: "Kein Zugriff" }, { status: 403 });

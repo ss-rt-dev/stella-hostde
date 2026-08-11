@@ -5,11 +5,22 @@ import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/roles";
 import { getMembership, isTeamStaff } from "@/lib/teams";
 
-async function canAccessTicket(userId: string, role: string, ticket: { teamId: string | null; userId: string }) {
+async function canAccessTicket(
+  userId: string,
+  role: string,
+  ticket: { teamId: string | null; userId: string; audience: string }
+) {
   if (isAdminRole(role)) return { ok: true, staff: true };
+
+  if (ticket.audience === "PLATFORM") {
+    // Nur Ersteller (oder Platform Admin oben)
+    return { ok: ticket.userId === userId, staff: false };
+  }
+
   if (!ticket.teamId) {
     return { ok: ticket.userId === userId, staff: false };
   }
+
   const m = await getMembership(userId, ticket.teamId);
   if (!m) return { ok: false, staff: false };
   return { ok: true, staff: isTeamStaff(m.role) };
@@ -45,7 +56,7 @@ export async function GET(
     return NextResponse.json({ error: "Ticket nicht gefunden" }, { status: 404 });
   }
 
-  const access = await canAccessTicket(session.user.id, role, ticket);
+  const access = await canAccessTicket(session.user.id, role, ticket as any);
   if (!access.ok) {
     return NextResponse.json({ error: "Kein Zugriff" }, { status: 403 });
   }
@@ -71,7 +82,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Ticket nicht gefunden" }, { status: 404 });
   }
 
-  const access = await canAccessTicket(session.user.id, role, ticket);
+  const access = await canAccessTicket(session.user.id, role, ticket as any);
   if (!access.ok) {
     return NextResponse.json({ error: "Kein Zugriff" }, { status: 403 });
   }
@@ -79,11 +90,10 @@ export async function PATCH(
   if (body.status === "CLOSED" || body.status === "OPEN") {
     if (body.status === "OPEN" && !access.staff) {
       return NextResponse.json(
-        { error: "Nur Team-Owner/Admin können Tickets wieder öffnen" },
+        { error: "Nur Staff können Tickets wieder öffnen" },
         { status: 403 }
       );
     }
-    // Schließen: Ersteller oder Team-Staff
     if (
       body.status === "CLOSED" &&
       !access.staff &&

@@ -15,6 +15,7 @@ const createSchema = z
     subject: z.string().min(3).max(120).optional(),
     description: z.string().min(10).max(8000).optional(),
     type: z.enum(["GENERAL", "SERVER", "TEAM_APPLICATION", "DISCORD"]),
+    audience: z.enum(["TEAM", "PLATFORM"]).default("TEAM"),
     discordName: z.string().max(64).optional(),
     applyRole: z.string().max(64).optional(),
     realName: z.string().max(80).optional(),
@@ -27,6 +28,13 @@ const createSchema = z
   })
   .superRefine((data, ctx) => {
     if (data.type === "TEAM_APPLICATION") {
+      if (data.audience === "PLATFORM") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Team-Bewerbungen gehen immer an das Team",
+          path: ["audience"],
+        });
+      }
       if (!data.discordName?.trim()) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -143,8 +151,14 @@ export async function GET() {
 
   const staff = isTeamStaff(membership.role);
 
+  // Team-Tickets des aktiven Teams + eigene Admin-Tickets
   const tickets = await prisma.supportTicket.findMany({
-    where: { teamId },
+    where: {
+      OR: [
+        { audience: "TEAM", teamId },
+        { audience: "PLATFORM", userId: session.user.id },
+      ],
+    },
     orderBy: { updatedAt: "desc" },
     include: {
       user: { select: { id: true, name: true, email: true } },
@@ -189,6 +203,9 @@ export async function POST(req: Request) {
     const team = await prisma.team.findUnique({ where: { id: teamId } });
 
     const isApp = parsed.type === "TEAM_APPLICATION";
+    const audience = isApp ? "TEAM" : parsed.audience;
+    const isPlatform = audience === "PLATFORM";
+
     const discordName = isApp
       ? parsed.discordName!.trim()
       : parsed.discordName?.trim() || null;
@@ -217,28 +234,51 @@ export async function POST(req: Request) {
       ? `Team-Bewerbung · ${applyRole}`
       : parsed.subject!.trim();
 
-    // Nur Ticket – Bewerbungstext steht oben in der Übersicht, nicht als Chat-Nachricht
-    const ticket = await prisma.supportTicket.create({
-      data: {
-        teamId,
-        userId: session.user.id,
-        subject,
-        description,
-        type: parsed.type,
-        discordName,
-        applyRole,
-      },
+    const ticket = await prisma.$transaction(async (tx) => {
+      const t = await tx.supportTicket.create({
+        data: {
+          teamId: isPlatform ? null : teamId,
+          userId: session.user.id,
+          subject,
+          description,
+          type: parsed.type,
+          audience,
+          discordName,
+          applyRole,
+        },
+      });
+
+      // Erste Nachricht: Bewerbung oder Beschreibung
+      const firstBody = isApp
+        ? `📋 Bewerbung eingereicht\n\nDiscord: ${discordName}\nRolle: ${applyRole}\n\n${description}`
+        : description;
+
+      await tx.supportMessage.create({
+        data: {
+          ticketId: t.id,
+          userId: session.user.id,
+          body: firstBody,
+          isStaff: false,
+        },
+      });
+
+      return t;
     });
 
+    // Webhook: Team-Tickets + besonders Admin-Tickets
     void sendSupportTicketWebhook({
       ticketId: ticket.id,
-      subject: `[${team?.name || "Team"}] ${ticket.subject}`,
+      subject: isPlatform
+        ? `[Admin] ${ticket.subject}`
+        : `[${team?.name || "Team"}] ${ticket.subject}`,
       description: ticket.description,
       type: ticket.type as any,
+      audience,
       userName: user.name || "—",
       userEmail: user.email,
       discordName: discordName || undefined,
       applyRole: applyRole || undefined,
+      teamName: team?.name,
     });
 
     return NextResponse.json(ticket);

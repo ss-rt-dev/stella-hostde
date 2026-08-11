@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { isAdminRole } from "@/lib/roles";
 
+/** Nur Platform-Admin-Tickets (audience PLATFORM) – keine neuen Tickets hier */
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user || !isAdminRole((session.user as any).role)) {
@@ -12,13 +13,11 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
-  const teamId = searchParams.get("team");
 
-  const where: any =
-    status === "OPEN" || status === "CLOSED"
-      ? { status: status as "OPEN" | "CLOSED" }
-      : {};
-  if (teamId) where.teamId = teamId;
+  const where: any = { audience: "PLATFORM" };
+  if (status === "OPEN" || status === "CLOSED") {
+    where.status = status;
+  }
 
   const tickets = await prisma.supportTicket.findMany({
     where,
