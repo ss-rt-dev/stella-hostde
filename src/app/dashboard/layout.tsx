@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { DashboardNav } from "@/components/dashboard/Nav";
 import { PageTransition } from "@/components/dashboard/PageTransition";
 import { IpTracker } from "@/components/dashboard/IpTracker";
+import { LanguageButton } from "@/components/i18n/LanguageButton";
 import { getUserMemberships, resolveActiveTeamId } from "@/lib/teams";
 
 export const metadata: Metadata = {
@@ -74,10 +75,11 @@ export default async function DashboardLayout({
         setupMode={isSetup || memberships.length === 0}
       />
       <main className="lg:pl-[240px]">
-        <div className="mx-auto max-w-[1400px] px-3 py-4 pb-20 sm:px-4 lg:px-6 lg:py-5 lg:pb-8">
+        <div className="mx-auto max-w-[1400px] px-3 py-4 pb-24 sm:px-4 lg:px-6 lg:py-5 lg:pb-8">
           <PageTransition>{children}</PageTransition>
         </div>
       </main>
+      <LanguageButton />
     </div>
   );
 }
