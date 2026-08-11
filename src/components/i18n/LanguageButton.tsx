@@ -116,7 +116,7 @@ export function LanguageButton() {
             <div className="flex-1 overflow-y-auto p-2">
               {filtered.length === 0 ? (
                 <p className="px-3 py-10 text-center text-sm text-zinc-500">
-                  {t("noResults")}
+                  {t("no_results")}
                 </p>
               ) : (
                 <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2">
