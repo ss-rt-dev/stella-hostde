@@ -1,228 +1,195 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import { useI18n } from "@/components/i18n/LanguageProvider";
 import Link from "next/link";
-import { MessageEmbed } from "@/components/support/MessageEmbed";
+import { useParams } from "next/navigation";
 
-interface Message {
+type Msg = {
   id: string;
   body: string;
-  isStaff: boolean;
   createdAt: string;
-  user: { name: string | null; email: string; role: string };
-}
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    role?: string;
+  };
+};
 
-interface Ticket {
+type Ticket = {
   id: string;
   subject: string;
-  description: string;
-  type: string;
   status: string;
+  type: string;
   audience?: string;
-  discordName?: string | null;
-  applyRole?: string | null;
-  createdAt: string;
-  messages: Message[];
-}
+  messages: Msg[];
+};
 
-function typeMeta(type: string, audience?: string) {
-  if (audience === "PLATFORM") {
-    return {
-      label: "Admin-Ticket",
-      border: "border-red-500/25",
-      bg: "from-red-500/15",
-      accent: "text-red-300",
-      pill: "bg-red-500/15 text-red-300",
-    };
-  }
-  if (type === "TEAM_APPLICATION") {
-    return {
-      label: "Team-Bewerbung",
-      border: "border-purple-500/25",
-      bg: "from-purple-500/15",
-      accent: "text-purple-300",
-      pill: "bg-purple-500/15 text-purple-300",
-    };
-  }
-  return {
-    label: "Team-Support",
-    border: "border-amber-500/25",
-    bg: "from-amber-500/10",
-    accent: "text-amber-300",
-    pill: "bg-amber-500/15 text-amber-400",
-  };
-}
-
-export default function TicketChatPage() {
+export default function SupportTicketPage() {
+  const { t: tr } = useI18n();
   const params = useParams();
-  const id = String(params.id || "");
+  const id = params.id as string;
   const [ticket, setTicket] = useState<Ticket | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [text, setText] = useState("");
+  const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/support/tickets/${id}`);
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Fehler");
-        return;
-      }
-      setTicket({
-        ...data,
-        messages: Array.isArray(data.messages) ? data.messages : [],
-      });
-    } catch {
-      setError("Netzwerkfehler");
+    const res = await fetch(`/api/support/${id}`);
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error || tr("error"));
+      setLoading(false);
+      return;
     }
-  }, [id]);
+    setTicket(data.ticket);
+    setLoading(false);
+  }, [id, tr]);
 
   useEffect(() => {
     load();
-    const t = setInterval(load, 4000);
-    return () => clearInterval(t);
   }, [load]);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [ticket?.messages?.length]);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
-    if (!text.trim()) return;
+    if (!body.trim()) return;
     setSending(true);
     try {
-      const res = await fetch(`/api/support/tickets/${id}/messages`, {
+      const res = await fetch(`/api/support/${id}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: text }),
+        body: JSON.stringify({ body: body.trim() }),
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || "Fehler");
+        setError(data.error || tr("error"));
+        setSending(false);
         return;
       }
-      setText("");
-      await load();
-    } finally {
+      setBody("");
+      setSending(false);
+      load();
+    } catch {
+      setError(tr("network_error"));
       setSending(false);
     }
   }
 
-  async function closeTicket() {
-    if (!confirm("Schließen?")) return;
-    const res = await fetch(`/api/support/tickets/${id}`, {
+  async function setStatus(status: string) {
+    if (status === "CLOSED" && !confirm(tr("close_ticket_confirm"))) return;
+    const res = await fetch(`/api/support/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "CLOSED" }),
+      body: JSON.stringify({ status }),
     });
     if (res.ok) load();
   }
 
-  if (error && !ticket) {
-    return (
-      <div className="space-y-4">
-        <Link href="/dashboard/support" className="text-sm text-zinc-500 hover:text-amber-400">
-          ← Zurück
-        </Link>
-        <p className="text-red-400">{error}</p>
-      </div>
-    );
-  }
+  if (loading) return <p className="text-zinc-500">{tr("loading_ellipsis")}</p>;
+  if (!ticket) return <p className="text-red-400">{error || tr("error")}</p>;
 
-  if (!ticket) return <p className="text-zinc-500">Lade…</p>;
-
-  const open = ticket.status === "OPEN";
-  const isApp = ticket.type === "TEAM_APPLICATION";
-  const meta = typeMeta(ticket.type, ticket.audience);
-  const messages = ticket.messages || [];
+  const closed = ticket.status === "CLOSED";
 
   return (
-    <div className="flex flex-col gap-4 pb-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <Link href="/dashboard/support" className="text-sm text-zinc-500 hover:text-amber-400">
-            ← Zurück
-          </Link>
-          <h1 className="mt-1 text-lg font-bold text-white">{ticket.subject}</h1>
-          <p className="text-xs text-zinc-500">
-            {meta.label} · {open ? "Offen" : "Geschlossen"}
-          </p>
-        </div>
-        {open && (
-          <button
-            type="button"
-            onClick={closeTicket}
-            className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-zinc-400 hover:text-white"
-          >
-            Schließen
-          </button>
-        )}
-      </div>
-
-      <div className={`rounded-2xl border bg-gradient-to-br to-transparent p-4 ${meta.border} ${meta.bg}`}>
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${meta.pill}`}>
-            {meta.label}
-          </span>
-          {isApp && ticket.applyRole && (
-            <span className="text-xs text-zinc-400">als {ticket.applyRole}</span>
-          )}
-          {isApp && ticket.discordName && (
-            <span className="text-xs text-zinc-500">· {ticket.discordName}</span>
-          )}
-        </div>
-      </div>
-
-      <div className="flex min-h-[420px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#121214]">
-        <div className="border-b border-white/5 px-4 py-2.5">
-          <p className="text-xs font-medium text-zinc-400">Nachrichten ({messages.length})</p>
-        </div>
-
-        <div className="max-h-[55vh] min-h-[280px] flex-1 space-y-3 overflow-y-auto p-4">
-          {messages.length === 0 ? (
-            <p className="py-10 text-center text-sm text-zinc-600">Noch keine Nachrichten.</p>
-          ) : (
-            messages.map((m) => (
-              <MessageEmbed
-                key={m.id}
-                body={m.body}
-                userName={m.user?.name}
-                userEmail={m.user?.email}
-                userRole={m.user?.role}
-                isStaff={m.isStaff}
-                createdAt={m.createdAt}
-              />
-            ))
-          )}
-          <div ref={bottomRef} />
-        </div>
-
-        {open ? (
-          <form onSubmit={send} className="flex gap-2 border-t border-white/10 p-3">
-            <input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Nachricht schreiben…"
-              className="flex-1 rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/50"
-            />
+    <div className="mx-auto max-w-3xl space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Link href="/dashboard/support" className="text-sm text-amber-400 hover:underline">
+          {tr("back")}
+        </Link>
+        <div className="flex gap-2">
+          {!closed ? (
             <button
-              type="submit"
-              disabled={sending || !text.trim()}
-              className="rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
+              type="button"
+              onClick={() => setStatus("CLOSED")}
+              className="rounded-xl border border-white/10 px-3 py-1.5 text-xs text-zinc-300 hover:bg-white/5"
             >
-              Senden
+              {tr("close")}
             </button>
-          </form>
-        ) : (
-          <p className="border-t border-white/10 px-4 py-3 text-center text-xs text-zinc-500">
-            Geschlossen
-          </p>
-        )}
+          ) : (
+            <button
+              type="button"
+              onClick={() => setStatus("OPEN")}
+              className="rounded-xl border border-white/10 px-3 py-1.5 text-xs text-zinc-300 hover:bg-white/5"
+            >
+              {tr("reopen")}
+            </button>
+          )}
+        </div>
       </div>
+
+      <div className="rounded-2xl border border-white/10 bg-[#121214] p-5">
+        <div className="mb-1 flex flex-wrap items-center gap-2">
+          <h1 className="text-lg font-semibold text-white">{ticket.subject}</h1>
+          <span
+            className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+              closed
+                ? "bg-zinc-500/20 text-zinc-400"
+                : "bg-emerald-500/15 text-emerald-400"
+            }`}
+          >
+            {closed ? tr("ticket_closed") : tr("ticket_open")}
+          </span>
+          {ticket.audience === "PLATFORM" && (
+            <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] text-amber-400">
+              {tr("platform_admin_ticket")}
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-zinc-500">
+          {ticket.type} · {ticket.messages?.length || 0} {tr("messages_count")}
+        </p>
+      </div>
+
+      {error && (
+        <p className="rounded-xl bg-red-500/10 px-4 py-2 text-sm text-red-400">{error}</p>
+      )}
+
+      <div className="space-y-3">
+        {(ticket.messages || []).map((m) => {
+          const isJustin = m.user.email === "justin@stella-host.de";
+          return (
+            <div
+              key={m.id}
+              className={`msg-embed relative overflow-hidden rounded-xl border border-white/10 bg-[#16161a] p-4 ${
+                isJustin ? "msg-embed-rainbow" : ""
+              }`}
+            >
+              <div className="mb-1 flex flex-wrap items-center gap-2 text-xs">
+                <span className="font-medium text-zinc-200">
+                  {m.user.name || m.user.email}
+                </span>
+                {m.user.role && (
+                  <span className="text-zinc-500">{m.user.role}</span>
+                )}
+                <span className="text-zinc-600">
+                  {new Date(m.createdAt).toLocaleString()}
+                </span>
+              </div>
+              <p className="whitespace-pre-wrap text-sm text-zinc-300">{m.body}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      {!closed && (
+        <form onSubmit={send} className="flex gap-2">
+          <input
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            placeholder={tr("write_reply")}
+            className="flex-1 rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/40"
+          />
+          <button
+            type="submit"
+            disabled={sending || !body.trim()}
+            className="rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
+          >
+            {tr("send")}
+          </button>
+        </form>
+      )}
     </div>
   );
 }
