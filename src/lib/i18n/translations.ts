@@ -221,6 +221,12 @@ const de = {
   high: "Hoch",
   medium: "Mittel",
   low: "Niedrig",
+  err_name: "Bitte deinen Namen angeben",
+  err_age: "Bitte ein gültiges Alter angeben (13–99)",
+  err_discord: "Discord-Name ist Pflicht",
+  err_apply_role: "Bitte wähle, als was du dich bewirbst",
+  err_availability: "Bitte deine Verfügbarkeit angeben",
+  err_app_texts: "Bitte alle Bewerbungstexte ausführlich ausfüllen (min. 30 Zeichen)",
 } as const;
 
 export type TranslationKey = keyof typeof de;
@@ -448,8 +454,15 @@ const en: Dict = {
   high: "High",
   medium: "Medium",
   low: "Low",
+  err_name: "Please enter your name",
+  err_age: "Please enter a valid age (13–99)",
+  err_discord: "Discord name is required",
+  err_apply_role: "Please choose what you are applying for",
+  err_availability: "Please enter your availability",
+  err_app_texts: "Please fill all application texts thoroughly (min. 30 characters)",
 };
 
+/** Andere Sprachen: vollständiges EN als Basis → jede Sprache bekommt EN-Texte, nicht DE */
 const fr: Dict = { ...en };
 const es: Dict = { ...en };
 const it: Dict = { ...en };
