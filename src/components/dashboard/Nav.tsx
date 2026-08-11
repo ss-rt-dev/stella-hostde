@@ -5,30 +5,8 @@ import Image from "next/image";
 import { signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { isAdminRole } from "@/lib/roles";
-
-const workspaceLinks = [
-  { href: "/dashboard", label: "Übersicht", icon: "home" },
-  { href: "/dashboard/todos", label: "Aufgaben", icon: "check" },
-  { href: "/dashboard/chat", label: "Chat", icon: "chat" },
-  { href: "/dashboard/team", label: "Mitglieder", icon: "users" },
-  { href: "/dashboard/board", label: "Board", icon: "board" },
-];
-
-const accountLinks = [
-  { href: "/dashboard/support", label: "Support", icon: "support" },
-  { href: "/dashboard/account", label: "Konto", icon: "user" },
-  { href: "/dashboard/teams", label: "Meine Teams", icon: "switch" },
-];
-
-const platformLinks = [
-  { href: "/admin", label: "Overview", icon: "admin", exact: true },
-  { href: "/admin/announcements", label: "Ankündigungen", icon: "board" },
-  { href: "/admin/teams", label: "Teams", icon: "switch" },
-  { href: "/admin/users", label: "Nutzer", icon: "users" },
-  { href: "/admin/todos", label: "Aufgaben", icon: "check" },
-  { href: "/admin/support", label: "Admin-Tickets", icon: "support" },
-  { href: "/admin/activity", label: "Aktivitäten", icon: "activity" },
-];
+import { useI18n } from "@/components/i18n/LanguageProvider";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
 function Icon({ type }: { type: string }) {
   const cls = "nav-icon nav-icon-bounce h-5 w-5 shrink-0";
@@ -121,9 +99,39 @@ export function DashboardNav({
   platformAdmin?: boolean;
 }) {
   const pathname = usePathname();
+  const { t } = useI18n();
   const isPlatformAdmin = platformAdmin || isAdminRole(user.role);
   const onAdmin = pathname.startsWith("/admin");
   const logo = onAdmin ? LOGO_ADMIN : LOGO_USER;
+
+  const workspaceLinks: { href: string; labelKey: TranslationKey; icon: string }[] = [
+    { href: "/dashboard", labelKey: "nav_overview", icon: "home" },
+    { href: "/dashboard/todos", labelKey: "nav_tasks", icon: "check" },
+    { href: "/dashboard/chat", labelKey: "nav_chat", icon: "chat" },
+    { href: "/dashboard/team", labelKey: "nav_members", icon: "users" },
+    { href: "/dashboard/board", labelKey: "nav_board", icon: "board" },
+  ];
+
+  const accountLinks: { href: string; labelKey: TranslationKey; icon: string }[] = [
+    { href: "/dashboard/support", labelKey: "nav_support", icon: "support" },
+    { href: "/dashboard/account", labelKey: "nav_account", icon: "user" },
+    { href: "/dashboard/teams", labelKey: "nav_teams", icon: "switch" },
+  ];
+
+  const platformLinks: {
+    href: string;
+    labelKey: TranslationKey;
+    icon: string;
+    exact?: boolean;
+  }[] = [
+    { href: "/admin", labelKey: "overview", icon: "admin", exact: true },
+    { href: "/admin/announcements", labelKey: "announcements", icon: "board" },
+    { href: "/admin/teams", labelKey: "teams", icon: "switch" },
+    { href: "/admin/users", labelKey: "users", icon: "users" },
+    { href: "/admin/todos", labelKey: "nav_tasks", icon: "check" },
+    { href: "/admin/support", labelKey: "admin_tickets", icon: "support" },
+    { href: "/admin/activity", labelKey: "activities", icon: "activity" },
+  ];
 
   function isActive(href: string, exact?: boolean) {
     if (exact) return pathname === href;
@@ -167,19 +175,19 @@ export function DashboardNav({
           <Image src={logo} alt="Stella" width={36} height={36} className="h-9 w-9 object-contain" unoptimized />
           <span className="text-[15px] font-semibold tracking-tight text-white">
             Stella{" "}
-            <span className="text-amber-400">{onAdmin ? "Admin" : "Dashboard"}</span>
+            <span className="text-amber-400">{onAdmin ? t("nav_admin") : t("dashboard")}</span>
           </span>
         </div>
 
         {onAdmin ? (
           <div className="border-b border-white/10 px-4 py-3">
-            <p className="text-sm font-medium text-white">Platform Admin</p>
-            <p className="text-[11px] text-zinc-500">Teams · Nutzer · Tickets</p>
+            <p className="text-sm font-medium text-white">{t("platform_admin")}</p>
+            <p className="text-[11px] text-zinc-500">{t("teams_users_tickets")}</p>
             <Link
               href="/dashboard"
               className="mt-2 flex w-full items-center justify-center rounded-xl bg-amber-400 px-3 py-2 text-xs font-semibold text-black transition hover:bg-amber-300"
             >
-              Zum Workspace
+              {t("to_workspace")}
             </Link>
           </div>
         ) : (
@@ -197,7 +205,7 @@ export function DashboardNav({
                 href="/dashboard/teams"
                 className="mt-2 flex w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-medium text-amber-400 transition hover:bg-white/[0.08]"
               >
-                Teams wechseln ({teamCount})
+                {t("switch_teams")} ({teamCount})
               </Link>
             </div>
           )
@@ -207,10 +215,16 @@ export function DashboardNav({
           {onAdmin ? (
             <>
               <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
-                Platform
+                {t("platform")}
               </p>
               {platformLinks.map((l) => (
-                <NavLink key={l.href} {...l} exact={(l as any).exact} />
+                <NavLink
+                  key={l.href}
+                  href={l.href}
+                  label={t(l.labelKey)}
+                  icon={l.icon}
+                  exact={l.exact}
+                />
               ))}
             </>
           ) : (
@@ -218,27 +232,37 @@ export function DashboardNav({
               {!setupMode && (
                 <>
                   <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
-                    Workspace
+                    {t("workspace")}
                   </p>
                   {workspaceLinks.map((l) => (
-                    <NavLink key={l.href} {...l} />
+                    <NavLink
+                      key={l.href}
+                      href={l.href}
+                      label={t(l.labelKey)}
+                      icon={l.icon}
+                    />
                   ))}
                 </>
               )}
 
               <p className="mb-2 mt-5 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
-                Account
+                {t("account")}
               </p>
               {accountLinks.map((l) => (
-                <NavLink key={l.href} {...l} />
+                <NavLink
+                  key={l.href}
+                  href={l.href}
+                  label={t(l.labelKey)}
+                  icon={l.icon}
+                />
               ))}
 
               {isPlatformAdmin && (
                 <>
                   <p className="mb-2 mt-5 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
-                    Platform Admin
+                    {t("platform_admin")}
                   </p>
-                  <NavLink href="/admin" label="Admin-Bereich" icon="admin" exact />
+                  <NavLink href="/admin" label={t("admin_area")} icon="admin" exact />
                 </>
               )}
             </>
@@ -256,7 +280,7 @@ export function DashboardNav({
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-zinc-200">
-                {user.name || "Mitglied"}
+                {user.name || t("member")}
               </p>
               <p className="truncate text-[11px] text-zinc-500">{user.email}</p>
             </div>
@@ -265,7 +289,7 @@ export function DashboardNav({
             onClick={() => signOut({ callbackUrl: "/" })}
             className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-zinc-400 transition hover:bg-white/5 hover:text-white"
           >
-            Abmelden
+            {t("logout")}
           </button>
         </div>
       </aside>
@@ -279,12 +303,12 @@ export function DashboardNav({
           <span className="font-semibold text-white">
             {onAdmin ? (
               <>
-                Stella <span className="text-amber-400">Admin</span>
+                Stella <span className="text-amber-400">{t("nav_admin")}</span>
               </>
             ) : (
               activeTeam?.name || (
                 <>
-                  Stella <span className="text-amber-400">Dashboard</span>
+                  Stella <span className="text-amber-400">{t("dashboard")}</span>
                 </>
               )
             )}
@@ -294,17 +318,17 @@ export function DashboardNav({
           href={onAdmin ? "/dashboard" : "/dashboard/teams"}
           className="rounded-lg bg-amber-400 px-2.5 py-1 text-xs font-semibold text-black"
         >
-          {onAdmin ? "Workspace" : "Teams"}
+          {onAdmin ? t("workspace") : t("teams")}
         </Link>
       </header>
 
       {onAdmin ? (
         <nav className="glass-strong fixed inset-x-0 bottom-0 z-40 flex lg:hidden">
           {[
-            { href: "/admin", label: "Home", icon: "admin" },
-            { href: "/admin/announcements", label: "News", icon: "board" },
-            { href: "/admin/teams", label: "Teams", icon: "switch" },
-            { href: "/admin/support", label: "Tickets", icon: "support" },
+            { href: "/admin", labelKey: "nav_home" as TranslationKey, icon: "admin" },
+            { href: "/admin/announcements", labelKey: "nav_news" as TranslationKey, icon: "board" },
+            { href: "/admin/teams", labelKey: "teams" as TranslationKey, icon: "switch" },
+            { href: "/admin/support", labelKey: "nav_tickets" as TranslationKey, icon: "support" },
           ].map((l) => {
             const active = isActive(l.href, l.href === "/admin");
             return (
@@ -317,7 +341,7 @@ export function DashboardNav({
                 }`}
               >
                 <Icon type={l.icon} />
-                {l.label}
+                {t(l.labelKey)}
               </Link>
             );
           })}
@@ -326,10 +350,10 @@ export function DashboardNav({
         !setupMode && (
           <nav className="glass-strong fixed inset-x-0 bottom-0 z-40 flex lg:hidden">
             {[
-              { href: "/dashboard", label: "Home", icon: "home" },
-              { href: "/dashboard/todos", label: "Aufgaben", icon: "check" },
-              { href: "/dashboard/chat", label: "Chat", icon: "chat" },
-              { href: "/dashboard/team", label: "Team", icon: "users" },
+              { href: "/dashboard", labelKey: "nav_home" as TranslationKey, icon: "home" },
+              { href: "/dashboard/todos", labelKey: "nav_tasks" as TranslationKey, icon: "check" },
+              { href: "/dashboard/chat", labelKey: "nav_chat" as TranslationKey, icon: "chat" },
+              { href: "/dashboard/team", labelKey: "team" as TranslationKey, icon: "users" },
             ].map((l) => {
               const active = isActive(l.href);
               return (
@@ -342,7 +366,7 @@ export function DashboardNav({
                   }`}
                 >
                   <Icon type={l.icon} />
-                  {l.label}
+                  {t(l.labelKey)}
                 </Link>
               );
             })}
