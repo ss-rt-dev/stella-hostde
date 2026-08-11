@@ -1,8 +1,12 @@
 "use client";
 
-import { ROLE_COLORS, ROLE_LABELS, isStaffRole, type AppRole } from "@/lib/roles";
-
-const JUSTIN_EMAIL = "justin@stella-host.de";
+import {
+  ROLE_COLORS,
+  ROLE_LABELS,
+  isStaffRole,
+  isSuperOwner,
+  type AppRole,
+} from "@/lib/roles";
 
 function hashColor(str: string) {
   let h = 0;
@@ -27,15 +31,25 @@ export function MessageEmbed({
   createdAt: string;
 }) {
   const email = (userEmail || "").toLowerCase().trim();
-  const isJustin = email === JUSTIN_EMAIL;
+  const isJustin = isSuperOwner(email);
   const displayName = userName || userEmail || "Nutzer";
   const role = (userRole || "CUSTOMER") as AppRole;
   const roleHex = ROLE_COLORS[role] || ROLE_COLORS.CUSTOMER;
   const showRoleAnim =
-    !isJustin && (isStaff || isStaffRole(role) || role === "VIP" || role === "SPONSOR" || role === "PARTNER");
-  const accent = isStaff || isStaffRole(role) ? roleHex : hashColor(email || displayName);
-  const label =
-    isJustin
+    !isJustin &&
+    (isStaff ||
+      isStaffRole(role) ||
+      role === "VIP" ||
+      role === "SPONSOR" ||
+      role === "PARTNER" ||
+      role === "OWNER");
+  const accent =
+    isStaff || isStaffRole(role) || role === "OWNER"
+      ? roleHex
+      : hashColor(email || displayName);
+  const label = isJustin
+    ? "Owner · #1"
+    : role === "OWNER"
       ? "Owner"
       : ROLE_LABELS[role] || (isStaff ? "Staff" : null);
 
@@ -71,7 +85,7 @@ export function MessageEmbed({
           </span>
           {isJustin && (
             <span className="rainbow-badge rounded px-1.5 py-0.5 text-[10px] font-semibold text-white">
-              Owner
+              {label}
             </span>
           )}
           {!isJustin && showRoleAnim && label && (
