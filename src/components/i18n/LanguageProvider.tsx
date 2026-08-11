@@ -34,10 +34,24 @@ function readStoredLocale(): LocaleCode {
   try {
     const raw = localStorage.getItem(LOCALE_STORAGE_KEY);
     if (raw && isLocaleCode(raw)) return raw;
+    const match = document.cookie.match(/(?:^|; )stella-locale=([^;]*)/);
+    if (match && isLocaleCode(decodeURIComponent(match[1]))) {
+      return decodeURIComponent(match[1]) as LocaleCode;
+    }
   } catch {
     /* ignore */
   }
   return DEFAULT_LOCALE;
+}
+
+function persistLocale(code: LocaleCode) {
+  try {
+    localStorage.setItem(LOCALE_STORAGE_KEY, code);
+    document.cookie = `stella-locale=${encodeURIComponent(code)};path=/;max-age=31536000;SameSite=Lax`;
+    document.documentElement.lang = code;
+  } catch {
+    /* ignore */
+  }
 }
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
@@ -45,18 +59,15 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setLocaleState(readStoredLocale());
+    const stored = readStoredLocale();
+    setLocaleState(stored);
+    persistLocale(stored);
     setReady(true);
   }, []);
 
   const setLocale = useCallback((code: LocaleCode) => {
     setLocaleState(code);
-    try {
-      localStorage.setItem(LOCALE_STORAGE_KEY, code);
-      document.documentElement.lang = code;
-    } catch {
-      /* ignore */
-    }
+    persistLocale(code);
   }, []);
 
   useEffect(() => {
@@ -85,7 +96,6 @@ export function useI18n() {
   return ctx;
 }
 
-/** Sicher außerhalb des Providers (Fallback DE) */
 export function useT() {
   const ctx = useContext(I18nContext);
   if (!ctx) {
