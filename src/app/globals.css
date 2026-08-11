@@ -36,7 +36,6 @@ html {
   background: transparent;
 }
 
-/* Kurz-Highlight nach Nav-Sprung */
 @keyframes section-flash {
   0% {
     box-shadow: inset 0 0 0 0 rgba(251, 191, 36, 0);
@@ -227,34 +226,31 @@ html {
   transition: transform 0.15s ease-out;
 }
 
+/* Ohne opacity:0 – Inhalt bleibt sofort sichtbar (kein „erster Klick tot“) */
 @keyframes page-slide-in {
   from {
-    opacity: 0;
-    transform: translateX(28px);
+    transform: translateX(16px);
   }
   to {
-    opacity: 1;
     transform: translateX(0);
   }
 }
 
 @keyframes page-slide-back {
   from {
-    opacity: 0;
-    transform: translateX(-28px);
+    transform: translateX(-16px);
   }
   to {
-    opacity: 1;
     transform: translateX(0);
   }
 }
 
 .page-slide-in {
-  animation: page-slide-in 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: page-slide-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .page-slide-back {
-  animation: page-slide-back 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: page-slide-back 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {

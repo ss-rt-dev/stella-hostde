@@ -217,38 +217,17 @@ export async function POST(req: Request) {
       ? `Team-Bewerbung · ${applyRole}`
       : parsed.subject!.trim();
 
-    // Ticket + erste Nachricht (Bewerbungstext) in einer Transaktion
-    const ticket = await prisma.$transaction(async (tx) => {
-      const t = await tx.supportTicket.create({
-        data: {
-          teamId,
-          userId: session.user.id,
-          subject,
-          description,
-          type: parsed.type,
-          discordName,
-          applyRole,
-        },
-      });
-
-      // Erste Nachricht = Inhalt, damit im Chat sichtbar
-      await tx.supportMessage.create({
-        data: {
-          ticketId: t.id,
-          userId: session.user.id,
-          body: isApp
-            ? `📋 Bewerbung eingereicht
-
-Discord: ${discordName}
-Rolle: ${applyRole}
-
-${description}`
-            : description,
-          isStaff: false,
-        },
-      });
-
-      return t;
+    // Nur Ticket – Bewerbungstext steht oben in der Übersicht, nicht als Chat-Nachricht
+    const ticket = await prisma.supportTicket.create({
+      data: {
+        teamId,
+        userId: session.user.id,
+        subject,
+        description,
+        type: parsed.type,
+        discordName,
+        applyRole,
+      },
     });
 
     void sendSupportTicketWebhook({
