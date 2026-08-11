@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useI18n } from "./LanguageProvider";
+import { FlagIcon } from "./FlagIcon";
 import type { LocaleCode } from "@/lib/i18n/locales";
 
 export function LanguageButton() {
@@ -31,7 +32,9 @@ export function LanguageButton() {
       (l) =>
         l.native.toLowerCase().includes(q) ||
         l.name.toLowerCase().includes(q) ||
-        l.code.toLowerCase().includes(q)
+        l.code.toLowerCase().includes(q) ||
+        l.label.toLowerCase().includes(q) ||
+        l.country.toLowerCase().includes(q)
     );
   }, [locales, query]);
 
@@ -48,9 +51,9 @@ export function LanguageButton() {
         onClick={() => setOpen(true)}
         aria-label={t("chooseLanguage")}
         title={t("chooseLanguage")}
-        className="fixed bottom-5 right-5 z-[80] flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-[#121214]/90 text-lg shadow-lg shadow-black/40 backdrop-blur-xl transition hover:border-amber-400/40 hover:bg-[#1a1a1e] hover:scale-105 active:scale-95 lg:bottom-6 lg:right-6"
+        className="fixed bottom-5 right-5 z-[80] flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-[#121214]/90 shadow-lg shadow-black/40 backdrop-blur-xl transition hover:border-amber-400/40 hover:bg-[#1a1a1e] hover:scale-105 active:scale-95 lg:bottom-6 lg:right-6"
       >
-        <span className="text-xl leading-none">{info.flag}</span>
+        <FlagIcon country={info.country} label={info.label} size={28} />
       </button>
 
       {open && (
@@ -73,16 +76,19 @@ export function LanguageButton() {
           >
             <div className="border-b border-white/5 px-5 pb-4 pt-5">
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p
-                    id="lang-picker-title"
-                    className="text-base font-semibold text-white"
-                  >
-                    {t("chooseLanguage")}
-                  </p>
-                  <p className="mt-0.5 text-xs text-zinc-500">
-                    {info.flag} {info.native}
-                  </p>
+                <div className="flex items-center gap-3">
+                  <FlagIcon country={info.country} label={info.label} size={32} />
+                  <div>
+                    <p
+                      id="lang-picker-title"
+                      className="text-base font-semibold text-white"
+                    >
+                      {t("chooseLanguage")}
+                    </p>
+                    <p className="mt-0.5 text-xs text-zinc-500">
+                      {info.native} · {info.label}
+                    </p>
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -127,15 +133,15 @@ export function LanguageButton() {
                               : "hover:bg-white/[0.05]"
                           }`}
                         >
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/5 text-lg">
-                            {l.flag}
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/5">
+                            <FlagIcon country={l.country} label={l.label} size={28} />
                           </span>
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm font-medium text-zinc-100">
                               {l.native}
                             </span>
                             <span className="block truncate text-[11px] text-zinc-500">
-                              {l.name} · {l.code.toUpperCase()}
+                              {l.name} · {l.label}
                             </span>
                           </span>
                           {active && (
