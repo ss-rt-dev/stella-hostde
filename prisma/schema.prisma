@@ -8,33 +8,33 @@ datasource db {
 }
 
 model User {
-  id                   String                @id @default(cuid())
-  email                String                @unique
-  name                 String?
-  passwordHash         String
-  role                 Role                  @default(CUSTOMER)
-  balance              Decimal               @default(0) @db.Decimal(12, 2)
-  onboardingDone       Boolean               @default(false)
-  lastLoginAt          DateTime?
-  lastLoginIp          String?
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-  servers              Server[]
-  transactions         Transaction[]
-  accounts             Account[]
-  sessions             Session[]
-  activities           ActivityLog[]
-  supportTickets       SupportTicket[]
-  supportMessages      SupportMessage[]
-  todosCreated         Todo[]                @relation("TodoCreator")
-  todosAssigned        Todo[]                @relation("TodoAssignee")
-  todoAssignments      TodoAssignee[]
-  announcements        TeamAnnouncement[]
-  ownedTeams           Team[]                @relation("TeamOwner")
-  memberships          TeamMember[]
-  channelMemberships   TeamChannelMember[]
-  channelMessages      TeamChannelMessage[]
-  channelsCreated      TeamChannel[]         @relation("ChannelCreator")
+  id                    String                 @id @default(cuid())
+  email                 String                 @unique
+  name                  String?
+  passwordHash          String
+  role                  Role                   @default(CUSTOMER)
+  balance               Decimal                @default(0) @db.Decimal(12, 2)
+  onboardingDone        Boolean                @default(false)
+  lastLoginAt           DateTime?
+  lastLoginIp           String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  servers               Server[]
+  transactions          Transaction[]
+  accounts              Account[]
+  sessions              Session[]
+  activities            ActivityLog[]
+  supportTickets        SupportTicket[]
+  supportMessages       SupportMessage[]
+  todosCreated          Todo[]                 @relation("TodoCreator")
+  todosAssigned         Todo[]                 @relation("TodoAssignee")
+  todoAssignments       TodoAssignee[]
+  announcements         TeamAnnouncement[]
+  ownedTeams            Team[]                 @relation("TeamOwner")
+  memberships           TeamMember[]
+  channelMemberships    TeamChannelMember[]
+  channelMessages       TeamChannelMessage[]
+  channelsCreated       TeamChannel[]          @relation("ChannelCreator")
   platformAnnouncements PlatformAnnouncement[]
 }
 
@@ -196,6 +196,12 @@ enum SupportStatus {
   CLOSED
 }
 
+/** TEAM = nur im Team sichtbar; PLATFORM = an Platform-Admins */
+enum SupportAudience {
+  TEAM
+  PLATFORM
+}
+
 model SupportTicket {
   id          String           @id @default(cuid())
   teamId      String?
@@ -203,6 +209,7 @@ model SupportTicket {
   subject     String
   description String           @db.Text
   type        SupportType      @default(GENERAL)
+  audience    SupportAudience  @default(TEAM)
   status      SupportStatus    @default(OPEN)
   discordName String?
   applyRole   String?
@@ -216,6 +223,7 @@ model SupportTicket {
   @@index([teamId, status])
   @@index([userId, createdAt])
   @@index([status, createdAt])
+  @@index([audience, status])
 }
 
 model SupportMessage {
@@ -259,7 +267,6 @@ model TeamMember {
   teamId   String
   userId   String
   role     TeamMemberRole @default(MEMBER)
-  /** Anzeige-Rolle nur im Team (z.B. Moderator) – nicht die globale User-Rolle */
   title    String?
   joinedAt DateTime       @default(now())
   team     Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
@@ -309,7 +316,6 @@ model TeamChannelMessage {
   @@index([channelId, createdAt])
 }
 
-/** Plattform-weite Ankündigungen (Admin) – oben im User-Dashboard */
 model PlatformAnnouncement {
   id        String   @id @default(cuid())
   title     String
