@@ -193,19 +193,7 @@ export default function SupportPage() {
   }
 
   const isApp = type === "TEAM_APPLICATION";
-  // Bewerbung immer Platform; sonst wie gewählt
   const effectiveAudience = isApp ? "PLATFORM" : audience;
-
-  const typeOptions =
-    audience === "PLATFORM" || isApp
-      ? ([
-          ["GENERAL", "Allgemein"],
-          ["DISCORD", "Discord"],
-          ["TEAM_APPLICATION", "Team-Bewerbung"],
-        ] as const)
-      : (["GENERAL", "Allgemein"], ["DISCORD", "Discord"] as const);
-
-  // Fix typeOptions for TEAM - simpler inline below
 
   return (
     <div className="space-y-6">
@@ -242,9 +230,7 @@ export default function SupportPage() {
         )}
 
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-zinc-500">
-            Ticket an
-          </label>
+          <label className="mb-1.5 block text-xs font-medium text-zinc-500">Ticket an</label>
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
