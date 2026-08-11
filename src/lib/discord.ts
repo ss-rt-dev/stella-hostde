@@ -1,4 +1,4 @@
-/** Discord Webhook für Support-Tickets */
+/** Discord Webhook – nur Platform-Admin-Tickets (Staff-Ping) */
 
 const SUPPORT_ROLE_ID = "1523343547669938266";
 
@@ -14,26 +14,23 @@ export async function sendSupportTicketWebhook(opts: {
   applyRole?: string;
   teamName?: string;
 }) {
+  // Team-Tickets nie an Discord – nur Platform
+  if (opts.audience !== "PLATFORM") return;
+
   const url = process.env.DISCORD_SUPPORT_WEBHOOK?.trim();
   if (!url) return;
 
-  const isPlatform = opts.audience === "PLATFORM";
+  const isApp = opts.type === "TEAM_APPLICATION";
   const typeLabel =
     opts.type === "SERVER"
       ? "Server Support"
-      : opts.type === "TEAM_APPLICATION"
+      : isApp
         ? "Team Bewerbung"
         : opts.type === "DISCORD"
           ? "Discord"
           : "Allgemein";
 
-  const color = isPlatform
-    ? 0xef4444
-    : opts.type === "SERVER"
-      ? 0xf59e0b
-      : opts.type === "TEAM_APPLICATION"
-        ? 0xa855f7
-        : 0x3b82f6;
+  const color = isApp ? 0xa855f7 : 0xef4444;
 
   const base =
     process.env.NEXTAUTH_URL?.replace(/\/$/, "") || "https://stella-host.de";
@@ -46,11 +43,6 @@ export async function sendSupportTicketWebhook(opts: {
 
   const fields: { name: string; value: string; inline?: boolean }[] = [
     { name: "Betreff", value: opts.subject || "—", inline: false },
-    {
-      name: "Ziel",
-      value: isPlatform ? "🔴 Platform Admins" : `Team · ${opts.teamName || "—"}`,
-      inline: true,
-    },
     { name: "Art", value: typeLabel, inline: true },
     {
       name: "Nutzer",
@@ -59,7 +51,11 @@ export async function sendSupportTicketWebhook(opts: {
     },
   ];
 
-  if (opts.type === "TEAM_APPLICATION") {
+  if (opts.teamName) {
+    fields.push({ name: "Aktives Team", value: opts.teamName, inline: true });
+  }
+
+  if (isApp) {
     fields.push(
       { name: "Discord", value: opts.discordName || "—", inline: true },
       { name: "Bewerbung als", value: opts.applyRole || "—", inline: true }
@@ -73,18 +69,16 @@ export async function sendSupportTicketWebhook(opts: {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        username: isPlatform ? "Stella Admin Tickets" : "Stella Support",
-        content: isPlatform
-          ? `<@&${SUPPORT_ROLE_ID}> **Neues Admin-Ticket**`
-          : `<@&${SUPPORT_ROLE_ID}>`,
+        username: isApp ? "Stella Team-Bewerbung" : "Stella Admin Tickets",
+        content: isApp
+          ? `<@&${SUPPORT_ROLE_ID}> **Neue Team-Bewerbung**`
+          : `<@&${SUPPORT_ROLE_ID}> **Neues Admin-Ticket**`,
         allowed_mentions: { roles: [SUPPORT_ROLE_ID] },
         embeds: [
           {
-            title: isPlatform
-              ? "🎫 Neues Ticket an Platform Admins"
-              : opts.type === "TEAM_APPLICATION"
-                ? "Neue Team-Bewerbung"
-                : "Neues Team-Ticket",
+            title: isApp
+              ? "📋 Neue Team-Bewerbung"
+              : "🎫 Neues Ticket an Platform Admins",
             color,
             fields,
             footer: { text: `Ticket ${opts.ticketId}` },

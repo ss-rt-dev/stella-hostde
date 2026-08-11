@@ -138,7 +138,7 @@ export default function SupportPage() {
           type === "TEAM_APPLICATION"
             ? {
                 type,
-                audience: "TEAM",
+                audience: "PLATFORM",
                 realName: realName.trim(),
                 age: parseInt(age.trim(), 10),
                 discordName: discordName.trim(),
@@ -169,7 +169,7 @@ export default function SupportPage() {
       resetAppFields();
       setOk(
         type === "TEAM_APPLICATION"
-          ? "Bewerbung eingereicht."
+          ? "Bewerbung an die Platform Admins gesendet."
           : audience === "PLATFORM"
             ? "Ticket an die Admins gesendet."
             : "Team-Ticket erstellt."
@@ -193,7 +193,19 @@ export default function SupportPage() {
   }
 
   const isApp = type === "TEAM_APPLICATION";
-  const effectiveAudience = isApp ? "TEAM" : audience;
+  // Bewerbung immer Platform; sonst wie gewählt
+  const effectiveAudience = isApp ? "PLATFORM" : audience;
+
+  const typeOptions =
+    audience === "PLATFORM" || isApp
+      ? ([
+          ["GENERAL", "Allgemein"],
+          ["DISCORD", "Discord"],
+          ["TEAM_APPLICATION", "Team-Bewerbung"],
+        ] as const)
+      : (["GENERAL", "Allgemein"], ["DISCORD", "Discord"] as const);
+
+  // Fix typeOptions for TEAM - simpler inline below
 
   return (
     <div className="space-y-6">
@@ -216,7 +228,7 @@ export default function SupportPage() {
       >
         <h2 className="font-semibold text-white">
           {isApp
-            ? "Team-Bewerbung"
+            ? "Team-Bewerbung (Platform Admins)"
             : effectiveAudience === "PLATFORM"
               ? "Ticket an Admins"
               : "Neues Team-Ticket"}
@@ -229,77 +241,94 @@ export default function SupportPage() {
           <p className="rounded-xl bg-emerald-500/10 px-4 py-2 text-sm text-emerald-400">{ok}</p>
         )}
 
-        {/* Ziel: Team vs Admins */}
-        {!isApp && (
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-zinc-500">
-              Ticket an
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setAudience("TEAM")}
-                className={`rounded-xl py-2.5 text-sm font-medium transition ${
-                  audience === "TEAM"
-                    ? "bg-amber-400 text-black"
-                    : "border border-white/10 text-zinc-300 hover:bg-white/5"
-                }`}
-              >
-                Team
-              </button>
-              <button
-                type="button"
-                onClick={() => setAudience("PLATFORM")}
-                className={`rounded-xl py-2.5 text-sm font-medium transition ${
-                  audience === "PLATFORM"
-                    ? "bg-red-500 text-white"
-                    : "border border-white/10 text-zinc-300 hover:bg-white/5"
-                }`}
-              >
-                Platform Admins
-              </button>
-            </div>
-            <p className="mt-1.5 text-[11px] text-zinc-600">
-              {audience === "PLATFORM"
-                ? "Nur Platform-Admins sehen dieses Ticket (Discord-Ping)."
-                : "Nur Mitglieder deines aktuellen Teams sehen dieses Ticket."}
-            </p>
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-zinc-500">
+            Ticket an
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setAudience("TEAM");
+                if (type === "TEAM_APPLICATION") setType("GENERAL");
+              }}
+              className={`rounded-xl py-2.5 text-sm font-medium transition ${
+                effectiveAudience === "TEAM"
+                  ? "bg-amber-400 text-black"
+                  : "border border-white/10 text-zinc-300 hover:bg-white/5"
+              }`}
+            >
+              Team
+            </button>
+            <button
+              type="button"
+              onClick={() => setAudience("PLATFORM")}
+              className={`rounded-xl py-2.5 text-sm font-medium transition ${
+                effectiveAudience === "PLATFORM"
+                  ? "bg-red-500 text-white"
+                  : "border border-white/10 text-zinc-300 hover:bg-white/5"
+              }`}
+            >
+              Platform Admins
+            </button>
           </div>
-        )}
+          <p className="mt-1.5 text-[11px] text-zinc-600">
+            {effectiveAudience === "PLATFORM"
+              ? "Nur Platform-Admins · Staff wird auf Discord gepingt."
+              : "Nur dein aktuelles Team · kein Discord-Ping."}
+          </p>
+        </div>
 
         <div>
           <label className="mb-1.5 block text-xs font-medium text-zinc-500">Art</label>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            {(
-              [
-                ["GENERAL", "Allgemein"],
-                ["DISCORD", "Discord"],
-                ["TEAM_APPLICATION", "Team-Bewerbung"],
-              ] as const
-            ).map(([id, label]) => (
+          <div
+            className={`grid grid-cols-1 gap-2 ${
+              effectiveAudience === "PLATFORM" ? "sm:grid-cols-3" : "sm:grid-cols-2"
+            }`}
+          >
+            <button
+              type="button"
+              onClick={() => setType("GENERAL")}
+              className={`rounded-xl py-2.5 text-sm font-medium transition ${
+                type === "GENERAL"
+                  ? "bg-amber-400 text-black"
+                  : "border border-white/10 text-zinc-300 hover:bg-white/5"
+              }`}
+            >
+              Allgemein
+            </button>
+            <button
+              type="button"
+              onClick={() => setType("DISCORD")}
+              className={`rounded-xl py-2.5 text-sm font-medium transition ${
+                type === "DISCORD"
+                  ? "bg-amber-400 text-black"
+                  : "border border-white/10 text-zinc-300 hover:bg-white/5"
+              }`}
+            >
+              Discord
+            </button>
+            {effectiveAudience === "PLATFORM" && (
               <button
-                key={id}
                 type="button"
-                onClick={() => {
-                  setType(id);
-                  if (id === "TEAM_APPLICATION") setAudience("TEAM");
-                }}
+                onClick={() => setType("TEAM_APPLICATION")}
                 className={`rounded-xl py-2.5 text-sm font-medium transition ${
-                  type === id
-                    ? id === "TEAM_APPLICATION"
-                      ? "bg-purple-500 text-white"
-                      : "bg-amber-400 text-black"
+                  type === "TEAM_APPLICATION"
+                    ? "bg-purple-500 text-white"
                     : "border border-white/10 text-zinc-300 hover:bg-white/5"
                 }`}
               >
-                {label}
+                Team-Bewerbung
               </button>
-            ))}
+            )}
           </div>
         </div>
 
         {isApp && (
           <div className="space-y-4 rounded-xl border border-purple-500/20 bg-black/30 p-4">
+            <p className="text-xs text-purple-300/80">
+              Bewerbung geht an die Platform Admins – das Staff-Team wird auf Discord benachrichtigt.
+            </p>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1.5 block text-xs text-zinc-500">Name *</label>
@@ -408,7 +437,7 @@ export default function SupportPage() {
           {creating
             ? "…"
             : isApp
-              ? "Bewerbung absenden"
+              ? "Bewerbung an Admins senden"
               : effectiveAudience === "PLATFORM"
                 ? "An Admins senden"
                 : "Ticket absenden"}
@@ -446,17 +475,17 @@ export default function SupportPage() {
                     </span>
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs ${
-                        t.audience === "PLATFORM"
-                          ? "bg-red-500/15 text-red-300"
-                          : t.type === "TEAM_APPLICATION"
-                            ? "bg-purple-500/15 text-purple-300"
+                        t.type === "TEAM_APPLICATION"
+                          ? "bg-purple-500/15 text-purple-300"
+                          : t.audience === "PLATFORM"
+                            ? "bg-red-500/15 text-red-300"
                             : "bg-white/5 text-zinc-400"
                       }`}
                     >
-                      {t.audience === "PLATFORM"
-                        ? "Admins"
-                        : t.type === "TEAM_APPLICATION"
-                          ? "Bewerbung"
+                      {t.type === "TEAM_APPLICATION"
+                        ? "Bewerbung"
+                        : t.audience === "PLATFORM"
+                          ? "Admins"
                           : t.type === "DISCORD"
                             ? "Discord"
                             : "Team"}

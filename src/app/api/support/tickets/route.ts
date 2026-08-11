@@ -28,10 +28,11 @@ const createSchema = z
   })
   .superRefine((data, ctx) => {
     if (data.type === "TEAM_APPLICATION") {
-      if (data.audience === "PLATFORM") {
+      // Bewerbungen gehen NUR an Platform Admins
+      if (data.audience !== "PLATFORM") {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Team-Bewerbungen gehen immer an das Team",
+          message: "Team-Bewerbungen gehen an die Platform Admins",
           path: ["audience"],
         });
       }
@@ -151,7 +152,6 @@ export async function GET() {
 
   const staff = isTeamStaff(membership.role);
 
-  // Team-Tickets des aktiven Teams + eigene Admin-Tickets
   const tickets = await prisma.supportTicket.findMany({
     where: {
       OR: [
@@ -203,7 +203,8 @@ export async function POST(req: Request) {
     const team = await prisma.team.findUnique({ where: { id: teamId } });
 
     const isApp = parsed.type === "TEAM_APPLICATION";
-    const audience = isApp ? "TEAM" : parsed.audience;
+    // Bewerbung immer PLATFORM; sonst wie gewählt
+    const audience = isApp ? "PLATFORM" : parsed.audience;
     const isPlatform = audience === "PLATFORM";
 
     const discordName = isApp
@@ -248,7 +249,6 @@ export async function POST(req: Request) {
         },
       });
 
-      // Erste Nachricht: Bewerbung oder Beschreibung
       const firstBody = isApp
         ? `📋 Bewerbung eingereicht\n\nDiscord: ${discordName}\nRolle: ${applyRole}\n\n${description}`
         : description;
@@ -265,21 +265,21 @@ export async function POST(req: Request) {
       return t;
     });
 
-    // Webhook: Team-Tickets + besonders Admin-Tickets
-    void sendSupportTicketWebhook({
-      ticketId: ticket.id,
-      subject: isPlatform
-        ? `[Admin] ${ticket.subject}`
-        : `[${team?.name || "Team"}] ${ticket.subject}`,
-      description: ticket.description,
-      type: ticket.type as any,
-      audience,
-      userName: user.name || "—",
-      userEmail: user.email,
-      discordName: discordName || undefined,
-      applyRole: applyRole || undefined,
-      teamName: team?.name,
-    });
+    // Discord-Ping NUR bei Platform-Tickets (inkl. Team-Bewerbung)
+    if (isPlatform) {
+      void sendSupportTicketWebhook({
+        ticketId: ticket.id,
+        subject: ticket.subject,
+        description: ticket.description,
+        type: ticket.type as any,
+        audience: "PLATFORM",
+        userName: user.name || "—",
+        userEmail: user.email,
+        discordName: discordName || undefined,
+        applyRole: applyRole || undefined,
+        teamName: team?.name,
+      });
+    }
 
     return NextResponse.json(ticket);
   } catch (e: any) {
