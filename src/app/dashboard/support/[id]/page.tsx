@@ -69,7 +69,11 @@ export default function TicketChatPage() {
         setError(data.error || "Fehler");
         return;
       }
-      setTicket(data);
+      // messages immer Array
+      setTicket({
+        ...data,
+        messages: Array.isArray(data.messages) ? data.messages : [],
+      });
     } catch {
       setError("Netzwerkfehler");
     }
@@ -101,7 +105,7 @@ export default function TicketChatPage() {
         return;
       }
       setText("");
-      load();
+      await load();
     } finally {
       setSending(false);
     }
@@ -135,9 +139,10 @@ export default function TicketChatPage() {
   const open = ticket.status === "OPEN";
   const isApp = ticket.type === "TEAM_APPLICATION";
   const meta = typeMeta(ticket.type);
+  const messages = ticket.messages || [];
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] flex-col space-y-4">
+    <div className="flex flex-col gap-4 pb-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Link
@@ -162,7 +167,6 @@ export default function TicketChatPage() {
         )}
       </div>
 
-      {/* Übersicht – alle Kategorien */}
       <div
         className={`rounded-2xl border bg-gradient-to-br to-transparent p-4 ${meta.border} ${meta.bg}`}
       >
@@ -202,42 +206,36 @@ export default function TicketChatPage() {
               </div>
             </>
           )}
-
-          <div className="rounded-xl bg-black/30 px-3 py-2 sm:col-span-2">
-            <p className="mb-1 text-[10px] uppercase text-zinc-500">
-              {isApp ? "Erfahrung & Motivation" : "Beschreibung"}
-            </p>
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-200">
-              {ticket.description || "—"}
-            </p>
-          </div>
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#121214]">
-        <div className="border-b border-white/5 px-4 py-2">
-          <p className="text-xs font-medium text-zinc-500">Nachrichten</p>
+      {/* Nachrichten – feste Mindesthöhe, immer sichtbar */}
+      <div className="flex min-h-[420px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#121214]">
+        <div className="flex items-center justify-between border-b border-white/5 px-4 py-2.5">
+          <p className="text-xs font-medium text-zinc-400">
+            Nachrichten ({messages.length})
+          </p>
         </div>
-        <div className="flex-1 space-y-3 overflow-y-auto p-4">
-          {ticket.messages.length === 0 ? (
-            <p className="py-8 text-center text-sm text-zinc-600">
-              Noch keine Nachrichten – schreib dem Team, wenn du etwas ergänzen
-              möchtest.
+
+        <div className="max-h-[55vh] min-h-[280px] flex-1 space-y-3 overflow-y-auto p-4">
+          {messages.length === 0 ? (
+            <p className="py-10 text-center text-sm text-zinc-600">
+              Noch keine Nachrichten.
             </p>
           ) : (
-            ticket.messages.map((m) => (
+            messages.map((m) => (
               <div
                 key={m.id}
-                className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${
+                className={`max-w-[90%] rounded-xl px-3 py-2.5 text-sm ${
                   m.isStaff
                     ? "ml-auto bg-amber-500/15 text-amber-100"
                     : "bg-white/5 text-zinc-200"
                 }`}
               >
-                <p className="mb-0.5 text-[10px] font-medium text-zinc-500">
+                <p className="mb-1 text-[10px] font-medium text-zinc-500">
                   {m.isStaff
-                    ? `Team · ${m.user.name || "Admin"}`
-                    : m.user.name || "Du"}{" "}
+                    ? `Team · ${m.user?.name || "Admin"}`
+                    : m.user?.name || m.user?.email || "Nutzer"}{" "}
                   ·{" "}
                   {new Date(m.createdAt).toLocaleString("de-DE", {
                     day: "2-digit",
@@ -246,7 +244,7 @@ export default function TicketChatPage() {
                     minute: "2-digit",
                   })}
                 </p>
-                <p className="whitespace-pre-wrap">{m.body}</p>
+                <p className="whitespace-pre-wrap leading-relaxed">{m.body}</p>
               </div>
             ))
           )}

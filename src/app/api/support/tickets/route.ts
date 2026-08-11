@@ -8,7 +8,6 @@ import {
   isTeamStaff,
   resolveActiveTeamId,
 } from "@/lib/teams";
-import { isAdminRole } from "@/lib/roles";
 import { z } from "zod";
 
 const createSchema = z
@@ -144,7 +143,6 @@ export async function GET() {
 
   const staff = isTeamStaff(membership.role);
 
-  // Team-Owner/Admin: alle Team-Tickets; Member: eigene + alle Team-Tickets (sichtbar im Team)
   const tickets = await prisma.supportTicket.findMany({
     where: { teamId },
     orderBy: { updatedAt: "desc" },
@@ -219,16 +217,38 @@ export async function POST(req: Request) {
       ? `Team-Bewerbung · ${applyRole}`
       : parsed.subject!.trim();
 
-    const ticket = await prisma.supportTicket.create({
-      data: {
-        teamId,
-        userId: session.user.id,
-        subject,
-        description,
-        type: parsed.type,
-        discordName,
-        applyRole,
-      },
+    // Ticket + erste Nachricht (Bewerbungstext) in einer Transaktion
+    const ticket = await prisma.$transaction(async (tx) => {
+      const t = await tx.supportTicket.create({
+        data: {
+          teamId,
+          userId: session.user.id,
+          subject,
+          description,
+          type: parsed.type,
+          discordName,
+          applyRole,
+        },
+      });
+
+      // Erste Nachricht = Inhalt, damit im Chat sichtbar
+      await tx.supportMessage.create({
+        data: {
+          ticketId: t.id,
+          userId: session.user.id,
+          body: isApp
+            ? `📋 Bewerbung eingereicht
+
+Discord: ${discordName}
+Rolle: ${applyRole}
+
+${description}`
+            : description,
+          isStaff: false,
+        },
+      });
+
+      return t;
     });
 
     void sendSupportTicketWebhook({
@@ -245,7 +265,8 @@ export async function POST(req: Request) {
     return NextResponse.json(ticket);
   } catch (e: any) {
     if (e?.name === "ZodError") {
-      const msg = e.errors?.[0]?.message || "Bitte alle Pflichtfelder korrekt ausfüllen";
+      const msg =
+        e.errors?.[0]?.message || "Bitte alle Pflichtfelder korrekt ausfüllen";
       return NextResponse.json({ error: msg }, { status: 400 });
     }
     console.error(e);
