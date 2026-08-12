@@ -17,6 +17,7 @@ import {
   type LocaleCode,
   type LocaleInfo,
 } from "@/lib/i18n/locales";
+import { localeFromPathname, withLocalePrefix } from "@/lib/i18n/path";
 import { translate, type TranslationKey } from "@/lib/i18n/translations";
 
 type I18nContextValue = {
@@ -31,6 +32,8 @@ const I18nContext = createContext<I18nContextValue | null>(null);
 
 function readStoredLocale(): LocaleCode {
   if (typeof window === "undefined") return DEFAULT_LOCALE;
+  const fromPath = localeFromPathname(window.location.pathname);
+  if (fromPath) return fromPath;
   try {
     const raw = localStorage.getItem(LOCALE_STORAGE_KEY);
     if (raw && isLocaleCode(raw)) return raw;
@@ -65,9 +68,27 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     setReady(true);
   }, []);
 
+  useEffect(() => {
+    if (!ready) return;
+    const onChange = () => {
+      const fromPath = localeFromPathname(window.location.pathname);
+      if (fromPath && fromPath !== locale) {
+        setLocaleState(fromPath);
+        persistLocale(fromPath);
+      }
+    };
+    window.addEventListener("popstate", onChange);
+    return () => window.removeEventListener("popstate", onChange);
+  }, [ready, locale]);
+
   const setLocale = useCallback((code: LocaleCode) => {
     setLocaleState(code);
     persistLocale(code);
+    if (typeof window !== "undefined") {
+      const next = withLocalePrefix(window.location.pathname, code);
+      const search = window.location.search || "";
+      window.location.assign(next + search);
+    }
   }, []);
 
   useEffect(() => {
