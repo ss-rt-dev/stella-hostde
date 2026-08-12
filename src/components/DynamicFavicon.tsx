@@ -2,8 +2,10 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
+import { stripLocalePrefix } from "@/lib/i18n/path";
 
-function resolveFavicon(pathname: string): { href: string; type: string } {
+function resolveFavicon(rawPath: string): { href: string; type: string } {
+  const pathname = stripLocalePrefix(rawPath);
   if (pathname.startsWith("/admin")) {
     return { href: "/admin-icon", type: "image/png" };
   }
@@ -14,7 +16,6 @@ function resolveFavicon(pathname: string): { href: string; type: string } {
 }
 
 function applyFavicon(href: string, type: string) {
-  // Alle bestehenden Icon-Links entfernen (auch von Next metadata)
   document
     .querySelectorAll(
       'link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]'
@@ -41,7 +42,7 @@ function applyFavicon(href: string, type: string) {
   document.head.appendChild(apple);
 }
 
-/** Favicon je Bereich: Landing S · User gelb · Team weiß */
+/** Favicon je Bereich: Landing · User · Admin */
 export function DynamicFavicon() {
   const pathname = usePathname() || "/";
 
@@ -49,7 +50,6 @@ export function DynamicFavicon() {
     const { href, type } = resolveFavicon(pathname);
     applyFavicon(href, type);
 
-    // Falls Next.js nach Hydration wieder Metadata-Links einfügt → erneut setzen
     const observer = new MutationObserver(() => {
       const current = document.querySelector('link[rel="icon"]') as HTMLLinkElement | null;
       if (!current || !current.href.includes(href.replace(/^\//, ""))) {
