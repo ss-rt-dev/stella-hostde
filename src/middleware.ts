@@ -1,33 +1,17 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import {
-  DEFAULT_LOCALE,
-  type LocaleCode,
-} from "@/lib/i18n/locales";
+import { DEFAULT_LOCALE, type LocaleCode } from "@/lib/i18n/locales";
 import {
   isLocalePrefix,
   localeFromPrefix,
   stripLocalePrefix,
   urlPrefixForLocale,
-  withLocalePrefix,
   resolveLocaleCode,
 } from "@/lib/i18n/path";
 
 const COOKIE = "stella-locale";
 
-function pickFromAcceptLanguage(header: string | null): LocaleCode {
-  if (!header) return DEFAULT_LOCALE;
-  const parts = header.split(",").map((p) => p.trim().split(";")[0].toLowerCase());
-  for (const p of parts) {
-    const resolved = resolveLocaleCode(p);
-    if (resolved !== DEFAULT_LOCALE || p.startsWith("de")) return resolved;
-  }
-  return DEFAULT_LOCALE;
-}
-
-export function middleware(req: NextRequest) {
-  const { pathname, search } = req.nextUrl;
-
+function isStaticOrApi(pathname: string): boolean {
   if (
     pathname.startsWith("/api") ||
     pathname.startsWith("/_next") ||
@@ -36,25 +20,35 @@ export function middleware(req: NextRequest) {
     pathname.startsWith("/dashboard-icon") ||
     pathname.startsWith("/landing-icon")
   ) {
-    return NextResponse.next();
+    return true;
   }
-
   const last = pathname.split("/").pop() || "";
-  if (last.includes(".") && !last.startsWith(".")) {
+  return last.includes(".") && !last.startsWith(".");
+}
+
+export function middleware(req: NextRequest) {
+  const { pathname, search } = req.nextUrl;
+
+  if (isStaticOrApi(pathname)) {
     return NextResponse.next();
   }
 
   const segments = pathname.split("/").filter(Boolean);
   const first = segments[0];
 
-  // 1) Locale-Prefix vorhanden
+  const cookieRaw = req.cookies.get(COOKIE)?.value;
+  const cookieLocale: LocaleCode = cookieRaw
+    ? resolveLocaleCode(cookieRaw)
+    : DEFAULT_LOCALE;
+
+  // Pfad MIT Locale-Prefix: /en/dashboard, /lb/…, /lu/… (Alias)
   if (first && isLocalePrefix(first)) {
     const locale = localeFromPrefix(first);
     const canonical = urlPrefixForLocale(locale);
     const rest = stripLocalePrefix(pathname);
     const restPath = rest === "/" ? "" : rest;
 
-    // Alias → kanonisch: /lu → /lb, /gb → /en, /jp → /ja
+    // Alias → kanonisch (/lu → /lb, /gb → /en)
     if (first.toLowerCase() !== canonical) {
       const target = `/${canonical}${restPath}${search}`;
       const res = NextResponse.redirect(new URL(target, req.url));
@@ -66,36 +60,42 @@ export function middleware(req: NextRequest) {
       return res;
     }
 
+    // WICHTIG: Header am Request setzen, damit Server Components sie lesen
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set("x-pathname", rest === "/" ? "/" : rest);
+    requestHeaders.set("x-locale", locale);
+
     const url = req.nextUrl.clone();
     url.pathname = rest === "/" ? "/" : rest;
 
-    const res = NextResponse.rewrite(url);
+    const res = NextResponse.rewrite(url, {
+      request: { headers: requestHeaders },
+    });
     res.cookies.set(COOKIE, locale, {
       path: "/",
       maxAge: 60 * 60 * 24 * 365,
       sameSite: "lax",
     });
-    res.headers.set("x-pathname", rest === "/" ? "/" : rest);
-    res.headers.set("x-locale", locale);
     return res;
   }
 
-  // 2) Kein Prefix → Redirect auf /{lang}/…
-  const cookieLocale = req.cookies.get(COOKIE)?.value;
-  let locale: LocaleCode = DEFAULT_LOCALE;
-  if (cookieLocale) {
-    locale = resolveLocaleCode(cookieLocale);
-  } else {
-    locale = pickFromAcceptLanguage(req.headers.get("accept-language"));
+  // Pfad OHNE Prefix: normal weiter, Header + Cookie setzen (kein Redirect-Zwang)
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-pathname", pathname);
+  requestHeaders.set("x-locale", cookieLocale);
+
+  const res = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
+
+  if (!cookieRaw) {
+    res.cookies.set(COOKIE, cookieLocale, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+    });
   }
 
-  const target = withLocalePrefix(pathname, locale) + search;
-  const res = NextResponse.redirect(new URL(target, req.url));
-  res.cookies.set(COOKIE, locale, {
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365,
-    sameSite: "lax",
-  });
   return res;
 }
 

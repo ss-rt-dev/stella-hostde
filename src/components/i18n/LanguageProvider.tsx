@@ -21,6 +21,7 @@ import {
   localeFromPathname,
   resolveLocaleCode,
   withLocalePrefix,
+  stripLocalePrefix,
 } from "@/lib/i18n/path";
 import { translate, type TranslationKey } from "@/lib/i18n/translations";
 
@@ -54,7 +55,9 @@ function readLocale(): LocaleCode {
 function persistLocale(code: LocaleCode) {
   try {
     localStorage.setItem(LOCALE_STORAGE_KEY, code);
-    document.cookie = `stella-locale=${encodeURIComponent(code)};path=/;max-age=31536000;SameSite=Lax`;
+    document.cookie = `stella-locale=${encodeURIComponent(
+      code
+    )};path=/;max-age=31536000;SameSite=Lax`;
     document.documentElement.lang = code;
   } catch {
     /* ignore */
@@ -74,38 +77,31 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!ready) return;
-
     const sync = () => {
       const fromPath = localeFromPathname(window.location.pathname);
       if (fromPath) {
         setLocaleState((prev) => {
-          if (prev !== fromPath) {
-            persistLocale(fromPath);
-            return fromPath;
-          }
-          return prev;
+          if (prev === fromPath) return prev;
+          persistLocale(fromPath);
+          return fromPath;
         });
       }
     };
-
-    sync();
     window.addEventListener("popstate", sync);
-    const id = window.setInterval(sync, 400);
-    return () => {
-      window.removeEventListener("popstate", sync);
-      window.clearInterval(id);
-    };
+    return () => window.removeEventListener("popstate", sync);
   }, [ready]);
 
   const setLocale = useCallback((code: LocaleCode) => {
-    const next = isLocaleCode(code) ? code : resolveLocaleCode(code);
+    const next = isLocaleCode(code) ? code : resolveLocaleCode(String(code));
     setLocaleState(next);
     persistLocale(next);
-    if (typeof window !== "undefined") {
-      const path = withLocalePrefix(window.location.pathname, next);
-      const search = window.location.search || "";
-      window.location.assign(path + search);
-    }
+
+    if (typeof window === "undefined") return;
+
+    const clean = stripLocalePrefix(window.location.pathname);
+    const nextPath = withLocalePrefix(clean, next);
+    const search = window.location.search || "";
+    window.location.assign(nextPath + search);
   }, []);
 
   useEffect(() => {
@@ -123,7 +119,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     [locale, setLocale]
   );
 
-  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
+  return (
+    <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
+  );
 }
 
 export function useI18n() {

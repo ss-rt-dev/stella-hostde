@@ -28,8 +28,10 @@ export default async function DashboardLayout({
   if (!session) redirect("/login");
 
   const h = await headers();
-  const path = h.get("x-pathname") || "";
+  const path = (h.get("x-pathname") || "").split("?")[0];
+  // Fallback: wenn Header fehlt, Setup-Routen nicht fälschlich blockieren
   const isSetup =
+    !path ||
     path === "/dashboard/onboarding" ||
     path.startsWith("/dashboard/onboarding/") ||
     path === "/dashboard/teams" ||
