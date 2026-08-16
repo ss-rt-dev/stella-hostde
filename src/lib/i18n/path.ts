@@ -1,16 +1,20 @@
 import {
   DEFAULT_LOCALE,
   LOCALES,
-  getLocaleInfo,
   isLocaleCode,
   type LocaleCode,
 } from "./locales";
 
-/** Alle erlaubten URL-Prefixe: Ländercode (gb) + Sprachcode (en) */
+/**
+ * Prefix → LocaleCode
+ * Akzeptiert Sprachcode (lb, en, de) UND Ländercode (lu, gb, de)
+ */
 const PREFIX_TO_LOCALE = new Map<string, LocaleCode>();
+
 for (const l of LOCALES) {
-  PREFIX_TO_LOCALE.set(l.country.toLowerCase(), l.code);
   PREFIX_TO_LOCALE.set(l.code.toLowerCase(), l.code);
+  PREFIX_TO_LOCALE.set(l.country.toLowerCase(), l.code);
+  PREFIX_TO_LOCALE.set(l.label.toLowerCase(), l.code);
 }
 
 export function isLocalePrefix(segment: string | undefined): boolean {
@@ -22,14 +26,15 @@ export function localeFromPrefix(segment: string): LocaleCode {
   return PREFIX_TO_LOCALE.get(segment.toLowerCase()) || DEFAULT_LOCALE;
 }
 
-/** URL-Prefix für eine Sprache: en → gb, de → de, uk → ua */
+/** Kanonischer URL-Prefix = Sprachcode (en, lb, de, ja, …) */
 export function urlPrefixForLocale(code: LocaleCode): string {
-  return getLocaleInfo(code).country.toLowerCase();
+  return code;
 }
 
 /**
  * Entfernt optionalen Locale-Prefix vom Pfad.
- * /gb/dashboard/support → /dashboard/support
+ * /lb/dashboard/support → /dashboard/support
+ * /lu/dashboard → /dashboard  (Alias)
  * /de → /
  */
 export function stripLocalePrefix(pathname: string): string {
@@ -42,7 +47,7 @@ export function stripLocalePrefix(pathname: string): string {
   return rest.length === 0 ? "/" : `/${rest.join("/")}`;
 }
 
-/** Fügt Locale-Prefix hinzu (ersetzt vorhandenen). */
+/** Fügt kanonischen Locale-Prefix hinzu (ersetzt vorhandenen). */
 export function withLocalePrefix(pathname: string, code: LocaleCode): string {
   const clean = stripLocalePrefix(pathname);
   const prefix = urlPrefixForLocale(code);
@@ -59,8 +64,16 @@ export function localeFromPathname(pathname: string): LocaleCode | null {
 
 export function resolveLocaleCode(raw: string | null | undefined): LocaleCode {
   if (!raw) return DEFAULT_LOCALE;
-  const lower = raw.toLowerCase();
+  const lower = raw.toLowerCase().trim();
   if (isLocaleCode(lower)) return lower;
   if (PREFIX_TO_LOCALE.has(lower)) return PREFIX_TO_LOCALE.get(lower)!;
+  const base = lower.split("-")[0];
+  if (isLocaleCode(base)) return base;
+  if (PREFIX_TO_LOCALE.has(base)) return PREFIX_TO_LOCALE.get(base)!;
   return DEFAULT_LOCALE;
+}
+
+/** Alle gültigen Prefixe */
+export function allLocalePrefixes(): string[] {
+  return Array.from(PREFIX_TO_LOCALE.keys()).sort();
 }
