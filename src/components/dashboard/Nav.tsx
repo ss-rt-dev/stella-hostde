@@ -50,7 +50,7 @@ function Icon({ type }: { type: string }) {
   if (type === "users")
     return (
       <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 018 0z" />
       </svg>
     );
   if (type === "switch")
@@ -75,9 +75,22 @@ type Props = {
   user: { name?: string | null; email?: string | null; role?: string };
   platformAdmin?: boolean;
   setupMode?: boolean;
+  activeTeam?: {
+    id: string;
+    name: string;
+    role: string;
+    inviteCode?: string;
+  } | null;
+  teamCount?: number;
 };
 
-export function DashboardNav({ user, platformAdmin, setupMode }: Props) {
+export function DashboardNav({
+  user,
+  platformAdmin,
+  setupMode,
+  activeTeam,
+  teamCount,
+}: Props) {
   const rawPath = usePathname() || "/";
   const { t, locale } = useI18n();
   const pathname = stripLocalePrefix(rawPath);
@@ -159,9 +172,12 @@ export function DashboardNav({ user, platformAdmin, setupMode }: Props) {
         <Image src={logo} alt="Stella" width={32} height={32} className="rounded-lg" unoptimized />
         <div className="min-w-0">
           <Link href={loc("/dashboard")} className="block truncate text-sm font-semibold text-white">
-            Stella Dashboard
+            {activeTeam?.name || "Stella Dashboard"}
           </Link>
-          <p className="truncate text-[11px] text-zinc-500">{user.email}</p>
+          <p className="truncate text-[11px] text-zinc-500">
+            {activeTeam ? `${activeTeam.role} · ${user.email}` : user.email}
+            {typeof teamCount === "number" && teamCount > 1 ? ` · ${teamCount}` : ""}
+          </p>
         </div>
       </div>
 
