@@ -31,8 +31,8 @@ export default async function AdminLayout({
   return (
     <div className="min-h-screen bg-[#0a0a0c] text-zinc-100">
       <DashboardNav user={session.user as any} platformAdmin />
-      <main className="lg:pl-[240px]">
-        <div className="mx-auto max-w-[1200px] px-4 py-5 pb-24 lg:px-6 lg:py-6 lg:pb-8">
+      <main className="min-h-screen lg:pl-[240px]">
+        <div className="mx-auto max-w-[1200px] px-4 py-5 pb-28 lg:px-6 lg:py-6 lg:pb-8">
           <PageTransition>{children}</PageTransition>
         </div>
       </main>

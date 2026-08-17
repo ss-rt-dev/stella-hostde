@@ -29,7 +29,6 @@ export default async function DashboardLayout({
 
   const h = await headers();
   const path = (h.get("x-pathname") || "").split("?")[0];
-  // Fallback: wenn Header fehlt, Setup-Routen nicht fälschlich blockieren
   const isSetup =
     !path ||
     path === "/dashboard/onboarding" ||
@@ -76,8 +75,8 @@ export default async function DashboardLayout({
         teamCount={memberships.length}
         setupMode={isSetup || memberships.length === 0}
       />
-      <main className="lg:pl-[240px]">
-        <div className="mx-auto max-w-[1400px] px-3 py-4 pb-24 sm:px-4 lg:px-6 lg:py-5 lg:pb-8">
+      <main className="min-h-screen lg:pl-[240px]">
+        <div className="mx-auto max-w-[1400px] px-3 py-4 pb-28 sm:px-4 lg:px-6 lg:py-5 lg:pb-8">
           <PageTransition>{children}</PageTransition>
         </div>
       </main>
