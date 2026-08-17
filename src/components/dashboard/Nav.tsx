@@ -50,7 +50,7 @@ function Icon({ type }: { type: string }) {
   if (type === "users")
     return (
       <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 018 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
       </svg>
     );
   if (type === "switch")
@@ -135,7 +135,13 @@ export function DashboardNav({
   }
 
   function loc(href: string) {
-    return withLocalePrefix(href, locale);
+    // Locale nur anhängen, wenn schon eine Locale-URL aktiv ist
+    if (localeFromPath(rawPath)) return withLocalePrefix(href, locale);
+    return href;
+  }
+
+  function localeFromPath(path: string): boolean {
+    return stripLocalePrefix(path) !== path || path.match(/^\/[a-z]{2}(\/|$)/) !== null;
   }
 
   function NavLink({
@@ -166,101 +172,155 @@ export function DashboardNav({
     );
   }
 
+  const mobileLinks = setupMode
+    ? [
+        { href: "/dashboard/teams", labelKey: "nav_teams" as TranslationKey, icon: "switch" },
+        { href: "/dashboard/onboarding", labelKey: "onboarding_title" as TranslationKey, icon: "home" },
+      ]
+    : onAdmin
+      ? platformLinks.slice(0, 5).map((l) => ({
+          href: l.href,
+          labelKey: l.labelKey,
+          icon: l.icon,
+        }))
+      : [
+          { href: "/dashboard", labelKey: "nav_overview" as TranslationKey, icon: "home" },
+          { href: "/dashboard/todos", labelKey: "nav_tasks" as TranslationKey, icon: "check" },
+          { href: "/dashboard/chat", labelKey: "nav_chat" as TranslationKey, icon: "chat" },
+          { href: "/dashboard/team", labelKey: "nav_members" as TranslationKey, icon: "users" },
+          { href: "/dashboard/support", labelKey: "nav_support" as TranslationKey, icon: "support" },
+        ];
+
   return (
-    <aside className="flex h-full w-[240px] flex-col border-r border-white/5 bg-[#0c0c0e]">
-      <div className="flex items-center gap-3 border-b border-white/5 px-4 py-4">
-        <Image src={logo} alt="Stella" width={32} height={32} className="rounded-lg" unoptimized />
-        <div className="min-w-0">
-          <Link href={loc("/dashboard")} className="block truncate text-sm font-semibold text-white">
-            {activeTeam?.name || "Stella Dashboard"}
-          </Link>
-          <p className="truncate text-[11px] text-zinc-500">
-            {activeTeam ? `${activeTeam.role} · ${user.email}` : user.email}
-            {typeof teamCount === "number" && teamCount > 1 ? ` · ${teamCount}` : ""}
-          </p>
+    <>
+      {/* Desktop Sidebar – fixed, volle Höhe links */}
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[240px] flex-col border-r border-white/5 bg-[#0c0c0e] lg:flex">
+        <div className="flex shrink-0 items-center gap-3 border-b border-white/5 px-4 py-4">
+          <Image src={logo} alt="Stella" width={32} height={32} className="rounded-lg" unoptimized />
+          <div className="min-w-0">
+            <Link href={loc("/dashboard")} className="block truncate text-sm font-semibold text-white">
+              {activeTeam?.name || "Stella Dashboard"}
+            </Link>
+            <p className="truncate text-[11px] text-zinc-500">
+              {activeTeam ? `${activeTeam.role} · ${user.email}` : user.email}
+              {typeof teamCount === "number" && teamCount > 1 ? ` · ${teamCount}` : ""}
+            </p>
+          </div>
         </div>
-      </div>
 
-      <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
-        {!setupMode && (
-          <>
-            <div>
-              <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
-                {t("workspace")}
-              </p>
-              <div className="space-y-0.5">
-                {workspaceLinks.map((l) => (
-                  <NavLink key={l.href} href={l.href} label={t(l.labelKey)} icon={l.icon} />
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
-                {t("account")}
-              </p>
-              <div className="space-y-0.5">
-                {accountLinks.map((l) => (
-                  <NavLink key={l.href} href={l.href} label={t(l.labelKey)} icon={l.icon} />
-                ))}
-              </div>
-            </div>
-
-            {isPlatformAdmin && (
+        <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
+          {!setupMode && (
+            <>
               <div>
                 <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
-                  {t("platform")}
+                  {t("workspace")}
                 </p>
                 <div className="space-y-0.5">
-                  <NavLink href="/admin" label={t("admin_area")} icon="admin" exact />
+                  {workspaceLinks.map((l) => (
+                    <NavLink key={l.href} href={l.href} label={t(l.labelKey)} icon={l.icon} />
+                  ))}
                 </div>
               </div>
-            )}
-          </>
-        )}
 
-        {setupMode && (
-          <div className="space-y-0.5">
-            <NavLink href="/dashboard/teams" label={t("nav_teams")} icon="switch" />
-            <NavLink href="/dashboard/onboarding" label={t("onboarding_title")} icon="home" />
-          </div>
-        )}
+              <div>
+                <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
+                  {t("account")}
+                </p>
+                <div className="space-y-0.5">
+                  {accountLinks.map((l) => (
+                    <NavLink key={l.href} href={l.href} label={t(l.labelKey)} icon={l.icon} />
+                  ))}
+                </div>
+              </div>
 
-        {onAdmin && isPlatformAdmin && (
-          <div>
-            <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
-              {t("platform_admin")}
-            </p>
+              {isPlatformAdmin && (
+                <div>
+                  <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
+                    {t("platform")}
+                  </p>
+                  <div className="space-y-0.5">
+                    <NavLink href="/admin" label={t("admin_area")} icon="admin" exact />
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {setupMode && (
             <div className="space-y-0.5">
-              {platformLinks.map((l) => (
-                <NavLink
-                  key={l.href}
-                  href={l.href}
-                  label={t(l.labelKey)}
-                  icon={l.icon}
-                  exact={l.exact}
-                />
-              ))}
+              <NavLink href="/dashboard/teams" label={t("nav_teams")} icon="switch" />
+              <NavLink href="/dashboard/onboarding" label={t("onboarding_title")} icon="home" />
             </div>
-          </div>
-        )}
-      </nav>
+          )}
 
-      <div className="border-t border-white/5 p-3 space-y-1">
-        <Link
-          href={loc(onAdmin ? "/dashboard" : "/dashboard/teams")}
-          className="flex items-center gap-2 rounded-xl px-3 py-2 text-[12px] text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
-        >
-          {onAdmin ? t("to_workspace") : t("switch_teams")}
-        </Link>
-        <button
-          type="button"
-          onClick={() => signOut({ callbackUrl: loc("/login") })}
-          className="w-full rounded-xl px-3 py-2 text-left text-[12px] text-zinc-500 hover:bg-white/5 hover:text-red-400"
-        >
-          {t("logout")}
-        </button>
-      </div>
-    </aside>
+          {onAdmin && isPlatformAdmin && (
+            <div>
+              <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
+                {t("platform_admin")}
+              </p>
+              <div className="space-y-0.5">
+                {platformLinks.map((l) => (
+                  <NavLink
+                    key={l.href}
+                    href={l.href}
+                    label={t(l.labelKey)}
+                    icon={l.icon}
+                    exact={l.exact}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </nav>
+
+        <div className="shrink-0 space-y-1 border-t border-white/5 p-3">
+          <Link
+            href={loc(onAdmin ? "/dashboard" : "/dashboard/teams")}
+            className="flex items-center gap-2 rounded-xl px-3 py-2 text-[12px] text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
+          >
+            {onAdmin ? t("to_workspace") : t("switch_teams")}
+          </Link>
+          <button
+            type="button"
+            onClick={() => signOut({ callbackUrl: loc("/login") })}
+            className="w-full rounded-xl px-3 py-2 text-left text-[12px] text-zinc-500 hover:bg-white/5 hover:text-red-400"
+          >
+            {t("logout")}
+          </button>
+        </div>
+      </aside>
+
+      {/* Mobile Top Bar */}
+      <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-white/5 bg-[#0c0c0e]/95 px-3 py-3 backdrop-blur-md lg:hidden">
+        <Image src={logo} alt="Stella" width={28} height={28} className="rounded-lg" unoptimized />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-white">
+            {activeTeam?.name || "Stella Dashboard"}
+          </p>
+          <p className="truncate text-[11px] text-zinc-500">{user.email}</p>
+        </div>
+      </header>
+
+      {/* Mobile Bottom Nav */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#0c0c0e]/95 backdrop-blur-xl lg:hidden">
+        <div className="mx-auto flex max-w-lg items-stretch justify-around px-1 pb-[env(safe-area-inset-bottom)]">
+          {mobileLinks.map((l) => {
+            const active = isActive(l.href, l.href === "/admin" || l.href === "/dashboard");
+            return (
+              <Link
+                key={l.href}
+                href={loc(l.href)}
+                className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-2 text-[10px] ${
+                  active ? "text-amber-300" : "text-zinc-500"
+                }`}
+              >
+                <Icon type={l.icon} />
+                <span className="w-full truncate text-center">{t(l.labelKey)}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    </>
   );
 }
